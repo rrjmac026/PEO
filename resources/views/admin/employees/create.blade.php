@@ -55,17 +55,17 @@
                     <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Only users without an existing employee record are shown</p>
                 </div>
 
-                <!-- Employee ID -->
+                <!-- Employee Number -->
                 <div>
-                    <label for="employee_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-id-card mr-2 text-indigo-600 dark:text-indigo-400"></i>Employee ID
+                    <label for="employee_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-id-card mr-2 text-indigo-600 dark:text-indigo-400"></i>Employee Number
                         <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="employee_id" id="employee_id" required
-                           value="{{ old('employee_id') }}"
+                    <input type="text" name="employee_number" id="employee_number" required
+                           value="{{ old('employee_number') }}"
                            placeholder="e.g., EMP001"
-                           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ease-in-out duration-150 @error('employee_id') border-red-500 @enderror">
-                    @error('employee_id')
+                           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ease-in-out duration-150 @error('employee_number') border-red-500 @enderror">
+                    @error('employee_number')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>

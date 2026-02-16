@@ -64,11 +64,14 @@ class UserWorkRequestController extends Controller
         
         $workRequest = WorkRequest::create($validated);
         
-        // Log the creation
-        $workRequest->addLog(WorkRequestLog::EVENT_CREATED, [
-            'description' => 'Work request created by user',
-            'user_id' => Auth::id(),
-        ]);
+        // Log the creation with employee_id (only if employee exists)
+        $logData = ['description' => 'Work request created by user'];
+        
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
+        
+        $workRequest->addLog(WorkRequestLog::EVENT_CREATED, $logData);
         
         return redirect()
             ->route('user.work-requests.show', $workRequest)

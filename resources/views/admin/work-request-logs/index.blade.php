@@ -139,7 +139,7 @@
                                             </a>
                                         </div>
                                     @else
-                                        <span class="text-gray-400 text-sm italic">Unknown User</span>
+                                        <span class="text-gray-500 text-sm italic">System User</span>
                                     @endif
                                 </td>
 

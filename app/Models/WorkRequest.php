@@ -113,10 +113,6 @@ class WorkRequest extends Model
     // Relationships
     // ---------------------------------------------------------------
 
-    public function logs()
-    {
-        return $this->hasMany(WorkRequestLog::class)->latest();
-    }
 
     // ---------------------------------------------------------------
     // Scopes
@@ -181,44 +177,36 @@ class WorkRequest extends Model
         ];
     }
 
+    
+
     // ---------------------------------------------------------------
     // Logging helpers
     // ---------------------------------------------------------------
 
     /**
-     * Record any event on this work request.
-     *
-     * @param  string       $event      WorkRequestLog::EVENT_* constant
-     * @param  array        $options    [
-     *     'description' => string,
-     *     'note'        => string,
-     *     'changes'     => array,   // [field => [old, new]]
-     *     'status_from' => string,
-     *     'status_to'   => string,
-     *     'employee_id' => int,     // override auth user
-     * ]
+     * Add a log entry for this work request
      */
-    public function addLog(string $event, array $options = []): WorkRequestLog
+    public function addLog(string $event, array $data = []): WorkRequestLog
     {
-        $authUser = Auth::user();
-        
-        // Get the employee record for the authenticated user
-        $employee = null;
-        if ($authUser) {
-            $employee = Employee::where('user_id', $authUser->id)->first();
-        }
-
         return $this->logs()->create([
-            'employee_id'  => $options['employee_id'] ?? $employee?->id,
-            'event'        => $event,
-            'status_from'  => $options['status_from'] ?? null,
-            'status_to'    => $options['status_to']   ?? null,
-            'description'  => $options['description'] ?? null,
-            'changes'      => $options['changes']      ?? null,
-            'note'         => $options['note']         ?? null,
-            'ip_address'   => Request::ip(),
-            'user_agent'   => Request::userAgent(),
+            'event' => $event,
+            'employee_id' => $data['employee_id'] ?? Auth::user()->employee?->id ?? null,
+            'description' => $data['description'] ?? null,
+            'note' => $data['note'] ?? null,
+            'changes' => $data['changes'] ?? null,
+            'status_from' => $data['status_from'] ?? null,
+            'status_to' => $data['status_to'] ?? null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ]);
+    }
+
+    /**
+     * Get all logs for this work request
+     */
+    public function logs()
+    {
+        return $this->hasMany(WorkRequestLog::class)->orderBy('created_at', 'desc');
     }
 
     /**

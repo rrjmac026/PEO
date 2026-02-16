@@ -165,13 +165,6 @@
                                                     </a>
                                                 @endif
 
-                                                {{-- Activity Log Button --}}
-                                                <a href="{{ route('admin.work-requests.logs', $request) }}"
-                                                   class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
-                                                   title="View Activity Log">
-                                                    <i class="fas fa-history"></i>
-                                                </a>
-
                                                 {{-- Print Button --}}
                                                 <a href="{{ route('admin.work-requests.print', $request) }}" 
                                                    class="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" 

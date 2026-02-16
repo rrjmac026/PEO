@@ -36,13 +36,13 @@ class EmployeeManagementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'user_id'     => 'required|exists:users,id|unique:employees,user_id',
-            'employee_id' => 'required|string|unique:employees,employee_id',
-            'position'    => 'required|string|max:255',
-            'department'  => 'required|string|max:255',
-            'phone'       => 'nullable|string|max:20',
-            'office'      => 'nullable|string|max:255',
-            'signature_path' => 'nullable|string',
+            'user_id'         => 'required|exists:users,id|unique:employees,user_id',
+            'employee_number' => 'required|string|unique:employees,employee_number',
+            'position'        => 'required|string|max:255',
+            'department'      => 'required|string|max:255',
+            'phone'           => 'nullable|string|max:20',
+            'office'          => 'nullable|string|max:255',
+            'signature_path'  => 'nullable|string',
         ]);
 
         Employee::create($request->all());
@@ -73,13 +73,13 @@ class EmployeeManagementController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $request->validate([
-            'user_id'     => 'required|exists:users,id|unique:employees,user_id,' . $employee->id,
-            'employee_id' => 'required|string|unique:employees,employee_id,' . $employee->id,
-            'position'    => 'required|string|max:255',
-            'department'  => 'required|string|max:255',
-            'phone'       => 'nullable|string|max:20',
-            'office'      => 'nullable|string|max:255',
-            'signature_path' => 'nullable|string',
+            'user_id'         => 'required|exists:users,id|unique:employees,user_id,' . $employee->id,
+            'employee_number' => 'required|string|unique:employees,employee_number,' . $employee->id,
+            'position'        => 'required|string|max:255',
+            'department'      => 'required|string|max:255',
+            'phone'           => 'nullable|string|max:20',
+            'office'          => 'nullable|string|max:255',
+            'signature_path'  => 'nullable|string',
         ]);
 
         $employee->update($request->all());

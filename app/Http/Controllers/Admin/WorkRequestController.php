@@ -10,6 +10,7 @@ use App\Imports\EmployeesImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 
 class WorkRequestController extends Controller
@@ -21,6 +22,9 @@ class WorkRequestController extends Controller
     {
         $query = WorkRequest::query();
 
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -107,10 +111,14 @@ class WorkRequestController extends Controller
         
         $workRequest = WorkRequest::create($validated);
         
-        // Log the creation
-        $workRequest->addLog(WorkRequestLog::EVENT_CREATED, [
-            'description' => 'Work request created',
-        ]);
+        // Log the creation with employee_id (only if employee exists)
+        $logData = ['description' => 'Work request created'];
+        
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
+        
+        $workRequest->addLog(WorkRequestLog::EVENT_CREATED, $logData);
         
         return redirect()
             ->route('admin.work-requests.show', $workRequest)

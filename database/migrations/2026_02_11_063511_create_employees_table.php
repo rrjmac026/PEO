@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('department');
             $table->string('phone')->nullable();
             $table->string('office')->nullable();
-            $table->string('employee_id')->unique();
+            $table->string('employee_number')->unique();
             $table->string('signature_path')->nullable(); // For storing signature image path
             
             $table->timestamps();
