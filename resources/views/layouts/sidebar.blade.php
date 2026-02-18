@@ -24,11 +24,13 @@
         x-transition:leave="transform transition-transform duration-300 ease-in-out"
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="-translate-x-full"
+        :class="$store.darkMode.on
+            ? 'bg-[#1a1f2e] border-gray-700/60'
+            : 'bg-white border-gray-200'"
         class="fixed top-16 left-0 z-40 flex flex-col
-               h-[calc(100vh-4rem)] w-72 max-w-[85vw]
-               border-r border-gray-200 dark:border-gray-700/60
-               bg-white dark:bg-[#1a1f2e]
-               shadow-xl lg:shadow-md">
+            h-[calc(100vh-4rem)] w-72 max-w-[85vw]
+            border-r
+            shadow-xl lg:shadow-md">
 
         <!-- ── Nav links (scrollable) ── -->
         <div class="flex-1 overflow-y-auto overflow-x-hidden"
