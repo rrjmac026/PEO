@@ -1,13 +1,21 @@
 <!-- sidebar.blade.php -->
 <div x-data class="h-full">
-    <!-- Backdrop for mobile -->
-    <div x-show="$store.sidebar.isOpen && window.innerWidth < 1024" x-cloak
-        class="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-        @click="$store.sidebar.toggle()">
+
+    <!-- ── Mobile backdrop ── -->
+    <div x-show="$store.sidebar.isOpen"
+         x-cloak
+         x-transition:enter="transition-opacity duration-300 ease-in-out"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity duration-300 ease-in-out"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-30 bg-black/50 lg:hidden"
+         @click="$store.sidebar.isOpen = false">
     </div>
 
-    <!-- Sidebar -->
-    <aside 
+    <!-- ── Sidebar ── -->
+    <aside
         x-show="$store.sidebar.isOpen"
         x-cloak
         x-transition:enter="transform transition-transform duration-300 ease-in-out"
@@ -16,19 +24,17 @@
         x-transition:leave="transform transition-transform duration-300 ease-in-out"
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="-translate-x-full"
-        @click.outside="$store.sidebar.isOpen = false"
-        @click.capture="if ($event.target.closest('a') && window.innerWidth < 1024) $store.sidebar.isOpen = false"
-        :class="{
-            'fixed': window.innerWidth < 1024,
-            'absolute lg:fixed': window.innerWidth >= 1024
-        }"
-        class="top-16 left-0 h-[calc(100vh-4rem)] w-72 max-w-[85vw] sm:max-w-72 border-r shadow-xl z-40 flex flex-col">
-        
-        <!-- Main content wrapper with scrolling -->
+        class="fixed top-16 left-0 z-40 flex flex-col
+               h-[calc(100vh-4rem)] w-72 max-w-[85vw]
+               border-r border-gray-200 dark:border-gray-700/60
+               bg-white dark:bg-[#1a1f2e]
+               shadow-xl lg:shadow-md">
+
+        <!-- ── Nav links (scrollable) ── -->
         <div class="flex-1 overflow-y-auto overflow-x-hidden"
-            @click="if (($event.target.tagName === 'A' || $event.target.closest('a')) && window.innerWidth < 1024) { 
-                $store.sidebar.isOpen = false 
-            }">
+             @click="if (($event.target.tagName === 'A' || $event.target.closest('a')) && window.innerWidth < 1024) {
+                 $store.sidebar.isOpen = false
+             }">
             @if(auth()->user()->role === 'user')
                 @include('layouts.sidebar-user')
             @else
@@ -36,16 +42,19 @@
             @endif
         </div>
 
-        <!-- Footer (not affected by scroll) -->
-        <div class="p-3 sm:p-4 flex-shrink-0">
-            <div class="p-3 sm:p-4 rounded-xl shadow-lg bg-[#FFEEF2]">
-                <div class="flex flex-col items-center justify-center gap-2">
-                    <div class="flex items-center gap-2 text-[#FF92C2]">
-                        <img src="{{ asset('assets/app_logo.PNG') }}" alt="GAS Logo" 
-                         class="w-8 h-8 object-contain">
-                        <span class="text-xs sm:text-sm font-medium">PEO v1.0</span>
-                    </div>
-                </div>
+        <!-- ── Footer pill ── -->
+        <div class="p-3 flex-shrink-0">
+            <div class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl
+                        bg-orange-50  dark:bg-orange-950/40
+                        border border-orange-100 dark:border-orange-900/50">
+                <img src="{{ asset('assets/app_logo.PNG') }}"
+                     alt="PEO Logo"
+                     class="w-7 h-7 object-contain">
+                <span class="text-xs font-semibold
+                             text-orange-600 dark:text-orange-400
+                             tracking-wide">
+                    PEO v1.0
+                </span>
             </div>
         </div>
     </aside>

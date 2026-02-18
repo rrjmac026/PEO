@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Http\JsonResponse;
 
 
 class WorkRequestController extends Controller
@@ -200,50 +202,6 @@ class WorkRequestController extends Controller
         return $pdf->download('work-request-' . $workRequest->id . '.pdf');
     }
 
-    /**
-     * Show CSV import form
-     */
-    public function importForm()
-    {
-        return view('admin.work-requests.import');
-    }
-    /**
-     * Import work requests from CSV
-     */
-    public function importCsv(Request $request)
-    {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:10240',
-        ]);
-
-        try {
-            $import = new EmployeesImport();
-
-            Excel::import($import, $request->file('csv_file'));
-
-            $workRequestCount = WorkRequest::count();
-
-            // Build a flash message that surfaces any row-level failures
-            if (!empty($import->failures)) {
-                $failureMessages = collect($import->failures)->map(function ($failure) {
-                    return "Row {$failure->row()}: " . implode(', ', $failure->errors());
-                })->implode(' | ');
-
-                return redirect()
-                    ->route('admin.work-requests.import.form')
-                    ->with('warning', "Import completed with errors. Total work requests: {$workRequestCount}. Issues: {$failureMessages}");
-            }
-
-            return redirect()
-                ->route('admin.work-requests.import.form')
-                ->with('success', "Work requests imported successfully! Total work requests: {$workRequestCount}");
-
-        } catch (\Exception $e) {
-            return redirect()
-                ->route('admin.work-requests.import.form')
-                ->with('error', 'Import failed: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Update work request status
@@ -260,7 +218,6 @@ class WorkRequestController extends Controller
             ->route('admin.work-requests.show', $workRequest)
             ->with('success', 'Status updated successfully!');
     }
-
     
 
     

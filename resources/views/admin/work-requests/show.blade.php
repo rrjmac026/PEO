@@ -1,4 +1,10 @@
 <x-app-layout>
+    @error('error')
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline">{{ $message }}</span>
+        </div>
+    @enderror
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -22,6 +28,10 @@
                    class="inline-flex items-center px-4 py-2 bg-green-600 dark:bg-green-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 dark:hover:bg-green-600 focus:bg-green-700 dark:focus:bg-green-600 active:bg-green-900 dark:active:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                     <i class="fas fa-download mr-2"></i>
                     {{ __('Download') }}
+                </a>
+                <a href="{{ route('admin.work-requests.export-excel', $workRequest) }}"
+                class="btn btn-success">
+                    Download Excel
                 </a>
                 @if($workRequest->canEdit())
                     <form action="{{ route('admin.work-requests.destroy', $workRequest) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this work request?');">

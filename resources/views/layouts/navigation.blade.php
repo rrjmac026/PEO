@@ -1,5 +1,4 @@
 @php
-    // Prepare a safe notifications array for the inline JS (empty if not available)
     $navNotifications = [];
     if (isset($notifications) && $notifications instanceof \Illuminate\Support\Collection) {
         $navNotifications = $notifications->map(function($notif) {
@@ -13,291 +12,486 @@
             ];
         })->toArray();
     }
-    
-    // Determine dashboard route
+
     $dashboardRoute = match(Auth::user()->role) {
         'admin' => route('admin.dashboard'),
-        'user' => route('user.dashboard'),
+        'user'  => route('user.dashboard'),
         default => '/',
     };
 @endphp
 
+<style>
+    /* ══════════════════════════════════════════
+       NAV DROPDOWN TOKENS — Light
+    ══════════════════════════════════════════ */
+    :root {
+        --nd-surface:    #ffffff;
+        --nd-surface2:   #f8fafc;
+        --nd-surface3:   #f1f5f9;
+        --nd-border:     #e2e8f0;
+        --nd-text:       #0f172a;
+        --nd-text-sec:   #334155;
+        --nd-muted:      #64748b;
+        --nd-shadow:     0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+        --nd-shadow-lg:  0 20px 48px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.08);
+        --nd-accent:     #ea580c;
+        --nd-accent-bg:  #fff7ed;
+        --nd-unread-bg:  #eff6ff;
+        --nd-unread-dot: #3b82f6;
+        --nd-read-bg:    #f0fdf4;
+        --nd-read-dot:   #22c55e;
+    }
+
+    /* ══════════════════════════════════════════
+       NAV DROPDOWN TOKENS — Dark
+    ══════════════════════════════════════════ */
+    .dark {
+        --nd-surface:    #1a1f2e;
+        --nd-surface2:   #1e2335;
+        --nd-surface3:   #242840;
+        --nd-border:     #2a3050;
+        --nd-text:       #e8eaf6;
+        --nd-text-sec:   #c5cae9;
+        --nd-muted:      #7c85a8;
+        --nd-shadow:     0 4px 16px rgba(0,0,0,0.45);
+        --nd-shadow-lg:  0 20px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
+        --nd-accent:     #f97316;
+        --nd-accent-bg:  rgba(249,115,22,0.10);
+        --nd-unread-bg:  rgba(59,130,246,0.10);
+        --nd-unread-dot: #60a5fa;
+        --nd-read-bg:    rgba(34,197,94,0.08);
+        --nd-read-dot:   #4ade80;
+    }
+
+    /* ── Shared dropdown shell ── */
+    .nd-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 12px);
+        border-radius: 14px;
+        border: 1px solid var(--nd-border);
+        background: var(--nd-surface);
+        box-shadow: var(--nd-shadow-lg);
+        overflow: hidden;
+        z-index: 50;
+    }
+
+    /* ── Dropdown top accent bar ── */
+    .nd-accent-bar {
+        height: 3px;
+        background: linear-gradient(90deg, #ea580c 0%, #f97316 50%, #ea580c 100%);
+    }
+
+    /* ── Section headers inside dropdowns ── */
+    .nd-dropdown-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px 10px;
+        border-bottom: 1px solid var(--nd-border);
+        background: var(--nd-surface2);
+    }
+    .nd-dropdown-header-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--nd-text);
+        letter-spacing: 0.2px;
+    }
+    .nd-dropdown-header-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--nd-muted);
+    }
+
+    /* ══════════════════════════════════════════
+       NOTIFICATION DROPDOWN
+    ══════════════════════════════════════════ */
+    .nd-notif-dropdown { width: 340px; }
+
+    .nd-notif-list { max-height: 380px; overflow-y: auto; }
+    .nd-notif-list::-webkit-scrollbar { width: 4px; }
+    .nd-notif-list::-webkit-scrollbar-thumb { background: var(--nd-border); border-radius: 4px; }
+
+    .nd-notif-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--nd-border);
+        text-decoration: none;
+        transition: background .14s;
+        cursor: pointer;
+    }
+    .nd-notif-item:last-child { border-bottom: none; }
+    .nd-notif-item:hover { background: var(--nd-surface2); }
+    .nd-notif-item.unread { background: var(--nd-unread-bg); }
+    .nd-notif-item.unread:hover { filter: brightness(0.97); }
+
+    .nd-notif-icon {
+        width: 34px; height: 34px; border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 14px;
+        transition: background .14s;
+    }
+    .nd-notif-icon.unread { background: rgba(59,130,246,.15); color: var(--nd-unread-dot); }
+    .nd-notif-icon.read   { background: var(--nd-surface3);   color: var(--nd-muted); }
+
+    .nd-notif-body { flex: 1; min-width: 0; }
+    .nd-notif-title {
+        font-size: 13px; font-weight: 700;
+        color: var(--nd-text); line-height: 1.35;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .nd-notif-msg {
+        font-size: 12px; color: var(--nd-text-sec);
+        margin-top: 2px; line-height: 1.4;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .nd-notif-time {
+        font-size: 11px; color: var(--nd-muted); margin-top: 4px;
+    }
+
+    .nd-notif-dot {
+        width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+    }
+    .nd-notif-dot.unread { background: var(--nd-unread-dot); }
+    .nd-notif-dot.read   { background: transparent; border: 1.5px solid var(--nd-border); }
+
+    /* Empty state */
+    .nd-notif-empty {
+        padding: 40px 16px; text-align: center; color: var(--nd-muted);
+    }
+    .nd-notif-empty i { font-size: 28px; opacity: .35; display: block; margin-bottom: 10px; }
+    .nd-notif-empty p { font-size: 13px; }
+
+    /* ══════════════════════════════════════════
+       PROFILE DROPDOWN
+    ══════════════════════════════════════════ */
+    .nd-profile-dropdown { width: 300px; }
+
+    /* Profile hero section */
+    .nd-profile-hero {
+        padding: 16px;
+        background: var(--nd-surface2);
+        border-bottom: 1px solid var(--nd-border);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .nd-profile-avatar {
+        width: 46px; height: 46px; border-radius: 12px;
+        background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 800; color: #fff;
+        flex-shrink: 0; position: relative;
+    }
+    .nd-profile-avatar-dot {
+        position: absolute; bottom: -2px; right: -2px;
+        width: 12px; height: 12px;
+        background: #22c55e;
+        border: 2px solid var(--nd-surface2);
+        border-radius: 50%;
+    }
+    .nd-profile-name {
+        font-size: 14px; font-weight: 700; color: var(--nd-text); line-height: 1.3;
+    }
+    .nd-profile-role {
+        display: inline-flex; align-items: center; gap: 4px;
+        margin-top: 4px;
+        padding: 2px 8px; border-radius: 20px;
+        font-size: 11px; font-weight: 600;
+        background: var(--nd-accent-bg);
+        color: var(--nd-accent);
+        border: 1px solid rgba(234,88,12,.2);
+    }
+    .dark .nd-profile-role { border-color: rgba(249,115,22,.2); }
+
+    /* Menu items */
+    .nd-menu-body { padding: 8px; }
+
+    .nd-menu-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px; border-radius: 9px;
+        font-size: 13px; font-weight: 600;
+        color: var(--nd-text-sec);
+        text-decoration: none;
+        cursor: pointer; border: none; width: 100%;
+        background: none; text-align: left;
+        transition: background .14s, color .14s;
+    }
+    .nd-menu-item:hover { background: var(--nd-surface2); color: var(--nd-text); }
+
+    .nd-menu-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; flex-shrink: 0;
+        transition: transform .15s;
+    }
+    .nd-menu-item:hover .nd-menu-icon { transform: scale(1.1); }
+
+    .nd-menu-icon.blue   { background: #eff6ff; color: #2563eb; }
+    .nd-menu-icon.green  { background: #f0fdf4; color: #16a34a; }
+    .nd-menu-icon.red    { background: #fff1f2; color: #dc2626; }
+    .dark .nd-menu-icon.blue  { background: rgba(96,165,250,.15);  color: #60a5fa; }
+    .dark .nd-menu-icon.green { background: rgba(74,222,128,.12);  color: #4ade80; }
+    .dark .nd-menu-icon.red   { background: rgba(248,113,113,.12); color: #f87171; }
+
+    .nd-menu-item-label { flex: 1; }
+    .nd-menu-item-label span { display: block; }
+    .nd-menu-item-label .sub { font-size: 11px; font-weight: 400; color: var(--nd-muted); margin-top: 1px; }
+
+    /* Dark mode toggle switch */
+    .nd-toggle-track {
+        width: 36px; height: 20px; border-radius: 10px;
+        background: var(--nd-surface3); border: 1px solid var(--nd-border);
+        position: relative; flex-shrink: 0;
+        transition: background .2s;
+    }
+    .nd-toggle-track.on { background: #22c55e; border-color: #22c55e; }
+    .nd-toggle-thumb {
+        position: absolute; top: 2px; left: 2px;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+        transition: transform .2s;
+    }
+    .nd-toggle-track.on .nd-toggle-thumb { transform: translateX(16px); }
+
+    /* Divider */
+    .nd-divider { height: 1px; background: var(--nd-border); margin: 4px 8px; }
+
+    /* Footer */
+    .nd-dropdown-footer {
+        padding: 8px 16px;
+        border-top: 1px solid var(--nd-border);
+        background: var(--nd-surface2);
+        text-align: center;
+        font-size: 11px;
+        color: var(--nd-muted);
+    }
+</style>
+
 <div x-data="navigationComponent()" x-init="init()">
-    <nav class="fixed top-0 left-0 right-0 z-50 border-b border-orange-200/50 dark:border-orange-800/50 shadow-lg bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500 dark:from-orange-900 dark:via-orange-800 dark:to-orange-900"
+    <nav class="fixed top-0 left-0 right-0 z-50 border-b border-orange-200/50 dark:border-orange-800/50 shadow-lg"
          style="background: linear-gradient(90deg, #EA580C 0%, #F97316 50%, #EA580C 100%);"
          @scroll.window="isScrolled = (window.pageYOffset > 10)"
          :class="{ 'backdrop-blur-md bg-orange-400/90 dark:bg-orange-900/90': isScrolled }">
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
+
                 <!-- Left Side -->
                 <div class="flex items-center gap-4">
-                    <!-- Toggle Button -->
-                    <button @click="$store.sidebar.toggle()" 
-                        class="p-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group"
+                    <button @click="$store.sidebar.toggle()"
+                        class="p-3 rounded-xl text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group"
                         style="background: linear-gradient(135deg, #EA580C 0%, #DC2626 100%);">
-                        <i class="fas fa-bars-staggered text-white transition-transform duration-200 group-hover:rotate-12"></i>
+                        <i class="fas fa-bars-staggered transition-transform duration-200 group-hover:rotate-12"></i>
                     </button>
 
-                    <!-- Brand -->
-                    <div class="flex items-center gap-4">
-                        <a href="{{ $dashboardRoute }}" class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                                <x-application-logo class="h-8 w-8 fill-current text-orange-600" />
-                            </div>
-                            <div>
-                                <span class="text-2xl font-black tracking-tight text-white dark:text-gray-200">
-                                    {{ config('app.name', 'Laravel') }}
-                                </span>
-                            </div>
-                        </a>
-                    </div>
+                    <a href="{{ $dashboardRoute }}" class="flex items-center gap-4">
+                        <div class="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                            <img src="{{ asset('assets/app_logo.PNG') }}" alt="App Logo" class="h-8 w-8 object-contain" />
+                        </div>
+                        <span class="text-2xl font-black tracking-tight text-white">
+                            {{ config('app.name', 'Laravel') }}
+                        </span>
+                    </a>
                 </div>
 
-                <!-- Right Side - Notification Bell and Profile Menu -->
-                <div class="flex items-center gap-4">
-                    <!-- Notification Bell -->
-                    <div class="relative">
-                        <button @click="toggleNotifications()" 
-                                class="relative p-2 rounded-xl hover:bg-white/10 transition-colors duration-200">
-                            <i class="fas fa-bell text-white text-xl"></i>
+                <!-- Right Side -->
+                <div class="flex items-center gap-3">
 
-                            <div x-show="unreadCount > 0" 
+                    <!-- ══════════════════════════════════
+                         NOTIFICATION BELL + DROPDOWN
+                    ══════════════════════════════════ -->
+                    <div class="relative">
+                        <button @click="toggleNotifications()"
+                                class="relative p-2 rounded-xl hover:bg-white/15 transition-colors duration-200">
+                            <i class="fas fa-bell text-white text-xl"></i>
+                            <div x-show="unreadCount > 0"
                                  x-transition:enter="transition ease-out duration-300"
                                  x-transition:enter-start="opacity-0 scale-0"
                                  x-transition:enter-end="opacity-100 scale-100"
-                                 x-transition:leave="transition ease-in duration-200"
-                                 x-transition:leave-start="opacity-100 scale-100"
-                                 x-transition:leave-end="opacity-0 scale-0"
                                  class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
                                 <span class="text-white text-xs font-bold" x-text="unreadCount"></span>
                             </div>
                         </button>
 
                         <!-- Notification Dropdown -->
-                        <div x-show="notificationOpen" 
-                            @click.away="notificationOpen = false"
-                            x-transition:enter="transition ease-out duration-300"
-                            x-transition:enter-start="opacity-0 scale-90 translate-y-[-20px]"
-                            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                            x-transition:leave="transition ease-in duration-200"
-                            x-transition:leave-start="opacity-100 scale-100"
-                            x-transition:leave-end="opacity-0 scale-90 translate-y-[-10px]"
-                            class="absolute right-0 top-16 w-80 rounded-2xl shadow-2xl border-0 backdrop-blur-xl overflow-hidden z-50"
-                            style="background: linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(255,247,237,0.95) 50%, rgba(255,237,213,0.98) 100%);">
+                        <div x-show="notificationOpen"
+                             @click.away="notificationOpen = false"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+                             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95 -translate-y-2"
+                             class="nd-dropdown nd-notif-dropdown">
+
+                            <!-- Accent bar -->
+                            <div class="nd-accent-bar"></div>
 
                             <!-- Header -->
-                            <div class="px-4 py-3 bg-gradient-to-r from-orange-50/80 to-emerald-50/80 border-b border-orange-100/30 flex justify-between items-center">
-                                <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
-                                <div class="flex items-center gap-2">
-                                    <div x-show="loading" class="flex items-center gap-2">
-                                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
-                                        <span class="text-xs text-orange-600">Updating...</span>
+                            <div class="nd-dropdown-header">
+                                <span class="nd-dropdown-header-title">
+                                    <i class="fas fa-bell mr-2" style="color: var(--nd-accent);"></i>Notifications
+                                </span>
+                                <div class="nd-dropdown-header-meta">
+                                    <div x-show="loading">
+                                        <div class="animate-spin rounded-full h-3.5 w-3.5 border-b-2" style="border-color: var(--nd-accent);"></div>
                                     </div>
-                                    <div x-show="!loading && allRead" class="flex items-center gap-1">
-                                        <i class="fas fa-check-circle text-green-500 text-sm"></i>
-                                        <span class="text-xs text-green-600">All read!</span>
-                                    </div>
+                                    <span x-show="unreadCount > 0"
+                                          class="px-2 py-0.5 rounded-full text-xs font-700"
+                                          style="background: var(--nd-unread-bg); color: var(--nd-unread-dot);"
+                                          x-text="unreadCount + ' unread'">
+                                    </span>
+                                    <span x-show="!loading && allRead"
+                                          style="color: var(--nd-read-dot);">
+                                        <i class="fas fa-check-circle mr-1"></i>All read
+                                    </span>
                                 </div>
                             </div>
 
-                            <!-- Notification List -->
-                            <div class="max-h-[400px] overflow-y-auto">
+                            <!-- List -->
+                            <div class="nd-notif-list">
                                 <template x-for="notif in notifications" :key="notif.id">
-                                    <a :href="notif.link || '#'" 
-                                    @click="notif.link ? handleNotificationClick($event, notif) : $event.preventDefault()"
-                                    class="block p-4 hover:bg-orange-50/50 border-b border-orange-100/30 transition-all duration-200 cursor-pointer"
-                                    :class="{ 'bg-blue-50/30': !notif.is_read, 'opacity-75': notif.is_read }">
-                                        <div class="flex items-start gap-3">
-                                            <div class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
-                                                :class="notif.is_read ? 'bg-gray-100' : 'bg-blue-100'">
-                                                <i class="fas fa-bell text-sm transition-colors duration-200"
-                                                :class="notif.is_read ? 'text-gray-500' : 'text-blue-600'"></i>
-                                            </div>
-                                            <div class="flex-1">
-                                                <p class="text-sm text-gray-800">
-                                                    <span class="font-semibold" x-text="notif.title"></span>  
-                                                    - <span x-text="notif.message"></span>
-                                                </p>
-                                                <span class="text-xs text-gray-500" x-text="notif.created_at"></span>
-                                            </div>
+                                    <a :href="notif.link || '#'"
+                                       @click="notif.link ? handleNotificationClick($event, notif) : $event.preventDefault()"
+                                       class="nd-notif-item"
+                                       :class="notif.is_read ? 'read' : 'unread'">
 
-                                            <!-- Read indicator -->
-                                            <div class="flex items-center">
-                                                <div x-show="!notif.is_read" 
-                                                    class="w-2 h-2 bg-blue-500 rounded-full animate-pulse">
-                                                </div>
-                                                <div x-show="notif.is_read" 
-                                                    class="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
-                                                    <i class="fas fa-check text-green-500 text-xs"></i>
-                                                </div>
-                                            </div>
+                                        <!-- Icon -->
+                                        <div class="nd-notif-icon" :class="notif.is_read ? 'read' : 'unread'">
+                                            <i class="fas fa-bell"></i>
                                         </div>
+
+                                        <!-- Body -->
+                                        <div class="nd-notif-body">
+                                            <div class="nd-notif-title" x-text="notif.title"></div>
+                                            <div class="nd-notif-msg" x-text="notif.message"></div>
+                                            <div class="nd-notif-time" x-text="notif.created_at"></div>
+                                        </div>
+
+                                        <!-- Dot indicator -->
+                                        <div class="nd-notif-dot" :class="notif.is_read ? 'read' : 'unread'"></div>
                                     </a>
                                 </template>
 
-                                <div x-show="notifications.length === 0" 
-                                    class="p-8 text-center">
-                                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                                        <i class="fas fa-bell-slash text-gray-400 text-xl"></i>
-                                    </div>
-                                    <p class="text-gray-500 text-sm">No notifications</p>
+                                <!-- Empty state -->
+                                <div x-show="notifications.length === 0" class="nd-notif-empty">
+                                    <i class="fas fa-bell-slash"></i>
+                                    <p>No notifications yet</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Profile Menu -->
+                    <!-- ══════════════════════════════════
+                         PROFILE BUTTON + DROPDOWN
+                    ══════════════════════════════════ -->
                     <div class="relative">
-                        <button @click="profileOpen = !profileOpen" 
-                            class="flex items-center gap-4 px-4 py-2 rounded-xl transition-all duration-300 bg-white/10 hover:bg-white/20 group relative">
-                            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300">
+                        <button @click="profileOpen = !profileOpen"
+                                class="flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 hover:bg-white/15 group">
+                            <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow">
                                 <span class="text-sm font-bold text-white" x-text="userInitial">
                                     {{ Auth::check() ? substr(Auth::user()->name, 0, 1) : 'G' }}
                                 </span>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <div>
-                                    <span class="text-sm font-bold text-white dark:text-gray-300 group-hover:text-pink-100 transition-colors duration-300" x-text="userName">
-                                        {{ Auth::check() ? Auth::user()->name : 'Guest' }}
-                                    </span>
-                                    <p class="text-xs text-pink-100 dark:text-gray-400">User</p>
+                            <div class="hidden sm:block text-left">
+                                <div class="text-sm font-bold text-white leading-tight" x-text="userName">
+                                    {{ Auth::check() ? Auth::user()->name : 'Guest' }}
                                 </div>
-                                <i class="fas fa-chevron-down text-sm text-white opacity-75 group-hover:text-pink-100 transform group-hover:rotate-180 transition-all duration-300" 
-                                   :class="{ 'rotate-180': profileOpen }"></i>
+                                <div class="text-xs text-orange-100 leading-tight">System User</div>
                             </div>
+                            <i class="fas fa-chevron-down text-xs text-white/75 transition-transform duration-200"
+                               :class="{ 'rotate-180': profileOpen }"></i>
                         </button>
-                        
-                        <!-- Dropdown Menu -->
-                        <div x-show="profileOpen" @click.away="profileOpen = false"
-                            x-transition:enter="transition ease-out duration-300"
-                            x-transition:enter-start="opacity-0 scale-90 translate-y-[-20px]"
-                            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                            x-transition:leave="transition ease-in duration-200"
-                            x-transition:leave-start="opacity-100 scale-100"
-                            x-transition:leave-end="opacity-0 scale-90 translate-y-[-10px]"
-                            class="absolute right-0 mt-4 w-80 rounded-3xl shadow-2xl border-0 backdrop-blur-xl overflow-hidden z-50"
-                            style="background: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 240, 247, 0.95) 50%, rgba(255, 228, 242, 0.98) 100%); 
-                                    box-shadow: 0 25px 50px -12px rgba(213, 0, 109, 0.25), 0 0 0 1px rgba(213, 0, 109, 0.1);">
-                            
-                            <!-- Decorative Top Bar -->
-                            <div class="h-1 bg-gradient-to-r from-[#EA580C] via-[#F97316] to-[#EA580C]"></div>
-                            
-                            <!-- Profile Header with Enhanced Design -->
-                            <div class="relative px-6 py-5 bg-gradient-to-br from-orange-50/80 to-emerald-50/60">
-                                <!-- Decorative Background Elements -->
-                                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-200/30 to-transparent rounded-full blur-xl"></div>
-                                <div class="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-emerald-200/20 to-transparent rounded-full blur-lg"></div>
-                                
-                                <div class="relative flex items-center space-x-4">
-                                    <!-- Enhanced Avatar -->
-                                    <div class="relative">
-                                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-emerald-500 flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300" 
-                                            style="background: linear-gradient(135deg, #EA580C 0%, #DC2626 50%, #059669 100%);">
-                                            <span class="text-base font-bold text-white" x-text="userInitial">
-                                                {{ Auth::check() ? substr(Auth::user()->name, 0, 1) : 'G' }}
-                                            </span>
-                                        </div>
-                                        <!-- Status Indicator -->
-                                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full animate-pulse"></div>
-                                    </div>
-                                    
-                                    <div class="flex-1">
-                                        <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-1" x-text="userName">{{ Auth::check() ? Auth::user()->name : 'Guest' }}</h3>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="px-3 py-1 text-white text-xs font-medium rounded-full shadow-sm" style="background: linear-gradient(135deg, #EA580C 0%, #F97316 100%);">
-                                                ✨ System User
-                                            </span>
-                                        </div>
+
+                        <!-- Profile Dropdown -->
+                        <div x-show="profileOpen"
+                             @click.away="profileOpen = false"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+                             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95 -translate-y-2"
+                             class="nd-dropdown nd-profile-dropdown">
+
+                            <!-- Accent bar -->
+                            <div class="nd-accent-bar"></div>
+
+                            <!-- Profile hero -->
+                            <div class="nd-profile-hero">
+                                <div class="nd-profile-avatar">
+                                    <span x-text="userInitial">{{ Auth::check() ? substr(Auth::user()->name, 0, 1) : 'G' }}</span>
+                                    <div class="nd-profile-avatar-dot"></div>
+                                </div>
+                                <div>
+                                    <div class="nd-profile-name" x-text="userName">{{ Auth::check() ? Auth::user()->name : 'Guest' }}</div>
+                                    <div class="nd-profile-role">
+                                        <i class="fas fa-star" style="font-size: 9px;"></i> System User
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Menu Items with Card-like Design -->
-                            <div class="px-3 py-4 space-y-2">
-                                <!-- Profile Card -->
-                                <a :href="profileEditRoute" 
-                                class="group relative block p-4 rounded-2xl bg-gradient-to-br from-white/80 to-orange-50/50 hover:from-orange-100/80 hover:to-emerald-100/60 border border-orange-100/50 hover:border-orange-200/80 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="flex-shrink-0">
-                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
-                                                <i class="fas fa-user text-white text-sm"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-1">
-                                            <h4 class="text-sm font-semibold text-gray-800 group-hover:text-blue-700 transition-colors duration-200">My Profile</h4>
-                                            <p class="text-xs text-gray-500 mt-1">Manage your account settings</p>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-chevron-right text-xs text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-200"></i>
-                                        </div>
+
+                            <!-- Menu -->
+                            <div class="nd-menu-body">
+
+                                <!-- My Profile -->
+                                <a :href="profileEditRoute" class="nd-menu-item">
+                                    <div class="nd-menu-icon blue">
+                                        <i class="fas fa-user"></i>
                                     </div>
+                                    <div class="nd-menu-item-label">
+                                        <span>My Profile</span>
+                                        <span class="sub">Manage account settings</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right" style="font-size: 11px; color: var(--nd-muted);"></i>
                                 </a>
 
-                                <!-- Dark Mode Toggle Card -->
-                                <button @click="$store.darkMode.toggle()"
-                                        class="group relative w-full block p-4 rounded-2xl bg-gradient-to-br from-white/80 to-orange-50/50 hover:from-emerald-100/80 hover:to-blue-100/60 border border-orange-100/50 hover:border-emerald-200/80 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="flex-shrink-0">
-                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-blue-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
-                                                <template x-if="$store.darkMode.on">
-                                                    <i class="fas fa-sun text-amber-300 text-sm"></i>
-                                                </template>
-                                                <template x-if="!$store.darkMode.on">
-                                                    <i class="fas fa-moon text-white text-sm"></i>
-                                                </template>
-                                            </div>
-                                        </div>
-                                        <div class="flex-1 text-left">
-                                            <h4 class="text-sm font-semibold text-gray-800 group-hover:text-emerald-700 transition-colors duration-200" x-text="$store.darkMode.on ? 'Light Mode' : 'Dark Mode'"></h4>
-                                            <p class="text-xs text-gray-500 mt-1">Switch theme appearance</p>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <!-- Toggle Switch -->
-                                            <div class="relative">
-                                                <div class="w-10 h-6 bg-gray-300 rounded-full shadow-inner transition-colors duration-200" :class="$store.darkMode.on ? 'bg-emerald-500' : 'bg-gray-300'">
-                                                    <div class="w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 mt-1 ml-1" :class="$store.darkMode.on ? 'translate-x-4' : ''"></div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                <!-- Dark Mode Toggle -->
+                                <button @click="$store.darkMode.toggle()" class="nd-menu-item">
+                                    <div class="nd-menu-icon green">
+                                        <template x-if="$store.darkMode.on">
+                                            <i class="fas fa-sun" style="color: #f59e0b;"></i>
+                                        </template>
+                                        <template x-if="!$store.darkMode.on">
+                                            <i class="fas fa-moon"></i>
+                                        </template>
+                                    </div>
+                                    <div class="nd-menu-item-label">
+                                        <span x-text="$store.darkMode.on ? 'Light Mode' : 'Dark Mode'">Dark Mode</span>
+                                        <span class="sub">Switch theme appearance</span>
+                                    </div>
+                                    <!-- Toggle switch -->
+                                    <div class="nd-toggle-track" :class="{ 'on': $store.darkMode.on }">
+                                        <div class="nd-toggle-thumb"></div>
                                     </div>
                                 </button>
 
-                                <!-- Elegant Divider -->
-                                <div class="relative my-4">
-                                    <div class="absolute inset-0 flex items-center">
-                                        <div class="w-full border-t border-orange-200"></div>
-                                    </div>
-                                    <div class="relative flex justify-center">
-                                        <span class="px-3 bg-white text-xs text-gray-400">•••</span>
-                                    </div>
-                                </div>
+                                <div class="nd-divider"></div>
 
-                                <!-- Logout Card -->
-                                <button @click="logout()" 
-                                        class="group relative w-full block p-4 rounded-2xl bg-gradient-to-br from-white/80 to-orange-50/50 hover:from-red-100/80 hover:to-orange-100/60 border border-orange-100/50 hover:border-red-200/80 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="flex-shrink-0">
-                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
-                                                <i class="fas fa-sign-out-alt text-white text-sm group-hover:animate-pulse"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-1 text-left">
-                                            <h4 class="text-sm font-semibold text-gray-800 group-hover:text-red-700 transition-colors duration-200">Sign Out</h4>
-                                            <p class="text-xs text-gray-500 mt-1">End your current session</p>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-chevron-right text-xs text-gray-400 group-hover:text-red-500 group-hover:translate-x-1 transition-all duration-200"></i>
-                                        </div>
+                                <!-- Logout -->
+                                <button @click="logout()" class="nd-menu-item">
+                                    <div class="nd-menu-icon red">
+                                        <i class="fas fa-sign-out-alt"></i>
                                     </div>
+                                    <div class="nd-menu-item-label">
+                                        <span>Sign Out</span>
+                                        <span class="sub">End your current session</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right" style="font-size: 11px; color: var(--nd-muted);"></i>
                                 </button>
                             </div>
-                            
-                            <!-- Footer with Gradient -->
-                            <div class="px-6 py-3 bg-gradient-to-r from-orange-50/50 to-emerald-50/50 border-t border-orange-100/30">
-                                <p class="text-center text-xs text-gray-400">{{ config('app.name') }} v1.0</p>
+
+                            <!-- Footer -->
+                            <div class="nd-dropdown-footer">
+                                {{ config('app.name') }} &nbsp;·&nbsp; v1.0
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -307,32 +501,27 @@
 <script>
 function navigationComponent() {
     return {
-        // State
         isScrolled: false,
         notificationOpen: false,
         profileOpen: false,
         loading: false,
         allRead: false,
-        
-        // Data
+
         userName: @json(Auth::check() ? Auth::user()->name : 'Guest'),
         userInitial: @json(Auth::check() ? substr(Auth::user()->name, 0, 1) : 'G'),
         unreadCount: 0,
-        notifications: [],
-        
-        // Routes
+        notifications: @json($navNotifications),
+
         profileEditRoute: '{{ route("profile.edit") }}',
         logoutRoute: '{{ route("logout") }}',
-        
-        // CSRF Token
         csrfToken: '{{ csrf_token() }}',
-        
+
         init() {
             this.updateUnreadCount();
             this.updateAllReadStatus();
         },
-        
-        async toggleNotifications() {
+
+        toggleNotifications() {
             this.notificationOpen = !this.notificationOpen;
         },
 
@@ -340,30 +529,29 @@ function navigationComponent() {
             if (!notif.is_read) {
                 notif.is_read = true;
                 this.updateUnreadCount();
+                this.updateAllReadStatus();
             }
             this.notificationOpen = false;
         },
-        
+
         updateUnreadCount() {
             this.unreadCount = this.notifications.filter(n => !n.is_read).length;
         },
-        
+
         updateAllReadStatus() {
             this.allRead = this.notifications.length > 0 && this.unreadCount === 0;
         },
-        
+
         logout() {
             if (confirm('Are you sure you want to log out?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = this.logoutRoute;
-                
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = this.csrfToken;
-                
-                form.appendChild(csrfInput);
+                const csrf = document.createElement('input');
+                csrf.type = 'hidden';
+                csrf.name = '_token';
+                csrf.value = this.csrfToken;
+                form.appendChild(csrf);
                 document.body.appendChild(form);
                 form.submit();
             }
