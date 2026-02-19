@@ -193,8 +193,8 @@ html, body {
 <table class="t-header">
 <tr>
     <td class="th-seal">
-        @if(file_exists(public_path('images/province_seal.png')))
-            <img src="{{ public_path('images/province_seal.png') }}" alt="Province Seal">
+        @if(file_exists(public_path('assets/province_seal.png')))
+            <img src="{{ asset('assets/province_seal.png') }}" alt="Province Seal">
         @endif
     </td>
     <td class="th-mid">
@@ -203,8 +203,8 @@ html, body {
         <div class="line3">Provincial Capitol 8700</div>
     </td>
     <td class="th-logo">
-        @if(file_exists(public_path('images/agency_logo.png')))
-            <img src="{{ public_path('images/agency_logo.png') }}" alt="Agency Logo">
+        @if(file_exists(public_path('assets/app_logo.PNG')))
+            <img src="{{ asset('assets/app_logo.PNG') }}" alt="App Logo">
         @endif
     </td>
 </tr>
@@ -213,11 +213,6 @@ html, body {
 {{-- ══════════════════════════════════════════
      SECTION 2: PROJECT DETAILS
      ══════════════════════════════════════════ --}}
-<br>
-<br>
-<br>
-<br>
-<br>
 <br>
 <table class="t-proj">
 <tr>
