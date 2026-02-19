@@ -9,10 +9,10 @@ use App\Models\Employee;
 use App\Imports\EmployeesImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\JsonResponse;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 
 class WorkRequestController extends Controller
@@ -185,10 +185,9 @@ class WorkRequestController extends Controller
      */
     public function print(WorkRequest $workRequest)
     {
-        $pdf = Pdf::loadView('admin.work-requests.print', compact('workRequest'))
-            ->setPaper('a4', 'portrait');
-            
-        return $pdf->stream('work-request-' . $workRequest->id . '.pdf');
+        return response()
+            ->view('admin.work-requests.print', compact('workRequest'))
+            ->header('Content-Type', 'text/html');
     }
 
     /**
@@ -196,10 +195,9 @@ class WorkRequestController extends Controller
      */
     public function download(WorkRequest $workRequest)
     {
-        $pdf = Pdf::loadView('admin.work-requests.print', compact('workRequest'))
-            ->setPaper('a4', 'portrait');
-            
-        return $pdf->download('work-request-' . $workRequest->id . '.pdf');
+        return Pdf::view('admin.work-requests.print', compact('workRequest'))
+            ->format('a4')
+            ->download('work-request-' . $workRequest->id . '.pdf');
     }
 
 
