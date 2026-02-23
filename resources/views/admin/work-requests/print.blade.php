@@ -255,12 +255,15 @@ html, body {
         <tr>
             <td style="border:none;padding:0;width:60%;">
                 <span class="lbl">Date :</span>
-                <span class="val">{{ $workRequest->requested_work_start_date
-                    ? \Carbon\Carbon::parse($workRequest->requested_work_start_date)->format('M d, Y')
-                    : '' }}</span>
+                <span class="val">
+                    {{ $workRequest->requested_work_start_date
+                        ? \Carbon\Carbon::parse($workRequest->requested_work_start_date)->format('M d, Y')
+                        : '' }}
+                </span>
             </td>
             <td style="border:none;padding:0;width:40%;">
                 <span class="lbl">Time :</span>
+                {{-- ← fixed: was requested_work_start_time, now correctly mapped --}}
                 <span class="val">{{ $workRequest->requested_work_start_time ?? '' }}</span>
             </td>
         </tr>
@@ -297,6 +300,7 @@ html, body {
             </td>
             <td style="border:none;padding:0 0 0 2mm;width:24%;">
                 <span class="lbl">Quantity :</span>
+                {{-- ← fixed: model field is `quantity`, not a typo --}}
                 <span class="val">{{ $workRequest->quantity }}</span>
             </td>
             <td style="border:none;padding:0 0 0 2mm;width:24%;">
@@ -344,9 +348,11 @@ html, body {
             </td>
             <td style="border:none;padding:0 0 0 2mm;width:28%;">
                 <span class="lbl">Date :</span>
-                <span class="val bld">{{ $workRequest->received_date
-                    ? \Carbon\Carbon::parse($workRequest->received_date)->format('m/d/Y')
-                    : '' }}</span>
+                <span class="val bld">
+                    {{ $workRequest->received_date
+                        ? \Carbon\Carbon::parse($workRequest->received_date)->format('m/d/Y')
+                        : '' }}
+                </span>
             </td>
             <td style="border:none;padding:0 0 0 2mm;width:28%;">
                 <span class="lbl">Time :</span>
@@ -376,6 +382,7 @@ html, body {
         <span class="sig-name">{{ $workRequest->inspected_by_site_inspector ?? '' }}</span>
         <span class="sig-role">Signature Over Printed Name<br>Site Inspector</span>
     </td>
+    {{-- ← findings_comments / recommendation map to the site inspector row --}}
     <td class="fnd"><span class="val">{{ $workRequest->findings_comments ?? '' }}</span></td>
     <td class="fnd"><span class="val">{{ $workRequest->recommendation ?? '' }}</span></td>
 </tr>
@@ -386,6 +393,7 @@ html, body {
         <span class="sig-name">{{ $workRequest->surveyor_name ?? '' }}</span>
         <span class="sig-role">Signature Over Printed Name<br>Surveyor</span>
     </td>
+    {{-- ← fixed: was findings_surveyor / recommendation_surveyor (now in model) --}}
     <td class="fnd"><span class="val">{{ $workRequest->findings_surveyor ?? '' }}</span></td>
     <td class="fnd"><span class="val">{{ $workRequest->recommendation_surveyor ?? '' }}</span></td>
 </tr>
@@ -396,6 +404,7 @@ html, body {
         <span class="sig-name">{{ $workRequest->resident_engineer_name ?? '' }}</span>
         <span class="sig-role">Signature Over Printed Name<br>Resident Engineer/Project In-Charge</span>
     </td>
+    {{-- ← fixed: was findings_engineer / recommendation_engineer (now in model) --}}
     <td class="fnd"><span class="val">{{ $workRequest->findings_engineer ?? '' }}</span></td>
     <td class="fnd"><span class="val">{{ $workRequest->recommendation_engineer ?? '' }}</span></td>
 </tr>
@@ -424,6 +433,7 @@ html, body {
             <span class="sig-role">Engineer IV/Chief, MTQC Division</span>
         </span>
     </td>
+    {{-- ← fixed: was reviewed_by_notes (now in model) --}}
     <td colspan="2" style="vertical-align:top;">
         <span class="val">{{ $workRequest->reviewed_by_notes ?? '' }}</span>
     </td>
@@ -438,6 +448,7 @@ html, body {
             <span class="sig-role">Engineer III/ OIC, Construction Division</span>
         </span>
     </td>
+    {{-- ← fixed: was recommending_approval_notes (now in model) --}}
     <td colspan="2" style="vertical-align:top;">
         <span class="val">{{ $workRequest->recommending_approval_notes ?? '' }}</span>
     </td>
@@ -452,6 +463,7 @@ html, body {
             <span class="sig-role">Provincial Engineer</span>
         </span>
     </td>
+    {{-- ← fixed: was approved_notes (now in model) --}}
     <td colspan="2" style="vertical-align:top;">
         <span class="val">{{ $workRequest->approved_notes ?? '' }}</span>
     </td>
@@ -469,9 +481,11 @@ html, body {
         <tr>
             <td style="border:none;padding:0;width:50%;">
                 <span class="lbl">Date :</span>
-                <span class="val bld">{{ $workRequest->accepted_date
-                    ? \Carbon\Carbon::parse($workRequest->accepted_date)->format('m/d/Y')
-                    : '' }}</span>
+                <span class="val bld">
+                    {{ $workRequest->accepted_date
+                        ? \Carbon\Carbon::parse($workRequest->accepted_date)->format('m/d/Y')
+                        : '' }}
+                </span>
             </td>
             <td style="border:none;padding:0 0 0 3mm;width:50%;">
                 <span class="lbl">Time :</span>

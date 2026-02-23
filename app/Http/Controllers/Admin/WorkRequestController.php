@@ -12,7 +12,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\JsonResponse;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Services\WorkRequestPdf;
 
 
 class WorkRequestController extends Controller
@@ -159,11 +159,25 @@ class WorkRequestController extends Controller
                 ->route('admin.work-requests.show', $workRequest)
                 ->with('error', 'This work request cannot be edited.');
         }
-        
+
         $validated = $request->validate(WorkRequest::validationRules($workRequest->id));
-        
+
+        // Capture changes before saving
+        $changes = $workRequest->buildChanges($validated);
+
         $workRequest->update($validated);
-        
+
+        $logData = [
+            'description' => 'Work request updated',
+            'changes'     => $changes,
+        ];
+
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
+
+        $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, $logData);
+
         return redirect()
             ->route('admin.work-requests.show', $workRequest)
             ->with('success', 'Work request updated successfully!');
@@ -174,8 +188,16 @@ class WorkRequestController extends Controller
      */
     public function destroy(WorkRequest $workRequest)
     {
+        $logData = ['description' => 'Work request deleted'];
+
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
+
+        $workRequest->addLog(WorkRequestLog::EVENT_DELETED, $logData);
+
         $workRequest->delete();
-        
+
         return redirect()
             ->route('admin.work-requests.index')
             ->with('success', 'Work request deleted successfully!');
@@ -183,21 +205,30 @@ class WorkRequestController extends Controller
     /**
      * Print work request as PDF
      */
+    /**
+     * Print work request — opens inline in browser / print dialog.
+     */
     public function print(WorkRequest $workRequest)
     {
-        return response()
-            ->view('admin.work-requests.print', compact('workRequest'))
-            ->header('Content-Type', 'text/html');
+        $pdf = new WorkRequestPdf($workRequest);
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="work-request-' . $workRequest->id . '.pdf"',
+        ]);
     }
 
     /**
-     * Download work request as PDF
+     * Download work request as PDF.
      */
     public function download(WorkRequest $workRequest)
     {
-        return Pdf::view('admin.work-requests.print', compact('workRequest'))
-            ->format('a4')
-            ->download('work-request-' . $workRequest->id . '.pdf');
+        $pdf = new WorkRequestPdf($workRequest);
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="work-request-' . $workRequest->id . '.pdf"',
+        ]);
     }
 
 

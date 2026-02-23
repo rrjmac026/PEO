@@ -6,75 +6,88 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Request;
 
 class WorkRequest extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        // Project Information
+        // ── Project Information ──────────────────────────────────────
         'name_of_project',
         'project_location',
 
-        // For and From (addressed to/from)
+        // ── Addressed To / From ──────────────────────────────────────
         'for_office',
         'from_requester',
 
-        // Request Details
+        // ── Request Details ──────────────────────────────────────────
         'requested_by',
         'requested_work_start_date',
         'requested_work_start_time',
 
-        // Pay Item Details
+        // ── Pay Item Details ─────────────────────────────────────────
         'item_no',
         'description',
         'equipment_to_be_used',
+        'quantity',
         'estimated_quantity',
         'unit',
         'description_of_work_requested',
 
-        // Submission
+        // ── Submission ───────────────────────────────────────────────
         'submitted_by',
         'submitted_date',
         'contractor_name',
 
-        // Inspection
-        'inspected_by_site_inspector',
-        'site_inspector_signature',
-        'surveyor_name',
-        'surveyor_signature',
-        'resident_engineer_name',
-        'resident_engineer_signature',
-
-        // Findings and Recommendations
-        'findings_comments',
-        'recommendation',
-        'recommended_action',
-
-        // Review and Approval
-        'checked_by_mtqa',
-        'mtqa_signature',
-        'reviewed_by',
-        'reviewer_designation',
-        'recommending_approval_by',
-        'recommending_approval_designation',
-        'recommending_approval_signature',
-        'approved_by',
-        'approved_by_designation',
-        'approved_signature',
-
-        // Acceptance
-        'accepted_by_contractor',
-        'accepted_date',
-        'accepted_time',
+        // ── Reception ───────────────────────────────────────────────
         'received_by',
         'received_date',
         'received_time',
 
-        // Status
-        'status',
-        'notes',
+        // ── Inspection: Site Inspector ───────────────────────────────
+        'inspected_by_site_inspector',
+        'site_inspector_signature',
+        'findings_comments',
+        'recommendation',
+
+        // ── Inspection: Surveyor ─────────────────────────────────────
+        'surveyor_name',
+        'surveyor_signature',
+        'findings_surveyor',
+        'recommendation_surveyor',
+
+        // ── Inspection: Resident Engineer ────────────────────────────
+        'resident_engineer_name',
+        'resident_engineer_signature',
+        'findings_engineer',
+        'recommendation_engineer',
+
+        // ── MTQA / Checked By ────────────────────────────────────────
+        'checked_by_mtqa',
+        'mtqa_signature',
+        'recommended_action',
+
+        // ── Reviewed By ──────────────────────────────────────────────
+        'reviewed_by',
+        'reviewer_designation',
+        'reviewed_by_notes',
+
+        // ── Recommending Approval ────────────────────────────────────
+        'recommending_approval_by',
+        'recommending_approval_designation',
+        'recommending_approval_signature',
+        'recommending_approval_notes',
+
+        // ── Approved ─────────────────────────────────────────────────
+        'approved_by',
+        'approved_by_designation',
+        'approved_signature',
+        'approved_notes',
+
+        // ── Acceptance ───────────────────────────────────────────────
+        'accepted_by_contractor',
+        'accepted_date',
+        'accepted_time',
     ];
 
     protected $casts = [
@@ -83,6 +96,7 @@ class WorkRequest extends Model
         'accepted_date'             => 'date',
         'received_date'             => 'date',
         'estimated_quantity'        => 'decimal:2',
+        'quantity'                  => 'decimal:2',
     ];
 
     // ---------------------------------------------------------------
@@ -113,6 +127,10 @@ class WorkRequest extends Model
     // Relationships
     // ---------------------------------------------------------------
 
+    public function logs()
+    {
+        return $this->hasMany(WorkRequestLog::class)->orderBy('created_at', 'desc');
+    }
 
     // ---------------------------------------------------------------
     // Scopes
@@ -162,69 +180,110 @@ class WorkRequest extends Model
     public static function validationRules($id = null): array
     {
         return [
-            'name_of_project'              => 'required|string|max:255',
-            'project_location'             => 'required|string|max:255',
-            'for_office'                   => 'nullable|string|max:255',
-            'from_requester'               => 'nullable|string|max:255',
-            'requested_by'                 => 'required|string|max:255',
-            'requested_work_start_date'    => 'required|date',
-            'description_of_work_requested'=> 'required|string',
-            'contractor_name'              => 'nullable|string|max:255',
-            'estimated_quantity'           => 'nullable|numeric|min:0',
-            'unit'                         => 'nullable|string|max:50',
-            'equipment_to_be_used'         => 'nullable|string|max:255',
-            'status'                       => 'required|in:' . implode(',', self::getStatuses()),
+            // Project Information
+            'name_of_project'               => 'required|string|max:255',
+            'project_location'              => 'required|string|max:255',
+
+            // Addressed To / From
+            'for_office'                    => 'nullable|string|max:255',
+            'from_requester'                => 'nullable|string|max:255',
+
+            // Request Details
+            'requested_by'                  => 'nullable|string|max:255',
+            'requested_work_start_date'     => 'required|date',
+            'requested_work_start_time'     => 'nullable|string|max:20',
+
+            // Work Details
+            'item_no'                       => 'nullable|string|max:100',
+            'description'                   => 'nullable|string|max:255',
+            'equipment_to_be_used'          => 'nullable|string|max:255',
+            'estimated_quantity'            => 'nullable|numeric|min:0',
+            'quantity'                      => 'nullable|numeric|min:0',
+            'unit'                          => 'nullable|string|max:50',
+            'description_of_work_requested' => 'required|string',
+
+            // Submission
+            'submitted_by'                  => 'nullable|string|max:255',
+            'submitted_date'                => 'nullable|date',
+            'contractor_name'               => 'nullable|string|max:255',
+
+            // Reception
+            'received_by'                   => 'nullable|string|max:255',
+            'received_date'                 => 'nullable|date',
+            'received_time'                 => 'nullable|string|max:20',
+
+            // Inspection: Site Inspector
+            'inspected_by_site_inspector'   => 'nullable|string|max:255',
+            'site_inspector_signature'      => 'nullable|string',
+            'findings_comments'             => 'nullable|string',
+            'recommendation'                => 'nullable|string',
+
+            // Inspection: Surveyor
+            'surveyor_name'                 => 'nullable|string|max:255',
+            'surveyor_signature'            => 'nullable|string',
+            'findings_surveyor'             => 'nullable|string',
+            'recommendation_surveyor'       => 'nullable|string',
+
+            // Inspection: Resident Engineer
+            'resident_engineer_name'        => 'nullable|string|max:255',
+            'resident_engineer_signature'   => 'nullable|string',
+            'findings_engineer'             => 'nullable|string',
+            'recommendation_engineer'       => 'nullable|string',
+
+            // MTQA / Checked By
+            'checked_by_mtqa'               => 'nullable|string|max:255',
+            'mtqa_signature'                => 'nullable|string',
+            'recommended_action'            => 'nullable|string',
+
+            // Reviewed By
+            'reviewed_by'                   => 'nullable|string|max:255',
+            'reviewer_designation'          => 'nullable|string|max:255',
+            'reviewed_by_notes'             => 'nullable|string',
+
+            // Recommending Approval
+            'recommending_approval_by'          => 'nullable|string|max:255',
+            'recommending_approval_designation' => 'nullable|string|max:255',
+            'recommending_approval_signature'   => 'nullable|string',
+            'recommending_approval_notes'       => 'nullable|string',
+
+            // Approved
+            'approved_by'                   => 'nullable|string|max:255',
+            'approved_by_designation'       => 'nullable|string|max:255',
+            'approved_signature'            => 'nullable|string',
+            'approved_notes'                => 'nullable|string',
+
+            // Acceptance
+            'accepted_by_contractor'        => 'nullable|string|max:255',
+            'accepted_date'                 => 'nullable|date',
+            'accepted_time'                 => 'nullable|string|max:20',
         ];
     }
-
-    
 
     // ---------------------------------------------------------------
     // Logging helpers
     // ---------------------------------------------------------------
 
-    /**
-     * Add a log entry for this work request
-     */
     public function addLog(string $event, array $data = []): WorkRequestLog
     {
         return $this->logs()->create([
-            'event' => $event,
-            'employee_id' => $data['employee_id'] ?? Auth::user()->employee?->id ?? null,
-            'description' => $data['description'] ?? null,
-            'note' => $data['note'] ?? null,
-            'changes' => $data['changes'] ?? null,
-            'status_from' => $data['status_from'] ?? null,
-            'status_to' => $data['status_to'] ?? null,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
+            'event'        => $event,
+            'employee_id'  => $data['employee_id'] ?? Auth::user()->employee?->id ?? null,
+            'description'  => $data['description'] ?? null,
+            'note'         => $data['note'] ?? null,
+            'changes'      => $data['changes'] ?? null,
+            'status_from'  => $data['status_from'] ?? null,
+            'status_to'    => $data['status_to'] ?? null,
+            'ip_address'   => request()->ip(),
+            'user_agent'   => request()->userAgent(),
         ]);
     }
 
-    /**
-     * Get all logs for this work request
-     */
-    public function logs()
-    {
-        return $this->hasMany(WorkRequestLog::class)->orderBy('created_at', 'desc');
-    }
-
-    /**
-     * Convenience: diff $dirty against $original and return a changes array.
-     * Pass the result to addLog as 'changes' => ...
-     *
-     * Example:
-     *   $changes = $workRequest->buildChanges($request->validated());
-     *   $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, ['changes' => $changes]);
-     */
     public function buildChanges(array $newData): array
     {
         $changes = [];
 
         foreach ($newData as $field => $newValue) {
             $oldValue = $this->getOriginal($field);
-
-            // Cast both sides to string for a reliable comparison
             if ((string) $oldValue !== (string) $newValue) {
                 $changes[$field] = [$oldValue, $newValue];
             }
