@@ -406,7 +406,7 @@ class WorkRequestPdf extends \FPDF
     private function rowCheckedBy(float $y): float
     {
         $hh = 5;
-        $hc = 19;
+        $hc = 18;
         $rx = self::ML + self::CA;
         $rw = self::CB + self::CC;
 

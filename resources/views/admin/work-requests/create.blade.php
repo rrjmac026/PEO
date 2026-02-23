@@ -895,6 +895,14 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="wr-field">
+                                        <label class="wr-label" for="recommended_action">Recommended Action</label>
+                                        <div class="wr-input-wrap textarea-wrap">
+                                            <span class="wr-icon">💡</span>
+                                            <textarea id="recommended_action" name="recommended_action" rows="3"
+                                                placeholder="MTQA recommended action...">{{ old('recommended_action') }}</textarea>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {{-- Reviewer Section --}}
