@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('from_requester')->nullable();
 
             // Request Details
-            $table->string('requested_by')->nullable();
             $table->date('requested_work_start_date')->nullable();
             $table->time('requested_work_start_time')->nullable();
 
@@ -37,8 +36,6 @@ return new class extends Migration
             $table->text('description_of_work_requested')->nullable();
 
             // Submission
-            $table->string('submitted_by')->nullable();
-            $table->date('submitted_date')->nullable();
             $table->string('contractor_name')->nullable();
 
             // Reception

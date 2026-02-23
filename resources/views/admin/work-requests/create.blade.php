@@ -559,22 +559,6 @@
                             <p class="wr-panel-sub">Specify who requested the work and when it should start.</p>
 
                             <div class="wr-fields">
-                                <div class="wr-field">
-                                    <label class="wr-label" for="requested_by">
-                                        Requested By <span class="wr-req">*</span>
-                                    </label>
-                                    <div class="wr-input-wrap">
-                                        <span class="wr-icon">👤</span>
-                                        <input type="text" id="requested_by" name="requested_by"
-                                            value="{{ old('requested_by') }}"
-                                            placeholder="Name of the requester"
-                                            class="{{ $errors->has('requested_by') ? 'wr-error' : '' }}">
-                                    </div>
-                                    <p class="wr-err-msg {{ $errors->has('requested_by') ? 'show' : '' }}" id="err-requested_by">
-                                        ⚠ {{ $errors->first('requested_by', 'Requester is required.') }}
-                                    </p>
-                                </div>
-
                                 <div class="wr-fields wr-two-col">
                                     <div class="wr-field">
                                         <label class="wr-label" for="requested_work_start_date">
@@ -709,25 +693,6 @@
                             <p class="wr-panel-sub">Record submission and reception details.</p>
 
                             <div class="wr-fields">
-                                <div class="wr-fields wr-two-col">
-                                    <div class="wr-field">
-                                        <label class="wr-label" for="submitted_by">Submitted By</label>
-                                        <div class="wr-input-wrap">
-                                            <span class="wr-icon">👤</span>
-                                            <input type="text" id="submitted_by" name="submitted_by"
-                                                value="{{ old('submitted_by') }}" placeholder="Name">
-                                        </div>
-                                    </div>
-                                    <div class="wr-field">
-                                        <label class="wr-label" for="submitted_date">Submitted Date</label>
-                                        <div class="wr-input-wrap">
-                                            <span class="wr-icon">📅</span>
-                                            <input type="date" id="submitted_date" name="submitted_date"
-                                                value="{{ old('submitted_date') }}">
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <div class="wr-fields wr-two-col">
                                     <div class="wr-field">
                                         <label class="wr-label" for="received_by">Received By</label>
@@ -890,16 +855,6 @@
                                             <textarea id="recommendation_engineer" name="recommendation_engineer" rows="3"
                                                 placeholder="Engineer recommendation...">{{ old('recommendation_engineer') }}</textarea>
                                         </div>
-                                    </div>
-                                </div>
-
-                                {{-- Recommended Action --}}
-                                <div class="wr-field" style="margin-top: 1rem;">
-                                    <label class="wr-label" for="recommended_action">Overall Recommended Action</label>
-                                    <div class="wr-input-wrap textarea-wrap">
-                                        <span class="wr-icon">🎯</span>
-                                        <textarea id="recommended_action" name="recommended_action" rows="3"
-                                            placeholder="Overall recommended action...">{{ old('recommended_action') }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -1158,7 +1113,7 @@
             document.addEventListener('DOMContentLoaded', () => {
                 const errFields = {
                     1: ['name_of_project','project_location'],
-                    2: ['requested_by', 'requested_work_start_date','description_of_work_requested'],
+                    2: ['requested_work_start_date','description_of_work_requested'],
                     3: [],
                     4: [],
                     5: [],
@@ -1212,7 +1167,7 @@
         function wrValidateStep(step) {
             const required = {
                 1: ['name_of_project', 'project_location'],
-                2: ['requested_by', 'requested_work_start_date', 'description_of_work_requested'],
+                2: ['requested_work_start_date', 'description_of_work_requested'],
                 3: [],
                 4: [],
                 5: [],

@@ -13,48 +13,45 @@ class WorkRequest extends Model
 
     protected $fillable = [
         // ── Project Information ──────────────────────────────────────
-        'name_of_project',
-        'project_location',
+        'name_of_project',//
+        'project_location',//
 
         // ── Addressed To / From ──────────────────────────────────────
-        'for_office',
-        'from_requester',
+        'for_office',//
+        'from_requester',//
 
         // ── Request Details ──────────────────────────────────────────
-        'requested_by',
-        'requested_work_start_date',
-        'requested_work_start_time',
+        'requested_work_start_date',//
+        'requested_work_start_time',//
 
         // ── Pay Item Details ─────────────────────────────────────────
-        'item_no',
-        'description',
-        'equipment_to_be_used',
-        'quantity',
-        'estimated_quantity',
-        'unit',
+        'item_no',//
+        'description',//
+        'equipment_to_be_used',//
+        'quantity',//
+        'estimated_quantity',//
+        'unit',//
         'description_of_work_requested',
 
         // ── Submission ───────────────────────────────────────────────
-        'submitted_by',
-        'submitted_date',
-        'contractor_name',
+        'contractor_name',// Contractor name (replaces submitted_by)
 
         // ── Reception ───────────────────────────────────────────────
-        'received_by',
-        'received_date',
-        'received_time',
+        'received_by',//
+        'received_date',//
+        'received_time',//
 
         // ── Inspection: Site Inspector ───────────────────────────────
-        'inspected_by_site_inspector',
-        'site_inspector_signature',
-        'findings_comments',
-        'recommendation',
+        'inspected_by_site_inspector',//
+        'site_inspector_signature',//
+        'findings_comments',//
+        'recommendation',//
 
         // ── Inspection: Surveyor ─────────────────────────────────────
-        'surveyor_name',
-        'surveyor_signature',
-        'findings_surveyor',
-        'recommendation_surveyor',
+        'surveyor_name',//
+        'surveyor_signature',//
+        'findings_surveyor',//
+        'recommendation_surveyor',//
 
         // ── Inspection: Resident Engineer ────────────────────────────
         'resident_engineer_name',
@@ -63,9 +60,9 @@ class WorkRequest extends Model
         'recommendation_engineer',
 
         // ── MTQA / Checked By ────────────────────────────────────────
-        'checked_by_mtqa',
-        'mtqa_signature',
-        'recommended_action',
+        'checked_by_mtqa',//
+        'mtqa_signature',//
+        'recommended_action',//
 
         // ── Reviewed By ──────────────────────────────────────────────
         'reviewed_by',
@@ -92,7 +89,6 @@ class WorkRequest extends Model
 
     protected $casts = [
         'requested_work_start_date' => 'date',
-        'submitted_date'            => 'date',
         'accepted_date'             => 'date',
         'received_date'             => 'date',
         'estimated_quantity'        => 'decimal:2',
@@ -203,8 +199,6 @@ class WorkRequest extends Model
             'description_of_work_requested' => 'required|string',
 
             // Submission
-            'submitted_by'                  => 'nullable|string|max:255',
-            'submitted_date'                => 'nullable|date',
             'contractor_name'               => 'nullable|string|max:255',
 
             // Reception

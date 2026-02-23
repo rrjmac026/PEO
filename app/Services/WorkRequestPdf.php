@@ -29,6 +29,12 @@ class WorkRequestPdf extends \FPDF
     private const CB = 59;   // mid  col
     private const CC = 59;   // right col
 
+    // PAY ITEM rows — right side split into: EstQty/Equipment | Quantity | Unit
+    // All three together = CB + CC = 118
+    private const EQW = 64;  // Equipment to be used / Estimated Qty
+    private const QW  = 27;  // Quantity
+    private const UW  = 27;  // Unit     64+27+27=118 ✓
+
     // Colors
     private const BLUE  = [0, 176, 240];
     private const BLACK = [0, 0, 0];
@@ -57,31 +63,23 @@ class WorkRequestPdf extends \FPDF
         $y = $this->drawFormTable($y);
     }
 
-    // HEADER
+    // ─── HEADER ────────────────────────────────────────────────────────────────
     private function drawHeader(float $y): float
     {
         $imgSize = 18;
-        $gap     = 3;  // gap between logo edge and center text block
+        $gap     = 3;
+        $cw      = 80;
+        $cx      = self::ML + (self::BW - $cw) / 2;
 
-        // Center text block — fixed width, truly centered on the page
-        $cw = 80;
-        $cx = self::ML + (self::BW - $cw) / 2;
-
-        // Seal sits just to the left of the text block
-        $sealX = $cx - $imgSize - $gap;
-        $seal  = public_path('assets/province_seal_small.png');
+        $seal = public_path('assets/province_seal_small.png');
         if (file_exists($seal)) {
-            $this->Image($seal, $sealX, $y + 1, $imgSize, $imgSize);
+            $this->Image($seal, $cx - $imgSize - $gap, $y + 1, $imgSize, $imgSize);
         }
-
-        // Logo sits just to the right of the text block
-        $logoX = $cx + $cw + $gap;
-        $logo  = public_path('assets/app_logo_small.png');
+        $logo = public_path('assets/app_logo_small.png');
         if (file_exists($logo)) {
-            $this->Image($logo, $logoX, $y + 1, $imgSize, $imgSize);
+            $this->Image($logo, $cx + $cw + $gap, $y + 1, $imgSize, $imgSize);
         }
 
-        // Center text
         $this->SetXY($cx, $y + 2);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
@@ -96,7 +94,7 @@ class WorkRequestPdf extends \FPDF
         return $y + $imgSize + 4;
     }
 
-    // PROJECT LINES
+    // ─── PROJECT LINES ─────────────────────────────────────────────────────────
     private function drawProjectLines(float $y): float
     {
         $lh = 5;
@@ -105,21 +103,21 @@ class WorkRequestPdf extends \FPDF
 
         $this->SetXY(self::ML, $y);
         $this->Cell(28, $lh, 'Name of Project', 0, 0);
-        $this->Cell(6, $lh, ':', 0, 0, 'C');
+        $this->Cell(6,  $lh, ':', 0, 0, 'C');
         $this->SetFont('Arial', 'B', 8);
         $this->Cell(self::BW - 34, $lh, $this->val($this->wr->name_of_project), 'B', 1);
 
         $this->SetFont('Arial', '', 8);
         $this->SetX(self::ML);
         $this->Cell(28, $lh, 'Project Location', 0, 0);
-        $this->Cell(6, $lh, ':', 0, 0, 'C');
+        $this->Cell(6,  $lh, ':', 0, 0, 'C');
         $this->SetFont('Arial', 'B', 8);
         $this->Cell(self::BW - 34, $lh, $this->val($this->wr->project_location), 'B', 1);
 
         return $y + $lh * 2 + 2;
     }
 
-    // BANNER
+    // ─── BANNER ────────────────────────────────────────────────────────────────
     private function drawBanner(float $y): float
     {
         $this->SetXY(self::ML, $y);
@@ -137,7 +135,7 @@ class WorkRequestPdf extends \FPDF
         return $y + 11;
     }
 
-    // FORM TABLE
+    // ─── FORM TABLE ────────────────────────────────────────────────────────────
     private function drawFormTable(float $y): float
     {
         $this->SetDrawColor(...self::BLACK);
@@ -151,67 +149,75 @@ class WorkRequestPdf extends \FPDF
         $y = $this->rowWorkDesc($y);
         $y = $this->rowSubmittedReceived($y);
         $y = $this->rowInspectionHeader($y);
-        $y = $this->rowInspector($y, 'inspected_by_site_inspector', 'Site Inspector',                       'findings_comments',  'recommendation',          true);
-        $y = $this->rowInspector($y, 'surveyor_name',               'Surveyor',                            'findings_surveyor',  'recommendation_surveyor', false);
-        $y = $this->rowInspector($y, 'resident_engineer_name',      'Resident Engineer/Project In-Charge', 'findings_engineer',  'recommendation_engineer', false);
+        $y = $this->rowInspector($y, 'inspected_by_site_inspector', 'Site Inspector',                       'findings_comments', 'recommendation',          true);
+        $y = $this->rowInspector($y, 'surveyor_name',               'Surveyor',                            'findings_surveyor', 'recommendation_surveyor', false);
+        $y = $this->rowInspector($y, 'resident_engineer_name',      'Resident Engineer/Project In-Charge', 'findings_engineer', 'recommendation_engineer', false);
         $y = $this->rowCheckedBy($y);
-        $y = $this->rowApproval($y, 'Reviewed by :',           $this->val($this->wr->reviewed_by           ?? 'RANDY P. DIAZ'),    'Engineer IV/Chief, MTQC Division',          $this->val($this->wr->reviewed_by_notes          ?? ''));
-        $y = $this->rowApproval($y, 'Recommending Approval :', $this->val($this->wr->recommending_approval_by ?? 'SANITA E. MAIZA'), 'Engineer III/ OIC, Construction Division',  $this->val($this->wr->recommending_approval_notes ?? ''));
-        $y = $this->rowApproval($y, 'Approved :',              $this->val($this->wr->approved_by           ?? 'DELIA E. DAMASCO'), 'Provincial Engineer',                        $this->val($this->wr->approved_notes             ?? ''));
+        $y = $this->rowApproval($y, 'Reviewed by :',           $this->val($this->wr->reviewed_by            ?? 'RANDY P. DIAZ'),    'Engineer IV/Chief, MTQC Division',         $this->val($this->wr->reviewed_by_notes           ?? ''));
+        $y = $this->rowApproval($y, 'Recommending Approval :', $this->val($this->wr->recommending_approval_by ?? 'SANITA E. MAIZA'), 'Engineer III/ OIC, Construction Division', $this->val($this->wr->recommending_approval_notes ?? ''));
+        $y = $this->rowApproval($y, 'Approved :',              $this->val($this->wr->approved_by            ?? 'DELIA E. DAMASCO'), 'Provincial Engineer',                       $this->val($this->wr->approved_notes              ?? ''));
         $y = $this->rowAccepted($y);
 
         return $y;
     }
 
-    // ROW: For | Requested Work to Start On
+    // ─── ROW: For | Requested Work to Start On ─────────────────────────────────
     private function rowForRequested(float $y): float
     {
-        $h = 18;
-        $this->box(self::ML,            $y, self::CA,            $h);
-        $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
+        $h  = 16;
+        $xR = self::ML + self::CA;
 
+        $this->box(self::ML, $y, self::CA,            $h);
+        $this->box($xR,      $y, self::CB + self::CC, $h);
+
+        // Left: "For :" label then value on same line
         $this->lbl(self::ML + 1, $y + 1, 'For :');
         $this->SetXY(self::ML + 1, $y + 5);
         $this->SetFont('Arial', 'B', 8);
         $this->SetTextColor(...self::BLACK);
         $this->Cell(self::CA - 2, 4, $this->val($this->wr->for_office ?? 'PROVINCIAL ENGINEERS OFFICE'), 0);
 
-        $rx = self::ML + self::CA + 1;
-        $rw = self::CB + self::CC - 2;
-
+        // Right: Requested Work to Start on + Date/Time
+        $rx = $xR + 1;
         $this->lbl($rx, $y + 1, 'Requested Work to Start on');
         $this->lbl($rx, $y + 6, 'Date :');
         $this->SetXY($rx, $y + 10);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
         $this->Cell(38, 4, $this->fmtDate($this->wr->requested_work_start_date ?? null), 0);
-
         $this->lbl($rx + 40, $y + 6, 'Time:');
         $this->SetXY($rx + 40, $y + 10);
         $this->Cell(30, 4, $this->val($this->wr->requested_work_start_time ?? ''), 0);
 
-        $this->SetXY($rx, $y + 14);
-        $this->SetFont('Arial', 'I', 6);
-        $this->SetTextColor(...self::DGRAY);
-        $this->MultiCell($rw, 3, 'Note: has to submit request in triplicate and with a minimum of 72 hours in advance of scheduled start', 0);
-
         return $y + $h;
     }
 
-    // ROW: From
+    // ─── ROW: From ─────────────────────────────────────────────────────────────
     private function rowFrom(float $y): float
     {
-        $h = 8;
-        $this->box(self::ML, $y, self::BW, $h);
+        $h  = 12;
+        $xR = self::ML + self::CA;
+
+        $this->box(self::ML, $y, self::CA,            $h);
+        $this->box($xR,      $y, self::CB + self::CC, $h);
+
+        // Left: "From :" label + value
         $this->lbl(self::ML + 1, $y + 1, 'From :');
         $this->SetXY(self::ML + 1, $y + 5);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
-        $this->Cell(self::BW - 2, 3, $this->val($this->wr->from_requester ?? ''), 0);
+        $this->Cell(self::CA - 2, 4, $this->val($this->wr->from_requester ?? ''), 0);
+
+        // Right: Note text
+        $this->SetXY($xR + 1, $y + 2);
+        $this->SetFont('Arial', 'I', 6.5);
+        $this->SetTextColor(...self::DGRAY);
+        $this->MultiCell(self::CB + self::CC - 2, 3.5, 'Note: has to submit request in triplicate and with a minimum of 72 hours in advance of scheduled start', 0);
+
         return $y + $h;
     }
 
-    // ROW: PAY ITEM band
+    // ─── ROW: PAY ITEM band ────────────────────────────────────────────────────
     private function rowPayItemBand(float $y): float
     {
         $this->SetXY(self::ML, $y);
@@ -223,50 +229,84 @@ class WorkRequestPdf extends \FPDF
         return $y + 6;
     }
 
-    // ROW: Item No | Equipment / Qty / Unit
+    // ─── Shared column X positions for the two PAY ITEM data rows ──────────────
+    // Both rows use IDENTICAL vertical dividers:
+    //
+    //  | CA_LBL(24) | CA_SEP(7) | CA_VAL(33) | EQW(86) | QW(16) | UW(16) |
+    //  |<----------- CA=64 ----------->|<----------- CB+CC=118 ----------->|
+    //
+    // ─── ROW: Item No. | Equipment to be used | (wide empty) | Quantity | Unit ───
+    // Columns: | CA_A(label) | CA_B(: + value) | EQW | QW | UW |
+    // CA_A + CA_B = CA = 64  |  EQW + QW + UW = 118
     private function rowItemEquipment(float $y): float
     {
-        $h = 10;
-        $this->box(self::ML,            $y, self::CA,            $h);
-        $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
+        $h    = 10;
+        $xA   = self::ML;           // "Item No." label cell
+        $xB   = $xA + 24;           // ": FDT ITEM 200" value cell  (24+40=64=CA ✓)
+        $xEq  = self::ML + self::CA;
+        $xQ   = $xEq + self::EQW;
+        $xU   = $xQ  + self::QW;
 
-        $this->lbl(self::ML + 1, $y + 1, 'Item No. :');
-        $this->val8(self::ML + 1, $y + 5, self::CA - 2, $this->val($this->wr->item_no ?? ''));
+        $this->box($xA,  $y, 24,        $h);
+        $this->box($xB,  $y, 40,        $h);
+        $this->box($xEq, $y, self::EQW, $h);
+        $this->box($xQ,  $y, self::QW,  $h);
+        $this->box($xU,  $y, self::UW,  $h);
 
-        $rx  = self::ML + self::CA + 1;
-        $eqW = 38; $qW = 22;
-        $uW  = self::CB + self::CC - $eqW - $qW - 4;
+        // Label cell
+        $this->lbl($xA + 1, $y + 1, 'Item No.');
+        // ": value" cell — colon printed as text prefix, value beside it
+        $this->SetXY($xB + 1, $y + 1);
+        $this->SetFont('Arial', '', 8);
+        $this->SetTextColor(...self::BLACK);
+        $this->Cell(38, 5, ': ' . $this->val($this->wr->item_no ?? ''), 0);
 
-        $this->lbl($rx, $y + 1, 'Equipment to be used :');
-        $this->val8($rx, $y + 5, $eqW, $this->val($this->wr->equipment_to_be_used ?? ''));
-
-        $this->lbl($rx + $eqW + 1, $y + 1, 'Quantity :');
-        $this->val8($rx + $eqW + 1, $y + 5, $qW, $this->val($this->wr->quantity ?? ''));
-
-        $this->lbl($rx + $eqW + $qW + 2, $y + 1, 'Unit :');
-        $this->val8($rx + $eqW + $qW + 2, $y + 5, $uW, $this->val($this->wr->unit ?? ''));
+        // Right side
+        $this->lbl($xEq + 1, $y + 1, 'Equipment to be used:');
+        $this->val8($xEq + 1, $y + 5, self::EQW - 2, $this->val($this->wr->equipment_to_be_used ?? ''));
 
         return $y + $h;
     }
 
-    // ROW: Description | Estimated Qty
+    // ─── ROW: Description | Est. Qty | Quantity | Unit ───────────────────────────
+    // Same column borders as rowItemEquipment
     private function rowDescEst(float $y): float
     {
-        $h = 10;
-        $this->box(self::ML,            $y, self::CA,            $h);
-        $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
+        $h    = 10;
+        $xA   = self::ML;
+        $xB   = $xA + 24;
+        $xEst = self::ML + self::CA;
+        $xQ   = $xEst + self::EQW;
+        $xU   = $xQ   + self::QW;
 
-        $this->lbl(self::ML + 1, $y + 1, 'Description :');
-        $this->val8(self::ML + 1, $y + 5, self::CA - 2, $this->val($this->wr->description ?? ''));
+        $this->box($xA,   $y, 24,        $h);
+        $this->box($xB,   $y, 40,        $h);
+        $this->box($xEst, $y, self::EQW, $h);
+        $this->box($xQ,   $y, self::QW,  $h);
+        $this->box($xU,   $y, self::UW,  $h);
 
-        $rx = self::ML + self::CA + 1;
-        $this->lbl($rx, $y + 1, 'Estimated Quantity to be Accomplished :');
-        $this->val8($rx, $y + 5, self::CB + self::CC - 2, $this->val($this->wr->estimated_quantity ?? ''));
+        // Label cell
+        $this->lbl($xA + 1, $y + 1, 'Description');
+        // ": value" cell
+        $this->SetXY($xB + 1, $y + 1);
+        $this->SetFont('Arial', '', 8);
+        $this->SetTextColor(...self::BLACK);
+        $this->Cell(38, 5, ': ' . $this->val($this->wr->description ?? ''), 0);
+
+        // Right side: Est Qty | Quantity | Unit — label top, value below
+        $this->lbl($xEst + 1, $y + 1, 'Estimated Quantity to be Accomplished:');
+        $this->val8($xEst + 1, $y + 5, self::EQW - 2, $this->val($this->wr->estimated_quantity ?? ''));
+
+        $this->lbl($xQ + 1, $y + 1, 'Quantity:');
+        $this->val8($xQ + 1, $y + 5, self::QW - 2, $this->val($this->wr->quantity ?? ''));
+
+        $this->lbl($xU + 1, $y + 1, 'Unit:');
+        $this->val8($xU + 1, $y + 5, self::UW - 2, $this->val($this->wr->unit ?? ''));
 
         return $y + $h;
     }
 
-    // ROW: Description of Work Requested
+    // ─── ROW: Description of Work Requested ────────────────────────────────────
     private function rowWorkDesc(float $y): float
     {
         $h = 16;
@@ -279,7 +319,7 @@ class WorkRequestPdf extends \FPDF
         return $y + $h;
     }
 
-    // ROW: Submitted By | Received By
+    // ─── ROW: Submitted By | Received By ───────────────────────────────────────
     private function rowSubmittedReceived(float $y): float
     {
         $h = 14;
@@ -290,7 +330,7 @@ class WorkRequestPdf extends \FPDF
         $this->SetXY(self::ML + 1, $y + 5);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
-        $this->Cell(self::CA - 2, 4, $this->val($this->wr->submitted_by ?? ''), 'B');
+        $this->Cell(self::CA - 2, 4, $this->val($this->wr->contractor_name ?? ''), 'B');
         $this->SetXY(self::ML + 1, $y + 11);
         $this->SetFont('Arial', '', 6.5);
         $this->SetTextColor(...self::DGRAY);
@@ -314,35 +354,34 @@ class WorkRequestPdf extends \FPDF
         return $y + $h;
     }
 
-    // ROW: Inspection header (no bottom border — merges into first inspector row)
+    // ─── ROW: Inspection header ─────────────────────────────────────────────────
     private function rowInspectionHeader(float $y): float
     {
         $h = 5;
         $this->SetLineWidth(0.2);
         $this->SetDrawColor(...self::BLACK);
 
-        // Top + left + right only — no bottom line on any of the 3 cells
         foreach ([
-            [self::ML,                       self::CA],
-            [self::ML + self::CA,             self::CB],
-            [self::ML + self::CA + self::CB,  self::CC],
+            [self::ML,                      self::CA],
+            [self::ML + self::CA,            self::CB],
+            [self::ML + self::CA + self::CB, self::CC],
         ] as [$x, $w]) {
-            $this->Line($x,      $y,      $x + $w, $y);      // top
-            $this->Line($x,      $y,      $x,      $y + $h); // left
-            $this->Line($x + $w, $y,      $x + $w, $y + $h); // right
+            $this->Line($x,      $y,      $x + $w, $y);
+            $this->Line($x,      $y,      $x,      $y + $h);
+            $this->Line($x + $w, $y,      $x + $w, $y + $h);
         }
 
-        $this->lbl(self::ML + 1,                       $y + 1, 'Inspected by :');
-        $this->centLbl(self::ML + self::CA,             $y + 1, self::CB, 'Findings/Comments');
-        $this->centLbl(self::ML + self::CA + self::CB,  $y + 1, self::CC, 'Recommendation');
+        $this->lbl(self::ML + 1,                      $y + 1, 'Inspected by :');
+        $this->centLbl(self::ML + self::CA,            $y + 1, self::CB, 'Findings/Comments');
+        $this->centLbl(self::ML + self::CA + self::CB, $y + 1, self::CC, 'Recommendation');
 
         return $y + $h;
     }
 
-    // ROW: Inspector sig row
+    // ─── ROW: Inspector sig row ─────────────────────────────────────────────────
     private function rowInspector(float $y, string $nameField, string $role, string $findF, string $recF, bool $noTop = false): float
     {
-        $h = 19;
+        $h    = 18;
         $draw = $noTop ? 'boxNoTop' : 'box';
         $this->$draw(self::ML,                      $y, self::CA, $h);
         $this->$draw(self::ML + self::CA,            $y, self::CB, $h);
@@ -363,43 +402,43 @@ class WorkRequestPdf extends \FPDF
         return $y + $h;
     }
 
-    // ROW: Checked By + Recommended Action
+    // ─── ROW: Checked By + Recommended Action ──────────────────────────────────
     private function rowCheckedBy(float $y): float
     {
         $hh = 5;
+        $hc = 18;
+        $rx = self::ML + self::CA;
+        $rw = self::CB + self::CC;
+
         $this->SetLineWidth(0.2);
         $this->SetDrawColor(...self::BLACK);
-        // Top + left + right only — no bottom line
-        foreach ([
-            [self::ML,            self::CA],
-            [self::ML + self::CA, self::CB + self::CC],
-        ] as [$x, $w]) {
-            $this->Line($x,      $y,      $x + $w, $y);       // top
-            $this->Line($x,      $y,      $x,      $y + $hh); // left
-            $this->Line($x + $w, $y,      $x + $w, $y + $hh); // right
-        }
-        $this->lbl(self::ML + 1,            $y + 1, 'Checked by :');
-        $this->centLbl(self::ML + self::CA, $y + 1, self::CB + self::CC, 'Recommended Action');
-        $y += $hh;
 
-        $h = 19;
-        $this->boxNoTop(self::ML,            $y, self::CA,            $h);
-        $this->boxNoTop(self::ML + self::CA, $y, self::CB + self::CC, $h);
+        // "Recommended Action" header strip (right side only)
+        $this->Line($rx,       $y,       $rx + $rw, $y);
+        $this->Line($rx + $rw, $y,       $rx + $rw, $y + $hh);
+        $this->Line($rx,       $y + $hh, $rx + $rw, $y + $hh);
+        $this->centLbl($rx, $y + 1, $rw, 'Recommended Action');
 
-        $this->sigLine(self::ML, $y, self::CA, $this->val($this->wr->checked_by_mtqa ?? ''), 'MTQA (assigned)');
+        // Content row
+        $y2 = $y + $hh;
+        $this->Rect(self::ML, $y2, self::CA, $hc);
+        $this->boxNoTop($rx, $y2, $rw, $hc);
 
-        $this->SetXY(self::ML + self::CA + 1, $y + 2);
+        $this->lbl(self::ML + 1, $y2 + 1, 'Checked by :');
+        $this->sigLine(self::ML, $y2, self::CA, $this->val($this->wr->checked_by_mtqa ?? ''), 'MTQA (assigned)');
+
+        $this->SetXY($rx + 1, $y2 + 2);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
-        $this->MultiCell(self::CB + self::CC - 2, 4, $this->val($this->wr->recommended_action ?? ''), 0);
+        $this->MultiCell($rw - 2, 4, $this->val($this->wr->recommended_action ?? ''), 0);
 
-        return $y + $h;
+        return $y2 + $hc;
     }
 
-    // ROW: Approval (Reviewed / Recommending / Approved)
+    // ─── ROW: Approval (Reviewed / Recommending / Approved) ────────────────────
     private function rowApproval(float $y, string $label, string $name, string $role, string $notes): float
     {
-        $h = 18;
+        $h = 17;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
@@ -418,10 +457,10 @@ class WorkRequestPdf extends \FPDF
         return $y + $h;
     }
 
-    // ROW: Accepted By
+    // ─── ROW: Accepted By ──────────────────────────────────────────────────────
     private function rowAccepted(float $y): float
     {
-        $h = 16;
+        $h = 15;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
@@ -449,7 +488,7 @@ class WorkRequestPdf extends \FPDF
         return $y + $h;
     }
 
-    // PRIMITIVES
+    // ─── PRIMITIVES ────────────────────────────────────────────────────────────
 
     private function box(float $x, float $y, float $w, float $h): void
     {
@@ -462,9 +501,9 @@ class WorkRequestPdf extends \FPDF
     {
         $this->SetLineWidth(0.2);
         $this->SetDrawColor(...self::BLACK);
-        $this->Line($x,      $y,      $x,      $y + $h); // left
-        $this->Line($x + $w, $y,      $x + $w, $y + $h); // right
-        $this->Line($x,      $y + $h, $x + $w, $y + $h); // bottom
+        $this->Line($x,      $y,      $x,      $y + $h);
+        $this->Line($x + $w, $y,      $x + $w, $y + $h);
+        $this->Line($x,      $y + $h, $x + $w, $y + $h);
     }
 
     private function lbl(float $x, float $y, string $text): void
