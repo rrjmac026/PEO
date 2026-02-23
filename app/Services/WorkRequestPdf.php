@@ -210,7 +210,7 @@ class WorkRequestPdf extends \FPDF
 
         // Right: Note text
         $this->SetXY($xR + 1, $y + 2);
-        $this->SetFont('Arial', 'I', 6.5);
+        $this->SetFont('Arial', 'I', 11);
         $this->SetTextColor(...self::DGRAY);
         $this->MultiCell(self::CB + self::CC - 2, 3.5, 'Note: has to submit request in triplicate and with a minimum of 72 hours in advance of scheduled start', 0);
 
@@ -406,7 +406,7 @@ class WorkRequestPdf extends \FPDF
     private function rowCheckedBy(float $y): float
     {
         $hh = 5;
-        $hc = 18;
+        $hc = 19;
         $rx = self::ML + self::CA;
         $rw = self::CB + self::CC;
 
@@ -438,7 +438,7 @@ class WorkRequestPdf extends \FPDF
     // ─── ROW: Approval (Reviewed / Recommending / Approved) ────────────────────
     private function rowApproval(float $y, string $label, string $name, string $role, string $notes): float
     {
-        $h = 17;
+        $h = 18;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
