@@ -63,24 +63,25 @@ class WorkRequestPdf extends \FPDF
         $imgSize = 18;
         $gap     = 3;  // gap between logo edge and center text block
 
-        // Center text block dimensions
-        $cw = 80;  // fixed width for center text
-        $cx = self::ML + (self::BW - $cw) / 2;  // truly centered
+        // Center text block — fixed width, truly centered on the page
+        $cw = 80;
+        $cx = self::ML + (self::BW - $cw) / 2;
 
-        // Place seal just to the left of center text
+        // Seal sits just to the left of the text block
         $sealX = $cx - $imgSize - $gap;
-        $seal = public_path('assets/province_seal_small.png');
+        $seal  = public_path('assets/province_seal_small.png');
         if (file_exists($seal)) {
             $this->Image($seal, $sealX, $y + 1, $imgSize, $imgSize);
         }
 
-        // Place logo just to the right of center text
+        // Logo sits just to the right of the text block
         $logoX = $cx + $cw + $gap;
-        $logo = public_path('assets/app_logo_small.png');
+        $logo  = public_path('assets/app_logo_small.png');
         if (file_exists($logo)) {
             $this->Image($logo, $logoX, $y + 1, $imgSize, $imgSize);
         }
 
+        // Center text
         $this->SetXY($cx, $y + 2);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
@@ -150,9 +151,9 @@ class WorkRequestPdf extends \FPDF
         $y = $this->rowWorkDesc($y);
         $y = $this->rowSubmittedReceived($y);
         $y = $this->rowInspectionHeader($y);
-        $y = $this->rowInspector($y, 'inspected_by_site_inspector', 'Site Inspector',                       'findings_comments',  'recommendation');
-        $y = $this->rowInspector($y, 'surveyor_name',               'Surveyor',                            'findings_surveyor',  'recommendation_surveyor');
-        $y = $this->rowInspector($y, 'resident_engineer_name',      'Resident Engineer/Project In-Charge', 'findings_engineer',  'recommendation_engineer');
+        $y = $this->rowInspector($y, 'inspected_by_site_inspector', 'Site Inspector',                       'findings_comments',  'recommendation',          true);
+        $y = $this->rowInspector($y, 'surveyor_name',               'Surveyor',                            'findings_surveyor',  'recommendation_surveyor', false);
+        $y = $this->rowInspector($y, 'resident_engineer_name',      'Resident Engineer/Project In-Charge', 'findings_engineer',  'recommendation_engineer', false);
         $y = $this->rowCheckedBy($y);
         $y = $this->rowApproval($y, 'Reviewed by :',           $this->val($this->wr->reviewed_by           ?? 'RANDY P. DIAZ'),    'Engineer IV/Chief, MTQC Division',          $this->val($this->wr->reviewed_by_notes          ?? ''));
         $y = $this->rowApproval($y, 'Recommending Approval :', $this->val($this->wr->recommending_approval_by ?? 'SANITA E. MAIZA'), 'Engineer III/ OIC, Construction Division',  $this->val($this->wr->recommending_approval_notes ?? ''));
@@ -166,8 +167,8 @@ class WorkRequestPdf extends \FPDF
     private function rowForRequested(float $y): float
     {
         $h = 18;
-        $this->box(self::ML,           $y, self::CA,           $h);
-        $this->box(self::ML + self::CA,$y, self::CB + self::CC,$h);
+        $this->box(self::ML,            $y, self::CA,            $h);
+        $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
         $this->lbl(self::ML + 1, $y + 1, 'For :');
         $this->SetXY(self::ML + 1, $y + 5);
@@ -313,28 +314,39 @@ class WorkRequestPdf extends \FPDF
         return $y + $h;
     }
 
-    // ROW: Inspection header
+    // ROW: Inspection header (no bottom border — merges into first inspector row)
     private function rowInspectionHeader(float $y): float
     {
         $h = 5;
-        $this->box(self::ML,                      $y, self::CA, $h);
-        $this->box(self::ML + self::CA,            $y, self::CB, $h);
-        $this->box(self::ML + self::CA + self::CB, $y, self::CC, $h);
+        $this->SetLineWidth(0.2);
+        $this->SetDrawColor(...self::BLACK);
+
+        // Top + left + right only — no bottom line on any of the 3 cells
+        foreach ([
+            [self::ML,                       self::CA],
+            [self::ML + self::CA,             self::CB],
+            [self::ML + self::CA + self::CB,  self::CC],
+        ] as [$x, $w]) {
+            $this->Line($x,      $y,      $x + $w, $y);      // top
+            $this->Line($x,      $y,      $x,      $y + $h); // left
+            $this->Line($x + $w, $y,      $x + $w, $y + $h); // right
+        }
 
         $this->lbl(self::ML + 1,                       $y + 1, 'Inspected by :');
-        $this->centLbl(self::ML + self::CA,            $y + 1, self::CB, 'Findings/Comments');
-        $this->centLbl(self::ML + self::CA + self::CB, $y + 1, self::CC, 'Recommendation');
+        $this->centLbl(self::ML + self::CA,             $y + 1, self::CB, 'Findings/Comments');
+        $this->centLbl(self::ML + self::CA + self::CB,  $y + 1, self::CC, 'Recommendation');
 
         return $y + $h;
     }
 
     // ROW: Inspector sig row
-    private function rowInspector(float $y, string $nameField, string $role, string $findF, string $recF): float
+    private function rowInspector(float $y, string $nameField, string $role, string $findF, string $recF, bool $noTop = false): float
     {
         $h = 19;
-        $this->box(self::ML,                      $y, self::CA, $h);
-        $this->box(self::ML + self::CA,            $y, self::CB, $h);
-        $this->box(self::ML + self::CA + self::CB, $y, self::CC, $h);
+        $draw = $noTop ? 'boxNoTop' : 'box';
+        $this->$draw(self::ML,                      $y, self::CA, $h);
+        $this->$draw(self::ML + self::CA,            $y, self::CB, $h);
+        $this->$draw(self::ML + self::CA + self::CB, $y, self::CC, $h);
 
         $this->sigLine(self::ML, $y, self::CA, $this->val($this->wr->$nameField ?? ''), $role);
 
@@ -354,18 +366,25 @@ class WorkRequestPdf extends \FPDF
     // ROW: Checked By + Recommended Action
     private function rowCheckedBy(float $y): float
     {
-        // Header
         $hh = 5;
-        $this->box(self::ML,            $y, self::CA,            $hh);
-        $this->box(self::ML + self::CA, $y, self::CB + self::CC, $hh);
-        $this->lbl(self::ML + 1, $y + 1, 'Checked by :');
+        $this->SetLineWidth(0.2);
+        $this->SetDrawColor(...self::BLACK);
+        // Top + left + right only — no bottom line
+        foreach ([
+            [self::ML,            self::CA],
+            [self::ML + self::CA, self::CB + self::CC],
+        ] as [$x, $w]) {
+            $this->Line($x,      $y,      $x + $w, $y);       // top
+            $this->Line($x,      $y,      $x,      $y + $hh); // left
+            $this->Line($x + $w, $y,      $x + $w, $y + $hh); // right
+        }
+        $this->lbl(self::ML + 1,            $y + 1, 'Checked by :');
         $this->centLbl(self::ML + self::CA, $y + 1, self::CB + self::CC, 'Recommended Action');
         $y += $hh;
 
-        // Content
         $h = 19;
-        $this->box(self::ML,            $y, self::CA,            $h);
-        $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
+        $this->boxNoTop(self::ML,            $y, self::CA,            $h);
+        $this->boxNoTop(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
         $this->sigLine(self::ML, $y, self::CA, $this->val($this->wr->checked_by_mtqa ?? ''), 'MTQA (assigned)');
 
@@ -437,6 +456,15 @@ class WorkRequestPdf extends \FPDF
         $this->SetLineWidth(0.2);
         $this->SetDrawColor(...self::BLACK);
         $this->Rect($x, $y, $w, $h);
+    }
+
+    private function boxNoTop(float $x, float $y, float $w, float $h): void
+    {
+        $this->SetLineWidth(0.2);
+        $this->SetDrawColor(...self::BLACK);
+        $this->Line($x,      $y,      $x,      $y + $h); // left
+        $this->Line($x + $w, $y,      $x + $w, $y + $h); // right
+        $this->Line($x,      $y + $h, $x + $w, $y + $h); // bottom
     }
 
     private function lbl(float $x, float $y, string $text): void
