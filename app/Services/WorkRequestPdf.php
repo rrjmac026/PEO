@@ -59,7 +59,6 @@ class WorkRequestPdf extends \FPDF
 
     public function __destruct()
     {
-        // Clean up any temp signature files
         foreach ($this->tmpFiles as $f) {
             if (file_exists($f)) {
                 unlink($f);
@@ -108,13 +107,8 @@ class WorkRequestPdf extends \FPDF
     }
 
     // ─── PROJECT LINES ─────────────────────────────────────────────────────────
-    // All 3 rows use identical column widths so colons line up perfectly:
-    //   label-col = 28mm | colon-col = 6mm | value-col = BW-34mm
-    //
-    // Row order (top to bottom):
-    //   1. Ref. No.        (gray label, same indent as the rows below)
-    //   2. Name of Project
-    //   3. Project Location
+    // All 3 rows share identical column widths so colons line up:
+    //   label = 28mm | colon = 6mm | value = BW-34mm
     private function drawProjectLines(float $y): float
     {
         $lh = 5;
@@ -149,8 +143,6 @@ class WorkRequestPdf extends \FPDF
         $this->SetFont('Arial', 'B', 8);
         $this->Cell(self::BW - 34, $lh, $this->val($this->wr->project_location), 'B', 1);
 
-        // $y already points to the Name-of-Project row;
-        // add name row + location row + padding to get next section Y
         return $y + $lh * 2 + 2;
     }
 
@@ -192,7 +184,7 @@ class WorkRequestPdf extends \FPDF
                 'Site Inspector',
                 'findings_comments',
                 'recommendation',
-                true,                       // noTop — shares border with header
+                true,
                 'site_inspector_signature'
              );
         $y = $this->rowInspector(
@@ -220,7 +212,7 @@ class WorkRequestPdf extends \FPDF
                 $this->val($this->wr->reviewed_by ?? 'RANDY P. DIAZ'),
                 'Engineer IV/Chief, MTQC Division',
                 $this->val($this->wr->reviewed_by_notes ?? ''),
-                null   // no signature field for reviewer in model
+                null
              );
         $y = $this->rowApproval(
                 $y,
@@ -228,7 +220,7 @@ class WorkRequestPdf extends \FPDF
                 $this->val($this->wr->recommending_approval_by ?? 'SANITA E. MAIZA'),
                 'Engineer III/ OIC, Construction Division',
                 $this->val($this->wr->recommending_approval_notes ?? ''),
-                $this->val($this->wr->recommending_approval_signature ?? '') ?: null
+                $this->wr->recommending_approval_signature ?? null
              );
         $y = $this->rowApproval(
                 $y,
@@ -236,7 +228,7 @@ class WorkRequestPdf extends \FPDF
                 $this->val($this->wr->approved_by ?? 'DELIA E. DAMASCO'),
                 'Provincial Engineer',
                 $this->val($this->wr->approved_notes ?? ''),
-                $this->val($this->wr->approved_signature ?? '') ?: null
+                $this->wr->approved_signature ?? null
              );
         $y = $this->rowAccepted($y);
 
@@ -492,13 +484,11 @@ class WorkRequestPdf extends \FPDF
         $this->SetLineWidth(0.2);
         $this->SetDrawColor(...self::BLACK);
 
-        // "Recommended Action" header strip (right side only)
         $this->Line($rx,       $y,       $rx + $rw, $y);
         $this->Line($rx + $rw, $y,       $rx + $rw, $y + $hh);
         $this->Line($rx,       $y + $hh, $rx + $rw, $y + $hh);
         $this->centLbl($rx, $y + 1, $rw, 'Recommended Action');
 
-        // Content row
         $y2 = $y + $hh;
         $this->Rect(self::ML, $y2, self::CA, $hc);
         $this->boxNoTop($rx, $y2, $rw, $hc);
@@ -623,21 +613,86 @@ class WorkRequestPdf extends \FPDF
     }
 
     /**
+     * Resolve a signature value to a local file path FPDF can read.
+     *
+     * The signature field can contain one of three things:
+     *   1. A base64 data-URI  — "data:image/png;base64,iVBOR..."
+     *   2. A raw base64 string — "iVBOR..."  (no prefix)
+     *   3. A storage-relative path — "signatures/abc.png"
+     *      which lives at  storage/app/public/signatures/abc.png
+     *
+     * Returns an absolute file path on success, or null on failure.
+     */
+    private function resolveSignatureToFile(?string $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        // ── Case 1 & 2 : base64 (data-URI or raw) ────────────────────────────
+        if (str_starts_with($value, 'data:image') || $this->looksLikeBase64($value)) {
+            $raw = preg_replace('/^data:image\/\w+;base64,/', '', $value);
+            $raw = base64_decode($raw, true);
+
+            if ($raw === false || strlen($raw) < 100) {
+                return null;
+            }
+
+            $ext     = (substr($raw, 0, 3) === "\xff\xd8\xff") ? 'jpg' : 'png';
+            $tmpFile = tempnam(sys_get_temp_dir(), 'wrsig_') . '.' . $ext;
+
+            if (file_put_contents($tmpFile, $raw) === false) {
+                return null;
+            }
+
+            $this->tmpFiles[] = $tmpFile;
+            return $tmpFile;
+        }
+
+        // ── Case 3 : storage-relative path ────────────────────────────────────
+        // e.g. "signatures/abc.png" stored via Storage::disk('public')
+        $absolute = storage_path('app/public/' . ltrim($value, '/'));
+        if (file_exists($absolute)) {
+            return $absolute;
+        }
+
+        // Also try public_path in case it was stored there
+        $pub = public_path('storage/' . ltrim($value, '/'));
+        if (file_exists($pub)) {
+            return $pub;
+        }
+
+        return null;
+    }
+
+    /**
+     * Heuristic: does the string look like raw base64?
+     * Base64 chars only, length divisible by 4, reasonably long.
+     */
+    private function looksLikeBase64(string $value): bool
+    {
+        if (strlen($value) < 100) {
+            return false;
+        }
+        // If it contains slashes/dots typical of a file path, it's a path
+        if (str_contains($value, '/') && str_contains($value, '.')) {
+            return false;
+        }
+        return (bool) preg_match('/^[A-Za-z0-9+\/=]+$/', substr($value, 0, 100));
+    }
+
+    /**
      * Draw a signature block inside a cell.
      *
-     * If $signatureBase64 is provided (data-URI or raw base64 PNG/JPEG),
-     * it is decoded, written to a temp file, rendered as an image centred
-     * above the printed-name line, then the temp file is queued for cleanup.
-     *
-     * Cell layout (relative to $cellX / $cellY):
+     * Layout (relative to $cellX / $cellY, cell height assumed ≥ 15mm):
      *
      *   ┌──────────────────── cellW ─────────────────────┐
      *   │                                                │
-     *   │   [optional signature image  36 × 10 mm]       │  ← sigY  (lineY-10.5)
-     *   │          PRINTED NAME  (bold 8 pt)             │  ← lineY-4
-     *   │   ─────────────────────────────────────        │  ← lineY  (cellY+11)
-     *   │        Signature Over Printed Name             │  ← lineY+0.5
-     *   │                 Role / Title                   │  ← lineY+3.5
+     *   │    [signature image 36 × 10 mm if present]    │  ← sigY (lineY - 10.5)
+     *   │         PRINTED NAME  (bold 8 pt, centred)    │  ← lineY - 4
+     *   │    ────────────────────────────────────────    │  ← lineY (cellY + 11)
+     *   │         Signature Over Printed Name           │  ← lineY + 0.5
+     *   │                  Role / Title                 │  ← lineY + 3.5
      *   └────────────────────────────────────────────────┘
      */
     private function sigLine(
@@ -646,42 +701,29 @@ class WorkRequestPdf extends \FPDF
         float   $cellW,
         string  $name,
         string  $role,
-        ?string $signatureBase64 = null
+        ?string $signatureValue = null
     ): void {
         $lineW = min(46, $cellW - 8);
         $lineX = $cellX + ($cellW - $lineW) / 2;
         $lineY = $cellY + 11;
 
         // ── Signature image ───────────────────────────────────────────────────
-        if ($signatureBase64) {
-            // Strip data-URI prefix if present
-            $raw = preg_replace('/^data:image\/\w+;base64,/', '', $signatureBase64);
-            $raw = base64_decode($raw, true);
+        $sigFile = $this->resolveSignatureToFile($signatureValue);
 
-            if ($raw !== false && strlen($raw) > 100) {
-                // Detect JPEG vs PNG from magic bytes
-                $ext = (substr($raw, 0, 3) === "\xff\xd8\xff") ? 'jpg' : 'png';
+        if ($sigFile) {
+            $sigW = 36;
+            $sigH = 10;
+            $sigX = $cellX + ($cellW - $sigW) / 2;
+            $sigY = $lineY - $sigH - 0.5;
 
-                $tmpFile = tempnam(sys_get_temp_dir(), 'wrsig_') . '.' . $ext;
-
-                if (file_put_contents($tmpFile, $raw) !== false) {
-                    $this->tmpFiles[] = $tmpFile;  // queue for __destruct cleanup
-
-                    $sigW = 36;   // mm wide
-                    $sigH = 10;   // mm tall
-                    $sigX = $cellX + ($cellW - $sigW) / 2;
-                    $sigY = $lineY - $sigH - 0.5;  // sit just above the line
-
-                    try {
-                        $this->Image($tmpFile, $sigX, $sigY, $sigW, $sigH);
-                    } catch (\Throwable $e) {
-                        // Silently skip corrupt/unsupported image
-                    }
-                }
+            try {
+                $this->Image($sigFile, $sigX, $sigY, $sigW, $sigH);
+            } catch (\Throwable $e) {
+                // Silently skip corrupt / unsupported image
             }
         }
 
-        // ── Printed name (always shown, centered above the line) ──────────────
+        // ── Printed name (always shown, centred above the line) ───────────────
         $this->SetXY($lineX, $lineY - 4);
         $this->SetFont('Arial', 'B', 8);
         $this->SetTextColor(...self::BLACK);
