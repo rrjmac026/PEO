@@ -147,4 +147,37 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+
+// Reviewer Roles - shared route group
+Route::prefix('reviewer')->name('reviewer.')
+    ->middleware(['auth', 'role:provincial_engineer,site_inspector,surveyor,resident_engineer'])
+    ->group(function () {
+
+    Route::get('/dashboard', [ReviewerController::class, 'dashboard'])
+        ->name('dashboard');
+
+    // View work requests (read-only index + show)
+    Route::get('/work-requests', [ReviewerWorkRequestController::class, 'index'])
+        ->name('work-requests.index');
+    Route::get('/work-requests/{workRequest}', [ReviewerWorkRequestController::class, 'show'])
+        ->name('work-requests.show');
+
+    // Each role stores only their own section
+    Route::post('/work-requests/{workRequest}/inspection', [ReviewerWorkRequestController::class, 'storeInspection'])
+        ->middleware('role:site_inspector')
+        ->name('work-requests.store-inspection');
+
+    Route::post('/work-requests/{workRequest}/survey', [ReviewerWorkRequestController::class, 'storeSurvey'])
+        ->middleware('role:surveyor')
+        ->name('work-requests.store-survey');
+
+    Route::post('/work-requests/{workRequest}/engineer-review', [ReviewerWorkRequestController::class, 'storeEngineerReview'])
+        ->middleware('role:resident_engineer')
+        ->name('work-requests.store-engineer-review');
+
+    Route::post('/work-requests/{workRequest}/provincial-note', [ReviewerWorkRequestController::class, 'storeProvincialNote'])
+        ->middleware('role:provincial_engineer')
+        ->name('work-requests.store-provincial-note');
+});
+
 require __DIR__.'/auth.php';

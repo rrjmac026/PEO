@@ -85,6 +85,10 @@ class WorkRequest extends Model
         'accepted_by_contractor',
         'accepted_date',
         'accepted_time',
+
+        // ── Status & Notes ───────────────────────────────────────────
+        'status',
+        'notes',
     ];
 
     protected $casts = [
@@ -94,6 +98,8 @@ class WorkRequest extends Model
         'estimated_quantity'        => 'decimal:2',
         'quantity'                  => 'decimal:2',
     ];
+
+    protected $appends = ['submitted_by', 'submitted_date'];
 
     // ---------------------------------------------------------------
     // Status constants
@@ -169,6 +175,16 @@ class WorkRequest extends Model
         return $this->name_of_project ?? 'Untitled Project';
     }
 
+    public function getSubmittedByAttribute(): ?string
+    {
+        return $this->contractor_name;
+    }
+
+    public function getSubmittedDateAttribute(): ?string
+    {
+        return $this->created_at?->format('Y-m-d');
+    }
+
     // ---------------------------------------------------------------
     // Validation
     // ---------------------------------------------------------------
@@ -185,7 +201,6 @@ class WorkRequest extends Model
             'from_requester'                => 'nullable|string|max:255',
 
             // Request Details
-            'requested_by'                  => 'nullable|string|max:255',
             'requested_work_start_date'     => 'required|date',
             'requested_work_start_time'     => 'nullable|string|max:20',
 
@@ -250,6 +265,10 @@ class WorkRequest extends Model
             'accepted_by_contractor'        => 'nullable|string|max:255',
             'accepted_date'                 => 'nullable|date',
             'accepted_time'                 => 'nullable|string|max:20',
+
+            // Status & Notes
+            'status'                        => 'nullable|string|in:' . implode(',', self::getStatuses()),
+            'notes'                         => 'nullable|string',
         ];
     }
 
