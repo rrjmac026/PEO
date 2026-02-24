@@ -21,7 +21,8 @@ class UserWorkRequestController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name_of_project', 'LIKE', "%{$request->search}%")
-                  ->orWhere('project_location', 'LIKE', "%{$request->search}%");
+                  ->orWhere('project_location', 'LIKE', "%{$request->search}%")
+                  ->orWhere('reference_number', 'LIKE', "%{$request->search}%");
             });
         }
 
@@ -39,12 +40,14 @@ class UserWorkRequestController extends Controller
 
         $workRequests = $query->latest()->paginate(15)->withQueryString();
 
+        $contractorName = Auth::user()->name;
+
         $stats = [
-            'total'      => WorkRequest::where('contractor_name', Auth::user()->name)->count(),
-            'draft'      => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'draft')->count(),
-            'submitted'  => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'submitted')->count(),
-            'approved'   => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'approved')->count(),
-            'rejected'   => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'rejected')->count(),
+            'total'     => WorkRequest::where('contractor_name', $contractorName)->count(),
+            'draft'     => WorkRequest::where('contractor_name', $contractorName)->where('status', 'draft')->count(),
+            'submitted' => WorkRequest::where('contractor_name', $contractorName)->where('status', 'submitted')->count(),
+            'approved'  => WorkRequest::where('contractor_name', $contractorName)->where('status', 'approved')->count(),
+            'rejected'  => WorkRequest::where('contractor_name', $contractorName)->where('status', 'rejected')->count(),
         ];
 
         return view('user.work-requests.index', compact('workRequests', 'stats'));
@@ -64,6 +67,9 @@ class UserWorkRequestController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            // Reference Number
+            'reference_number'              => 'nullable|string|max:100',
+
             // Project Information
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
@@ -90,18 +96,18 @@ class UserWorkRequestController extends Controller
         // Force contractor_name to logged-in user's name
         $validated['contractor_name'] = Auth::user()->name;
 
+        // Force for_office
+        $validated['for_office'] = 'PROVINCIAL ENGINEERS OFFICE';
+
         // Set initial status
         $validated['status'] = WorkRequest::STATUS_SUBMITTED;
 
         $workRequest = WorkRequest::create($validated);
 
-        $logData = ['description' => 'Work request submitted by user'];
-
-        if (Auth::user()->employee) {
-            $logData['employee_id'] = Auth::user()->employee->id;
-        }
-
-        $workRequest->addLog(WorkRequestLog::EVENT_SUBMITTED, $logData);
+        $workRequest->addLog(WorkRequestLog::EVENT_SUBMITTED, [
+            'description' => 'Work request submitted by contractor',
+            'user_id'     => Auth::id(),
+        ]);
 
         return redirect()
             ->route('user.work-requests.show', $workRequest)
@@ -113,7 +119,6 @@ class UserWorkRequestController extends Controller
      */
     public function show(WorkRequest $workRequest)
     {
-        // Ensure user can only view their own requests
         if ($workRequest->contractor_name !== Auth::user()->name) {
             abort(403, 'Unauthorized access to this work request.');
         }
@@ -155,6 +160,9 @@ class UserWorkRequestController extends Controller
         }
 
         $validated = $request->validate([
+            // Reference Number
+            'reference_number'              => 'nullable|string|max:100',
+
             // Project Information
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
@@ -178,20 +186,18 @@ class UserWorkRequestController extends Controller
         // Prevent contractor_name from being changed
         $validated['contractor_name'] = Auth::user()->name;
 
+        // Force for_office
+        $validated['for_office'] = 'PROVINCIAL ENGINEERS OFFICE';
+
         $changes = $workRequest->buildChanges($validated);
 
         $workRequest->update($validated);
 
-        $logData = [
-            'description' => 'Work request updated by user',
+        $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, [
+            'description' => 'Work request updated by contractor',
             'changes'     => $changes,
-        ];
-
-        if (Auth::user()->employee) {
-            $logData['employee_id'] = Auth::user()->employee->id;
-        }
-
-        $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, $logData);
+            'user_id'     => Auth::id(),
+        ]);
 
         return redirect()
             ->route('user.work-requests.show', $workRequest)
@@ -213,13 +219,10 @@ class UserWorkRequestController extends Controller
                 ->with('error', 'This work request can no longer be deleted.');
         }
 
-        $logData = ['description' => 'Work request deleted by user'];
-
-        if (Auth::user()->employee) {
-            $logData['employee_id'] = Auth::user()->employee->id;
-        }
-
-        $workRequest->addLog(WorkRequestLog::EVENT_DELETED, $logData);
+        $workRequest->addLog(WorkRequestLog::EVENT_DELETED, [
+            'description' => 'Work request deleted by contractor',
+            'user_id'     => Auth::id(),
+        ]);
 
         $workRequest->delete();
 
@@ -229,7 +232,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Show work request — read only view for the user
+     * Print work request — read only view
      */
     public function print(WorkRequest $workRequest)
     {

@@ -34,7 +34,6 @@ class ReviewerWorkRequestController extends Controller
             $query->whereDate('requested_work_start_date', '<=', $request->date_to);
         }
 
-        // My Work filters
         if ($request->filled('inspected')) {
             $request->input('inspected') === 'pending'
                 ? $query->whereNull('inspected_by_site_inspector')
@@ -72,15 +71,22 @@ class ReviewerWorkRequestController extends Controller
 
     public function storeInspection(Request $request, WorkRequest $workRequest)
     {
-        $validated = $request->validate([
-            'inspected_by_site_inspector' => 'required|string|max:255',
-            'findings_comments'           => 'nullable|string',
-            'recommendation'              => 'nullable|string',
+        $request->validate([
+            'findings_comments' => 'nullable|string',
+            'recommendation'    => 'nullable|string',
         ]);
 
-        $workRequest->update($validated);
+        $workRequest->update([
+            'inspected_by_site_inspector' => Auth::user()->name,
+            'site_inspector_signature'    => $request->site_inspector_signature, // from form now
+            'findings_comments'           => $request->findings_comments,
+            'recommendation'              => $request->recommendation,
+            'status'                      => WorkRequest::STATUS_INSPECTED,
+        ]);
+
         $workRequest->addLog(WorkRequestLog::EVENT_INSPECTED, [
-            'description' => 'Inspection findings submitted',
+            'description' => 'Inspection findings submitted by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
         ]);
 
         return back()->with('success', 'Inspection submitted successfully.');
@@ -88,15 +94,21 @@ class ReviewerWorkRequestController extends Controller
 
     public function storeSurvey(Request $request, WorkRequest $workRequest)
     {
-        $validated = $request->validate([
-            'surveyor_name'           => 'required|string|max:255',
+        $request->validate([
             'findings_surveyor'       => 'nullable|string',
             'recommendation_surveyor' => 'nullable|string',
         ]);
 
-        $workRequest->update($validated);
+        $workRequest->update([
+            'surveyor_name'           => Auth::user()->name,
+            'surveyor_signature'      => Auth::user()->signature_path,
+            'findings_surveyor'       => $request->findings_surveyor,
+            'recommendation_surveyor' => $request->recommendation_surveyor,
+        ]);
+
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Survey findings submitted',
+            'description' => 'Survey findings submitted by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
         ]);
 
         return back()->with('success', 'Survey submitted successfully.');
@@ -104,15 +116,22 @@ class ReviewerWorkRequestController extends Controller
 
     public function storeEngineerReview(Request $request, WorkRequest $workRequest)
     {
-        $validated = $request->validate([
-            'resident_engineer_name'  => 'required|string|max:255',
+        $request->validate([
             'findings_engineer'       => 'nullable|string',
             'recommendation_engineer' => 'nullable|string',
         ]);
 
-        $workRequest->update($validated);
+        $workRequest->update([
+            'resident_engineer_name'      => Auth::user()->name,
+            'resident_engineer_signature' => Auth::user()->signature_path,
+            'findings_engineer'           => $request->findings_engineer,
+            'recommendation_engineer'     => $request->recommendation_engineer,
+            'status'                      => WorkRequest::STATUS_REVIEWED,
+        ]);
+
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Resident engineer review submitted',
+            'description' => 'Resident engineer review submitted by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
         ]);
 
         return back()->with('success', 'Engineer review submitted successfully.');
@@ -120,13 +139,18 @@ class ReviewerWorkRequestController extends Controller
 
     public function storeProvincialNote(Request $request, WorkRequest $workRequest)
     {
-        $validated = $request->validate([
+        $request->validate([
             'approved_notes' => 'required|string',
         ]);
 
-        $workRequest->update($validated);
-        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Provincial engineer note added',
+        $workRequest->update([
+            'approved_notes' => $request->approved_notes,
+            'status'         => WorkRequest::STATUS_APPROVED,
+        ]);
+
+        $workRequest->addLog(WorkRequestLog::EVENT_APPROVED, [
+            'description' => 'Provincial engineer note added by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
         ]);
 
         return back()->with('success', 'Note added successfully.');

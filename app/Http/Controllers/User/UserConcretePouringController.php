@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class ConcretePouringController extends Controller
+class UserConcretePouringController extends Controller
 {
     /**
      * Display a listing of concrete pouring requests for the authenticated user

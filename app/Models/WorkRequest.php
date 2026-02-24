@@ -13,6 +13,7 @@ class WorkRequest extends Model
 
     protected $fillable = [
         // ── Project Information ──────────────────────────────────────
+        'reference_number',//
         'name_of_project',//
         'project_location',//
 
@@ -193,6 +194,7 @@ class WorkRequest extends Model
     {
         return [
             // Project Information
+            'reference_number'              => 'nullable|string|max:255|unique:work_requests,reference_number,' . $id,
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
 
@@ -279,15 +281,15 @@ class WorkRequest extends Model
     public function addLog(string $event, array $data = []): WorkRequestLog
     {
         return $this->logs()->create([
-            'event'        => $event,
-            'employee_id'  => $data['employee_id'] ?? Auth::user()->employee?->id ?? null,
-            'description'  => $data['description'] ?? null,
-            'note'         => $data['note'] ?? null,
-            'changes'      => $data['changes'] ?? null,
-            'status_from'  => $data['status_from'] ?? null,
-            'status_to'    => $data['status_to'] ?? null,
-            'ip_address'   => request()->ip(),
-            'user_agent'   => request()->userAgent(),
+            'event'       => $event,
+            'user_id'     => $data['user_id'] ?? Auth::id(), // change employee_id to user_id
+            'description' => $data['description'] ?? null,
+            'note'        => $data['note'] ?? null,
+            'changes'     => $data['changes'] ?? null,
+            'status_from' => $data['status_from'] ?? null,
+            'status_to'   => $data['status_to'] ?? null,
+            'ip_address'  => request()->ip(),
+            'user_agent'  => request()->userAgent(),
         ]);
     }
 

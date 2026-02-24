@@ -319,6 +319,12 @@
                             </span>
                         </div>
                         <div class="wrd-info-item">
+                            <span class="wrd-info-label">Reference Number</span>
+                            <span class="wrd-info-value {{ !$workRequest->reference_number ? 'empty' : '' }}">
+                                {{ $workRequest->reference_number ?? 'Not specified' }}
+                            </span>
+                        </div>
+                        <div class="wrd-info-item">
                             <span class="wrd-info-label">Contractor</span>
                             <span class="wrd-info-value {{ !$workRequest->contractor_name ? 'empty' : '' }}">
                                 {{ $workRequest->contractor_name ?? 'Not specified' }}
