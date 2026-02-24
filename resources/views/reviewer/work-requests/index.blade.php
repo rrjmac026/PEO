@@ -3,53 +3,418 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 Work Requests
             </h2>
-            <span class="text-sm text-gray-500 capitalize">
+            <span class="text-sm text-gray-500 dark:text-gray-400 capitalize">
                 {{ ucwords(str_replace('_', ' ', Auth::user()->role)) }}
             </span>
         </div>
     </x-slot>
+
+    @push('styles')
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ══════════════════════════════════════════
+           LIGHT MODE TOKENS (primary / default)
+        ══════════════════════════════════════════ */
+        :root {
+            --wri-bg:       #f1f5f9;
+            --wri-surface:  #ffffff;
+            --wri-surface2: #f8fafc;
+            --wri-border:   #cbd5e1;
+            --wri-accent:   #2563eb;
+            --wri-accent2:  #059669;
+            --wri-accent3:  #dc2626;
+            --wri-text:     #0f172a;
+            --wri-muted:    #64748b;
+            --wri-label:    #475569;
+            --wri-glow-1:   rgba(37,99,235,0.04);
+            --wri-glow-2:   rgba(5,150,105,0.03);
+            --wri-radius:   12px;
+            --wri-radius-sm:8px;
+            --wri-shadow:    0 1px 4px rgba(0,0,0,0.06);
+            --wri-shadow-lg: 0 4px 16px rgba(0,0,0,0.10);
+        }
+
+        /* ══════════════════════════════════════════
+           DARK MODE TOKENS (override on .dark)
+        ══════════════════════════════════════════ */
+        .dark {
+            --wri-bg:       #0f1117;
+            --wri-surface:  #181c27;
+            --wri-surface2: #1e2335;
+            --wri-border:   #2a3050;
+            --wri-accent:   #4f8dff;
+            --wri-accent2:  #00d4aa;
+            --wri-accent3:  #ff6b6b;
+            --wri-text:     #e8eaf6;
+            --wri-muted:    #7c85a8;
+            --wri-label:    #a8b3d8;
+            --wri-glow-1:   rgba(79,141,255,0.05);
+            --wri-glow-2:   rgba(0,212,170,0.04);
+            --wri-shadow:    0 1px 4px rgba(0,0,0,0.35);
+            --wri-shadow-lg: 0 4px 16px rgba(0,0,0,0.45);
+        }
+
+        .wri-wrap { font-family: 'Inter', sans-serif; }
+
+        /* ── Filter Card ── */
+        .wri-filter-card {
+            background: var(--wri-surface);
+            border: 1px solid var(--wri-border);
+            border-radius: var(--wri-radius);
+            padding: 24px;
+            box-shadow: var(--wri-shadow);
+            margin-bottom: 24px;
+        }
+
+        .wri-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .wri-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--wri-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .wri-input, .wri-select {
+            background: var(--wri-surface);
+            border: 1px solid var(--wri-border);
+            color: var(--wri-text);
+            border-radius: var(--wri-radius-sm);
+            padding: 8px 12px;
+            font-size: 13px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .wri-input:focus, .wri-select:focus {
+            outline: none;
+            border-color: var(--wri-accent);
+            box-shadow: 0 0 0 3px var(--wri-glow-1);
+        }
+
+        .wri-input::placeholder {
+            color: var(--wri-muted);
+        }
+
+        /* ── Buttons ── */
+        .wri-btn {
+            padding: 8px 16px;
+            border-radius: var(--wri-radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wri-btn-primary {
+            background: var(--wri-accent);
+            color: white;
+        }
+
+        .wri-btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .wri-btn-secondary {
+            background: var(--wri-surface2);
+            color: var(--wri-text);
+            border: 1px solid var(--wri-border);
+        }
+
+        .wri-btn-secondary:hover {
+            background: var(--wri-border);
+        }
+
+        /* ── Notice Box ── */
+        .wri-notice {
+            border-radius: var(--wri-radius-sm);
+            padding: 16px;
+            margin-bottom: 24px;
+            border-left: 4px solid;
+            background: var(--wri-surface);
+            border: 1px solid var(--wri-border);
+        }
+
+        .wri-notice.blue {
+            background: rgba(37, 99, 235, 0.08);
+            border-left-color: #2563eb;
+            color: #1e40af;
+        }
+
+        .dark .wri-notice.blue {
+            background: var(--wri-glow-1);
+            border-left-color: #4f8dff;
+            color: #93c5fd;
+        }
+
+        .wri-notice.purple {
+            background: rgba(124, 58, 237, 0.08);
+            border-left-color: #7c3aed;
+            color: #6d28d9;
+        }
+
+        .dark .wri-notice.purple {
+            background: rgba(167, 139, 250, 0.08);
+            border-left-color: #a855f7;
+            color: #d8b4fe;
+        }
+
+        .wri-notice.green {
+            background: rgba(5, 150, 105, 0.08);
+            border-left-color: #059669;
+            color: #047857;
+        }
+
+        .dark .wri-notice.green {
+            background: var(--wri-glow-2);
+            border-left-color: #00d4aa;
+            color: #6ee7b7;
+        }
+
+        .wri-notice.yellow {
+            background: rgba(180, 83, 9, 0.08);
+            border-left-color: #b45309;
+            color: #92400e;
+        }
+
+        .dark .wri-notice.yellow {
+            background: rgba(234, 179, 8, 0.08);
+            border-left-color: #eab308;
+            color: #facc15;
+        }
+
+        /* ── Table ── */
+        .wri-table-wrapper {
+            background: var(--wri-surface);
+            border: 1px solid var(--wri-border);
+            border-radius: var(--wri-radius);
+            overflow: hidden;
+            box-shadow: var(--wri-shadow);
+        }
+
+        .wri-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .wri-table-head {
+            background: var(--wri-surface2);
+        }
+
+        .wri-th {
+            padding: 16px 24px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--wri-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--wri-border);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .wri-td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--wri-border);
+            color: var(--wri-text);
+            font-size: 13px;
+            background: var(--wri-surface);
+            transition: background 0.2s;
+        }
+
+        .wri-table-row:hover .wri-td {
+            background: var(--wri-surface2);
+        }
+
+        .wri-table-row:last-child .wri-td {
+            border-bottom: none;
+        }
+
+        /* ── Project column ── */
+        .wri-project-name {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            color: var(--wri-text);
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .wri-project-id {
+            font-size: 12px;
+            color: var(--wri-muted);
+        }
+
+        /* ── Status Badge ── */
+        .wri-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            border: 1px solid;
+            transition: all 0.2s;
+        }
+
+        /* Default dark mode colors */
+        .wri-badge.approved  { background: rgba(52, 211, 153, 0.15); color: #34d399; border-color: rgba(52, 211, 153, 0.3); }
+        .wri-badge.rejected  { background: rgba(248, 113, 113, 0.15); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+        .wri-badge.pending   { background: rgba(234, 179, 8, 0.15); color: #eab308; border-color: rgba(234, 179, 8, 0.3); }
+        .wri-badge.submitted { background: rgba(96, 165, 250, 0.15); color: #60a5fa; border-color: rgba(96, 165, 250, 0.3); }
+        .wri-badge.draft     { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); }
+        .wri-badge.inspected { background: rgba(192, 132, 252, 0.15); color: #c084fc; border-color: rgba(192, 132, 252, 0.3); }
+        .wri-badge.reviewed  { background: rgba(129, 140, 248, 0.15); color: #818cf8; border-color: rgba(129, 140, 248, 0.3); }
+        .wri-badge.accepted  { background: rgba(52, 211, 153, 0.15); color: #34d399; border-color: rgba(52, 211, 153, 0.3); }
+
+        /* Light mode colors */
+        html:not(.dark) .wri-badge.approved  { background: rgba(5, 150, 105, 0.12); color: #059669; border-color: rgba(5, 150, 105, 0.25); }
+        html:not(.dark) .wri-badge.rejected  { background: rgba(220, 38, 38, 0.12); color: #dc2626; border-color: rgba(220, 38, 38, 0.25); }
+        html:not(.dark) .wri-badge.pending   { background: rgba(180, 83, 9, 0.12); color: #b45309; border-color: rgba(180, 83, 9, 0.25); }
+        html:not(.dark) .wri-badge.submitted { background: rgba(37, 99, 235, 0.12); color: #2563eb; border-color: rgba(37, 99, 235, 0.25); }
+        html:not(.dark) .wri-badge.draft     { background: rgba(100, 116, 139, 0.12); color: #64748b; border-color: rgba(100, 116, 139, 0.25); }
+        html:not(.dark) .wri-badge.inspected { background: rgba(124, 58, 237, 0.12); color: #7c3aed; border-color: rgba(124, 58, 237, 0.25); }
+        html:not(.dark) .wri-badge.reviewed  { background: rgba(67, 56, 202, 0.12); color: #4338ca; border-color: rgba(67, 56, 202, 0.25); }
+        html:not(.dark) .wri-badge.accepted  { background: rgba(5, 150, 105, 0.12); color: #059669; border-color: rgba(5, 150, 105, 0.25); }
+
+        /* ── Status indicator ── */
+        .wri-status-done {
+            color: #34d399;
+            font-weight: 600;
+        }
+
+        .wri-status-pending {
+            color: #eab308;
+            font-weight: 600;
+        }
+
+        html:not(.dark) .wri-status-done {
+            color: #059669;
+        }
+
+        html:not(.dark) .wri-status-pending {
+            color: #b45309;
+        }
+
+        /* ── View Link ── */
+        .wri-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--wri-accent);
+            color: white;
+            border-radius: var(--wri-radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .wri-link:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* ── Flash messages ── */
+        .wri-alert {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: var(--wri-radius-sm);
+            border-left: 4px solid;
+            font-size: 13px;
+            background: var(--wri-surface);
+            border: 1px solid var(--wri-border);
+        }
+
+        .wri-alert.success {
+            background: rgba(52, 211, 153, 0.12);
+            border-left-color: #34d399;
+            color: #34d399;
+        }
+
+        .wri-alert.error {
+            background: rgba(248, 113, 113, 0.12);
+            border-left-color: #f87171;
+            color: #f87171;
+        }
+
+        html:not(.dark) .wri-alert.success {
+            background: rgba(5, 150, 105, 0.12);
+            color: #059669;
+            border-left-color: #059669;
+        }
+
+        html:not(.dark) .wri-alert.error {
+            background: rgba(220, 38, 38, 0.12);
+            color: #dc2626;
+            border-left-color: #dc2626;
+        }
+
+        /* ── Pagination ── */
+        .wri-pagination {
+            padding: 16px 24px;
+            border-top: 1px solid var(--wri-border);
+            background: var(--wri-surface);
+        }
+    </style>
+    @endpush
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             {{-- ── Flash Messages ────────────────────────────── --}}
             @if(session('success'))
-                <div class="mb-4 p-4 bg-green-100 border border-green-300 text-green-700 rounded-lg">
+                <div class="wri-alert success">
                     {{ session('success') }}
                 </div>
             @endif
 
             @if(session('error'))
-                <div class="mb-4 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+                <div class="wri-alert error">
                     {{ session('error') }}
                 </div>
             @endif
 
             {{-- ── Filters ───────────────────────────────────── --}}
-            <div class="bg-white rounded-lg shadow mb-6 p-6">
+            <div class="wri-filter-card">
                 <form method="GET" action="{{ route('reviewer.work-requests.index') }}"
                       class="flex flex-wrap gap-4 items-end">
 
                     {{-- Search --}}
                     <div class="flex-1 min-w-[200px]">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                        <label class="wri-label block mb-1">Search</label>
                         <input
                             type="text"
                             name="search"
                             value="{{ request('search') }}"
                             placeholder="Project name, location, contractor..."
-                            class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            class="wri-input w-full"
                         />
                     </div>
 
                     {{-- Status Filter --}}
                     <div class="min-w-[150px]">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select name="status"
-                                class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <label class="wri-label block mb-1">Status</label>
+                        <select name="status" class="wri-select w-full">
                             <option value="">All Status</option>
                             <option value="draft"      {{ request('status') === 'draft'      ? 'selected' : '' }}>Draft</option>
                             <option value="submitted"  {{ request('status') === 'submitted'  ? 'selected' : '' }}>Submitted</option>
@@ -63,34 +428,32 @@
 
                     {{-- Date From --}}
                     <div class="min-w-[150px]">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                        <label class="wri-label block mb-1">Date From</label>
                         <input
                             type="date"
                             name="date_from"
                             value="{{ request('date_from') }}"
-                            class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            class="wri-input w-full"
                         />
                     </div>
 
                     {{-- Date To --}}
                     <div class="min-w-[150px]">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                        <label class="wri-label block mb-1">Date To</label>
                         <input
                             type="date"
                             name="date_to"
                             value="{{ request('date_to') }}"
-                            class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            class="wri-input w-full"
                         />
                     </div>
 
                     {{-- Buttons --}}
                     <div class="flex gap-2">
-                        <button type="submit"
-                                class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                        <button type="submit" class="wri-btn wri-btn-primary">
                             Filter
                         </button>
-                        <a href="{{ route('reviewer.work-requests.index') }}"
-                           class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300">
+                        <a href="{{ route('reviewer.work-requests.index') }}" class="wri-btn wri-btn-secondary">
                             Reset
                         </a>
                     </div>
@@ -100,11 +463,11 @@
             {{-- ── Role-specific notice ──────────────────────── --}}
             @php $role = Auth::user()->role; @endphp
 
-            <div class="mb-4 p-4 rounded-lg
-                {{ $role === 'site_inspector'    ? 'bg-blue-50 border border-blue-200 text-blue-700' : '' }}
-                {{ $role === 'surveyor'          ? 'bg-purple-50 border border-purple-200 text-purple-700' : '' }}
-                {{ $role === 'resident_engineer' ? 'bg-green-50 border border-green-200 text-green-700' : '' }}
-                {{ $role === 'provincial_engineer' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' : '' }}
+            <div class="wri-notice
+                {{ $role === 'site_inspector'    ? 'blue' : '' }}
+                {{ $role === 'surveyor'          ? 'purple' : '' }}
+                {{ $role === 'resident_engineer' ? 'green' : '' }}
+                {{ $role === 'provincial_engineer' ? 'yellow' : '' }}
             ">
                 @if($role === 'site_inspector')
                     <p class="text-sm">You can submit <strong>inspection findings</strong> on each work request.</p>
@@ -118,153 +481,114 @@
             </div>
 
             {{-- ── Table ────────────────────────────────────────--}}
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+            <div class="wri-table-wrapper">
+                <table class="wri-table">
+                    <thead class="wri-table-head">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Project
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Location
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Contractor
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Start Date
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
+                            <th class="wri-th">Project</th>
+                            <th class="wri-th">Location</th>
+                            <th class="wri-th">Contractor</th>
+                            <th class="wri-th">Start Date</th>
+                            <th class="wri-th">Status</th>
 
                             {{-- Role-specific column header --}}
                             @if($role === 'site_inspector')
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Inspected
-                                </th>
+                                <th class="wri-th">Inspected</th>
                             @elseif($role === 'surveyor')
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Surveyed
-                                </th>
+                                <th class="wri-th">Surveyed</th>
                             @elseif($role === 'resident_engineer')
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Reviewed
-                                </th>
+                                <th class="wri-th">Reviewed</th>
                             @elseif($role === 'provincial_engineer')
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Noted
-                                </th>
+                                <th class="wri-th">Noted</th>
                             @endif
 
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions
-                            </th>
+                            <th class="wri-th">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         @forelse($workRequests as $workRequest)
-                            <tr class="hover:bg-gray-50 transition">
+                            <tr class="wri-table-row">
                                 {{-- Project --}}
-                                <td class="px-6 py-4">
-                                    <p class="text-sm font-medium text-gray-900">
-                                        {{ $workRequest->name_of_project }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        #{{ $workRequest->id }}
-                                    </p>
+                                <td class="wri-td">
+                                    <div class="wri-project-name">{{ $workRequest->name_of_project }}</div>
+                                    <div class="wri-project-id">#{{ str_pad($workRequest->id, 6, '0', STR_PAD_LEFT) }}</div>
                                 </td>
 
                                 {{-- Location --}}
-                                <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $workRequest->project_location }}
-                                </td>
+                                <td class="wri-td">{{ $workRequest->project_location }}</td>
 
                                 {{-- Contractor --}}
-                                <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $workRequest->contractor_name ?? '—' }}
-                                </td>
+                                <td class="wri-td">{{ $workRequest->contractor_name ?? '—' }}</td>
 
                                 {{-- Start Date --}}
-                                <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $workRequest->requested_work_start_date?->format('M d, Y') ?? '—' }}
-                                </td>
+                                <td class="wri-td">{{ $workRequest->requested_work_start_date?->format('M d, Y') ?? '—' }}</td>
 
                                 {{-- Status Badge --}}
-                                <td class="px-6 py-4">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                        {{ $workRequest->status === 'approved'  ? 'bg-green-100 text-green-700'  : '' }}
-                                        {{ $workRequest->status === 'rejected'  ? 'bg-red-100 text-red-700'    : '' }}
-                                        {{ $workRequest->status === 'submitted' ? 'bg-blue-100 text-blue-700'  : '' }}
-                                        {{ $workRequest->status === 'draft'     ? 'bg-gray-100 text-gray-700'  : '' }}
-                                        {{ $workRequest->status === 'inspected' ? 'bg-cyan-100 text-cyan-700'  : '' }}
-                                        {{ $workRequest->status === 'reviewed'  ? 'bg-purple-100 text-purple-700' : '' }}
-                                        {{ $workRequest->status === 'accepted'  ? 'bg-teal-100 text-teal-700'  : '' }}
-                                    ">
+                                <td class="wri-td">
+                                    <span class="wri-badge {{ $workRequest->status }}">
                                         {{ ucfirst($workRequest->status) }}
                                     </span>
                                 </td>
 
                                 {{-- Role-specific completion column --}}
                                 @if($role === 'site_inspector')
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="wri-td">
                                         @if($workRequest->inspected_by_site_inspector)
-                                            <span class="text-green-600 font-medium">✓ Done</span>
+                                            <span class="wri-status-done">✓ Done</span>
                                         @else
-                                            <span class="text-yellow-500 font-medium">Pending</span>
+                                            <span class="wri-status-pending">Pending</span>
                                         @endif
                                     </td>
                                 @elseif($role === 'surveyor')
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="wri-td">
                                         @if($workRequest->surveyor_name)
-                                            <span class="text-green-600 font-medium">✓ Done</span>
+                                            <span class="wri-status-done">✓ Done</span>
                                         @else
-                                            <span class="text-yellow-500 font-medium">Pending</span>
+                                            <span class="wri-status-pending">Pending</span>
                                         @endif
                                     </td>
                                 @elseif($role === 'resident_engineer')
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="wri-td">
                                         @if($workRequest->resident_engineer_name)
-                                            <span class="text-green-600 font-medium">✓ Done</span>
+                                            <span class="wri-status-done">✓ Done</span>
                                         @else
-                                            <span class="text-yellow-500 font-medium">Pending</span>
+                                            <span class="wri-status-pending">Pending</span>
                                         @endif
                                     </td>
                                 @elseif($role === 'provincial_engineer')
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="wri-td">
                                         @if($workRequest->approved_notes)
-                                            <span class="text-green-600 font-medium">✓ Noted</span>
+                                            <span class="wri-status-done">✓ Noted</span>
                                         @else
-                                            <span class="text-yellow-500 font-medium">Not yet</span>
+                                            <span class="wri-status-pending">Not yet</span>
                                         @endif
                                     </td>
                                 @endif
 
                                 {{-- Actions --}}
-                                <td class="px-6 py-4 text-sm">
-                                    <a href="{{ route('reviewer.work-requests.show', $workRequest) }}"
-                                       class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
-                                        View
+                                <td class="wri-td">
+                                    <a href="{{ route('reviewer.work-requests.show', $workRequest) }}" class="wri-link">
+                                        <i class="fas fa-eye"></i> View
                                     </a>
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                    No work requests found.
+                            <tr class="wri-table-row">
+                                <td colspan="8" class="wri-td text-center py-12">
+                                    <p class="text-gray-500">No work requests found.</p>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
-
-                {{-- ── Pagination ────────────────────────────── --}}
-                @if($workRequests->hasPages())
-                    <div class="px-6 py-4 border-t">
-                        {{ $workRequests->withQueryString()->links() }}
-                    </div>
-                @endif
             </div>
+
+            {{-- ── Pagination ────────────────────────────── --}}
+            @if($workRequests->hasPages())
+                <div class="wri-pagination">
+                    {{ $workRequests->withQueryString()->links() }}
+                </div>
+            @endif
 
         </div>
     </div>

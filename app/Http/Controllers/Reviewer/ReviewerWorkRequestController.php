@@ -1,6 +1,5 @@
 <?php
 
-// app/Http/Controllers/Reviewer/ReviewerWorkRequestController.php
 namespace App\Http\Controllers\Reviewer;
 
 use App\Http\Controllers\Controller;
@@ -18,8 +17,8 @@ class ReviewerWorkRequestController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name_of_project', 'LIKE', "%{$request->search}%")
-                ->orWhere('project_location', 'LIKE', "%{$request->search}%")
-                ->orWhere('contractor_name', 'LIKE', "%{$request->search}%");
+                  ->orWhere('project_location', 'LIKE', "%{$request->search}%")
+                  ->orWhere('contractor_name', 'LIKE', "%{$request->search}%");
             });
         }
 
@@ -33,6 +32,31 @@ class ReviewerWorkRequestController extends Controller
 
         if ($request->filled('date_to')) {
             $query->whereDate('requested_work_start_date', '<=', $request->date_to);
+        }
+
+        // My Work filters
+        if ($request->filled('inspected')) {
+            $request->input('inspected') === 'pending'
+                ? $query->whereNull('inspected_by_site_inspector')
+                : $query->whereNotNull('inspected_by_site_inspector');
+        }
+
+        if ($request->filled('surveyed')) {
+            $request->input('surveyed') === 'pending'
+                ? $query->whereNull('surveyor_name')
+                : $query->whereNotNull('surveyor_name');
+        }
+
+        if ($request->filled('reviewed')) {
+            $request->input('reviewed') === 'pending'
+                ? $query->whereNull('resident_engineer_name')
+                : $query->whereNotNull('resident_engineer_name');
+        }
+
+        if ($request->filled('noted')) {
+            $request->input('noted') === 'pending'
+                ? $query->whereNull('approved_notes')
+                : $query->whereNotNull('approved_notes');
         }
 
         $workRequests = $query->latest()->paginate(15)->withQueryString();
@@ -65,9 +89,9 @@ class ReviewerWorkRequestController extends Controller
     public function storeSurvey(Request $request, WorkRequest $workRequest)
     {
         $validated = $request->validate([
-            'surveyor_name'          => 'required|string|max:255',
-            'findings_surveyor'      => 'nullable|string',
-            'recommendation_surveyor'=> 'nullable|string',
+            'surveyor_name'           => 'required|string|max:255',
+            'findings_surveyor'       => 'nullable|string',
+            'recommendation_surveyor' => 'nullable|string',
         ]);
 
         $workRequest->update($validated);
@@ -81,9 +105,9 @@ class ReviewerWorkRequestController extends Controller
     public function storeEngineerReview(Request $request, WorkRequest $workRequest)
     {
         $validated = $request->validate([
-            'resident_engineer_name'   => 'required|string|max:255',
-            'findings_engineer'        => 'nullable|string',
-            'recommendation_engineer'  => 'nullable|string',
+            'resident_engineer_name'  => 'required|string|max:255',
+            'findings_engineer'       => 'nullable|string',
+            'recommendation_engineer' => 'nullable|string',
         ]);
 
         $workRequest->update($validated);

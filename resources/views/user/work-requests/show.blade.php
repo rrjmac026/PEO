@@ -10,12 +10,6 @@
                         <i class="fas fa-edit mr-2"></i>{{ __('Edit') }}
                     </a>
                 @endif
-                <a href="{{ route('user.work-requests.print', $workRequest) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <i class="fas fa-print mr-2"></i>{{ __('Print') }}
-                </a>
-                <a href="{{ route('user.work-requests.download', $workRequest) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <i class="fas fa-download mr-2"></i>{{ __('PDF') }}
-                </a>
                 <a href="{{ route('user.work-requests.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                     <i class="fas fa-arrow-left mr-2"></i>{{ __('Back') }}
                 </a>
@@ -29,37 +23,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <style>
-        /* ── DARK tokens (default) ── */
+        /* ══════════════════════════════════════════
+           LIGHT MODE TOKENS (primary / default)
+        ══════════════════════════════════════════ */
         :root {
-            --wr-bg:       #0f1117;
-            --wr-surface:  #181c27;
-            --wr-surface2: #1e2335;
-            --wr-border:   #2a3050;
-            --wr-accent:   #4f8dff;
-            --wr-accent2:  #00d4aa;
-            --wr-accent3:  #ff6b6b;
-            --wr-text:     #e8eaf6;
-            --wr-muted:    #7c85a8;
-            --wr-label:    #a8b3d8;
-            --wr-glow-1:   rgba(79,141,255,0.05);
-            --wr-glow-2:   rgba(0,212,170,0.04);
-            --wr-radius:   12px;
-            --wr-radius-sm:8px;
+            --wr-surface:   #ffffff;
+            --wr-surface2:  #f8fafc;
+            --wr-border:    #e2e8f0;
+            --wr-text:      #0f172a;
+            --wr-text-sec:  #334155;
+            --wr-muted:     #64748b;
+            --wr-shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+            --wr-shadow-lg: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
         }
-        /* ── LIGHT tokens ── */
-        html:not(.dark) {
-            --wr-bg:       #f1f5f9;
-            --wr-surface:  #ffffff;
-            --wr-surface2: #f8fafc;
-            --wr-border:   #cbd5e1;
-            --wr-accent:   #2563eb;
-            --wr-accent2:  #059669;
-            --wr-accent3:  #dc2626;
-            --wr-text:     #0f172a;
-            --wr-muted:    #64748b;
-            --wr-label:    #475569;
-            --wr-glow-1:   rgba(37,99,235,0.04);
-            --wr-glow-2:   rgba(5,150,105,0.03);
+
+        /* ══════════════════════════════════════════
+           DARK MODE TOKENS (override on .dark)
+        ══════════════════════════════════════════ */
+        .dark {
+            --wr-surface:   #1a1f2e;
+            --wr-surface2:  #1e2335;
+            --wr-border:    #2a3050;
+            --wr-text:      #e8eaf6;
+            --wr-text-sec:  #c5cae9;
+            --wr-muted:     #7c85a8;
+            --wr-shadow:    0 1px 4px rgba(0,0,0,0.35);
+            --wr-shadow-lg: 0 4px 16px rgba(0,0,0,0.45);
         }
 
         .wrd-wrap { font-family: 'Inter', sans-serif; }
@@ -68,7 +57,7 @@
         .wrd-hero {
             background: var(--wr-surface);
             border: 1px solid var(--wr-border);
-            border-radius: var(--wr-radius);
+            border-radius: 12px;
             padding: 20px 24px;
             margin-bottom: 20px;
             display: flex;
@@ -78,16 +67,10 @@
             flex-wrap: wrap;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            box-shadow: var(--wr-shadow);
+            transition: box-shadow 0.25s ease;
         }
-        .wrd-hero::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background:
-                radial-gradient(ellipse 60% 100% at 0% 50%, var(--wr-glow-1) 0%, transparent 70%),
-                radial-gradient(ellipse 40% 100% at 100% 50%, var(--wr-glow-2) 0%, transparent 70%);
-            pointer-events: none;
-        }
+        .wrd-hero:hover { box-shadow: var(--wr-shadow-lg); }
         .wrd-hero-left {
             display: flex; align-items: center; gap: 16px;
             position: relative; z-index: 1;
@@ -144,11 +127,13 @@
         .wrd-card {
             background: var(--wr-surface);
             border: 1px solid var(--wr-border);
-            border-radius: var(--wr-radius);
+            border-radius: 12px;
             overflow: hidden;
             margin-bottom: 20px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            box-shadow: var(--wr-shadow);
+            transition: box-shadow 0.25s ease;
         }
+        .wrd-card:hover { box-shadow: var(--wr-shadow-lg); }
         .wrd-card-head {
             display: flex; align-items: center; gap: 10px;
             padding: 16px 24px;
@@ -162,15 +147,27 @@
             font-size: 15px;
             flex-shrink: 0;
         }
-        .wrd-card-head-icon.blue   { background: rgba(79,141,255,0.12); }
-        .wrd-card-head-icon.green  { background: rgba(0,212,170,0.12); }
-        .wrd-card-head-icon.orange { background: rgba(245,158,11,0.12); }
-        .wrd-card-head-icon.purple { background: rgba(167,139,250,0.12); }
-        .wrd-card-head-icon.slate  { background: rgba(148,163,184,0.12); }
-        html:not(.dark) .wrd-card-head-icon.blue   { background: rgba(37,99,235,0.08); }
-        html:not(.dark) .wrd-card-head-icon.green  { background: rgba(5,150,105,0.08); }
-        html:not(.dark) .wrd-card-head-icon.orange { background: rgba(217,119,6,0.08); }
-        html:not(.dark) .wrd-card-head-icon.purple { background: rgba(124,58,237,0.08); }
+        .wrd-card-head-icon.blue   { background: #dbeafe; }
+        .wrd-card-head-icon.green  { background: #d1fae5; }
+        .wrd-card-head-icon.orange { background: #fed7aa; }
+        .wrd-card-head-icon.purple { background: #ede9fe; }
+        .wrd-card-head-icon.slate  { background: #e2e8f0; }
+        .dark .wrd-card-head-icon.blue   { background: rgba(37,99,235,0.15); }
+        .dark .wrd-card-head-icon.green  { background: rgba(5,150,105,0.13); }
+        .dark .wrd-card-head-icon.orange { background: rgba(194,65,12,0.15); }
+        .dark .wrd-card-head-icon.purple { background: rgba(124,58,237,0.14); }
+        .dark .wrd-card-head-icon.slate  { background: rgba(148,163,184,0.12); }
+
+        .wrd-card-head-icon.blue   i { color: #2563eb; }
+        .wrd-card-head-icon.green  i { color: #059669; }
+        .wrd-card-head-icon.orange i { color: #ea580c; }
+        .wrd-card-head-icon.purple i { color: #7c3aed; }
+        .wrd-card-head-icon.slate  i { color: #475569; }
+        .dark .wrd-card-head-icon.blue   i { color: #60a5fa; }
+        .dark .wrd-card-head-icon.green  i { color: #34d399; }
+        .dark .wrd-card-head-icon.orange i { color: #fb923c; }
+        .dark .wrd-card-head-icon.purple i { color: #c084fc; }
+        .dark .wrd-card-head-icon.slate  i { color: #cbd5e1; }
 
         .wrd-card-title {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -280,15 +277,16 @@
         .wrd-danger-zone {
             background: var(--wr-surface);
             border: 1px solid rgba(248,113,113,0.25);
-            border-radius: var(--wr-radius);
+            border-radius: 12px;
             padding: 18px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
             flex-wrap: wrap;
+            box-shadow: var(--wr-shadow);
         }
-        html:not(.dark) .wrd-danger-zone { border-color: rgba(220,38,38,0.2); }
+        .dark .wrd-danger-zone { border-color: rgba(248,113,113,0.35); }
         .wrd-danger-text h4 {
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 14px; font-weight: 700;
@@ -299,22 +297,22 @@
         .wrd-btn-danger {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 10px 20px;
-            background: rgba(248,113,113,0.1);
-            border: 1.5px solid rgba(248,113,113,0.35);
-            border-radius: var(--wr-radius-sm);
-            color: #f87171;
+            background: rgba(220,38,38,0.08);
+            border: 1.5px solid rgba(220,38,38,0.3);
+            border-radius: 8px;
+            color: #dc2626;
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 13px; font-weight: 600;
             cursor: pointer; transition: all 0.2s;
             text-decoration: none;
         }
         .wrd-btn-danger:hover {
-            background: rgba(248,113,113,0.18);
-            border-color: rgba(248,113,113,0.6);
+            background: rgba(220,38,38,0.15);
+            border-color: rgba(220,38,38,0.5);
             transform: translateY(-1px);
         }
-        html:not(.dark) .wrd-btn-danger { color: #dc2626; border-color: rgba(220,38,38,0.3); background: rgba(220,38,38,0.06); }
-        html:not(.dark) .wrd-btn-danger:hover { background: rgba(220,38,38,0.12); }
+        .dark .wrd-btn-danger { color: #f87171; border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.12); }
+        .dark .wrd-btn-danger:hover { background: rgba(248,113,113,0.20); }
     </style>
     @endpush
 

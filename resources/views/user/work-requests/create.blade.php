@@ -476,16 +476,14 @@
                                 </div>
 
                                 <div class="wr-field">
-                                    <label class="wr-label" for="for_office">
-                                        For Office
-                                        <span style="color:var(--wr-muted);font-weight:400;text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;">(optional)</span>
-                                    </label>
+                                    <label class="wr-label" for="for_office">For Office</label>
                                     <div class="wr-input-wrap">
                                         <span class="wr-icon">🏢</span>
                                         <input type="text" id="for_office" name="for_office"
-                                            value="{{ old('for_office') }}"
-                                            placeholder="e.g., Engineering Department">
+                                            value="PROVINCIAL ENGINEERS OFFICE" readonly>
+                                        <span class="wr-readonly-badge">Fixed</span>
                                     </div>
+                                    <p class="wr-field-hint">This field is fixed and cannot be changed.</p>
                                 </div>
 
                                 <div class="wr-field">

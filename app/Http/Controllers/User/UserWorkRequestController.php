@@ -5,39 +5,49 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
-use App\Models\Employee;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 
 class UserWorkRequestController extends Controller
 {
     /**
-     * Display a listing of user's work requests with search and filter
+     * Display a listing of user's own work requests
      */
     public function index(Request $request)
     {
         $query = WorkRequest::query()
-            ->where('requested_by', Auth::user()->name); // Only show user's own requests
+            ->where('contractor_name', Auth::user()->name);
 
-        // Search functionality
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name_of_project', 'LIKE', "%{$search}%")
-                  ->orWhere('project_location', 'LIKE', "%{$search}%")
-                  ->orWhere('contractor_name', 'LIKE', "%{$search}%");
+            $query->where(function ($q) use ($request) {
+                $q->where('name_of_project', 'LIKE', "%{$request->search}%")
+                  ->orWhere('project_location', 'LIKE', "%{$request->search}%");
             });
         }
 
-        // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('date_from')) {
+            $query->whereDate('requested_work_start_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('requested_work_start_date', '<=', $request->date_to);
+        }
+
         $workRequests = $query->latest()->paginate(15)->withQueryString();
-            
-        return view('user.work-requests.index', compact('workRequests'));
+
+        $stats = [
+            'total'      => WorkRequest::where('contractor_name', Auth::user()->name)->count(),
+            'draft'      => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'draft')->count(),
+            'submitted'  => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'submitted')->count(),
+            'approved'   => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'approved')->count(),
+            'rejected'   => WorkRequest::where('contractor_name', Auth::user()->name)->where('status', 'rejected')->count(),
+        ];
+
+        return view('user.work-requests.index', compact('workRequests', 'stats'));
     }
 
     /**
@@ -45,11 +55,7 @@ class UserWorkRequestController extends Controller
      */
     public function create()
     {
-        // Pre-fill with current user's information
-        $currentUser = Auth::user();
-        $employee = $currentUser->employee;
-
-        return view('user.work-requests.create', compact('employee'));
+        return view('user.work-requests.create');
     }
 
     /**
@@ -57,22 +63,46 @@ class UserWorkRequestController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate(WorkRequest::validationRules());
-        
-        // Ensure the request is created by the current user
-        $validated['requested_by'] = Auth::user()->name;
-        
+        $validated = $request->validate([
+            // Project Information
+            'name_of_project'               => 'required|string|max:255',
+            'project_location'              => 'required|string|max:255',
+            'for_office'                    => 'nullable|string|max:255',
+            'from_requester'                => 'nullable|string|max:255',
+
+            // Schedule
+            'requested_work_start_date'     => 'required|date',
+            'requested_work_start_time'     => 'nullable|string|max:20',
+
+            // Pay Item Details
+            'item_no'                       => 'nullable|string|max:100',
+            'description'                   => 'nullable|string|max:255',
+            'quantity'                      => 'nullable|numeric|min:0',
+            'estimated_quantity'            => 'nullable|numeric|min:0',
+            'unit'                          => 'nullable|string|max:50',
+            'equipment_to_be_used'          => 'nullable|string|max:255',
+            'description_of_work_requested' => 'required|string',
+
+            // Submission
+            'contractor_name'               => 'nullable|string|max:255',
+        ]);
+
+        // Force contractor_name to logged-in user's name
+        $validated['contractor_name'] = Auth::user()->name;
+
+        // Set initial status
+        $validated['status'] = WorkRequest::STATUS_SUBMITTED;
+
         $workRequest = WorkRequest::create($validated);
-        
-        // Log the creation with employee_id (only if employee exists)
-        $logData = ['description' => 'Work request created by user'];
-        
+
+        $logData = ['description' => 'Work request submitted by user'];
+
         if (Auth::user()->employee) {
             $logData['employee_id'] = Auth::user()->employee->id;
         }
-        
-        $workRequest->addLog(WorkRequestLog::EVENT_CREATED, $logData);
-        
+
+        $workRequest->addLog(WorkRequestLog::EVENT_SUBMITTED, $logData);
+
         return redirect()
             ->route('user.work-requests.show', $workRequest)
             ->with('success', 'Work request submitted successfully!');
@@ -84,7 +114,7 @@ class UserWorkRequestController extends Controller
     public function show(WorkRequest $workRequest)
     {
         // Ensure user can only view their own requests
-        if ($workRequest->requested_by !== Auth::user()->name) {
+        if ($workRequest->contractor_name !== Auth::user()->name) {
             abort(403, 'Unauthorized access to this work request.');
         }
 
@@ -92,32 +122,29 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Edit work request (only if pending/draft)
+     * Show edit form — only allowed fields, only if status allows
      */
     public function edit(WorkRequest $workRequest)
     {
-        // Ensure user can only edit their own requests
-        if ($workRequest->requested_by !== Auth::user()->name) {
+        if ($workRequest->contractor_name !== Auth::user()->name) {
             abort(403, 'Unauthorized access to this work request.');
         }
 
-        // Check if the request can be edited (e.g., only if status is 'pending' or 'draft')
         if (!$workRequest->canEdit()) {
             return redirect()
                 ->route('user.work-requests.show', $workRequest)
                 ->with('error', 'This work request can no longer be edited.');
         }
-        
+
         return view('user.work-requests.edit', compact('workRequest'));
     }
 
     /**
-     * Update work request
+     * Update work request — only allowed fields
      */
     public function update(Request $request, WorkRequest $workRequest)
     {
-        // Ensure user can only update their own requests
-        if ($workRequest->requested_by !== Auth::user()->name) {
+        if ($workRequest->contractor_name !== Auth::user()->name) {
             abort(403, 'Unauthorized access to this work request.');
         }
 
@@ -126,80 +153,95 @@ class UserWorkRequestController extends Controller
                 ->route('user.work-requests.show', $workRequest)
                 ->with('error', 'This work request can no longer be edited.');
         }
-        
-        $validated = $request->validate(WorkRequest::validationRules($workRequest->id));
-        
-        $workRequest->update($validated);
-        
-        // Log the update
-        $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, [
-            'description' => 'Work request updated by user',
-            'user_id' => Auth::id(),
+
+        $validated = $request->validate([
+            // Project Information
+            'name_of_project'               => 'required|string|max:255',
+            'project_location'              => 'required|string|max:255',
+            'for_office'                    => 'nullable|string|max:255',
+            'from_requester'                => 'nullable|string|max:255',
+
+            // Schedule
+            'requested_work_start_date'     => 'required|date',
+            'requested_work_start_time'     => 'nullable|string|max:20',
+
+            // Pay Item Details
+            'item_no'                       => 'nullable|string|max:100',
+            'description'                   => 'nullable|string|max:255',
+            'quantity'                      => 'nullable|numeric|min:0',
+            'estimated_quantity'            => 'nullable|numeric|min:0',
+            'unit'                          => 'nullable|string|max:50',
+            'equipment_to_be_used'          => 'nullable|string|max:255',
+            'description_of_work_requested' => 'required|string',
         ]);
-        
+
+        // Prevent contractor_name from being changed
+        $validated['contractor_name'] = Auth::user()->name;
+
+        $changes = $workRequest->buildChanges($validated);
+
+        $workRequest->update($validated);
+
+        $logData = [
+            'description' => 'Work request updated by user',
+            'changes'     => $changes,
+        ];
+
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
+
+        $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, $logData);
+
         return redirect()
             ->route('user.work-requests.show', $workRequest)
             ->with('success', 'Work request updated successfully!');
     }
 
     /**
-     * Delete work request (only if pending/draft)
+     * Delete work request — only if status allows
      */
     public function destroy(WorkRequest $workRequest)
     {
-        // Ensure user can only delete their own requests
-        if ($workRequest->requested_by !== Auth::user()->name) {
+        if ($workRequest->contractor_name !== Auth::user()->name) {
             abort(403, 'Unauthorized access to this work request.');
         }
 
-        // Only allow deletion if status permits (e.g., draft or pending)
         if (!$workRequest->canEdit()) {
             return redirect()
                 ->route('user.work-requests.show', $workRequest)
                 ->with('error', 'This work request can no longer be deleted.');
         }
 
+        $logData = ['description' => 'Work request deleted by user'];
+
+        if (Auth::user()->employee) {
+            $logData['employee_id'] = Auth::user()->employee->id;
+        }
+
+        $workRequest->addLog(WorkRequestLog::EVENT_DELETED, $logData);
+
         $workRequest->delete();
-        
+
         return redirect()
             ->route('user.work-requests.index')
             ->with('success', 'Work request deleted successfully!');
     }
 
     /**
-     * Print work request as PDF
+     * Show work request — read only view for the user
      */
     public function print(WorkRequest $workRequest)
     {
-        // Ensure user can only print their own requests
-        if ($workRequest->requested_by !== Auth::user()->name) {
+        if ($workRequest->contractor_name !== Auth::user()->name) {
             abort(403, 'Unauthorized access to this work request.');
         }
 
-        $pdf = Pdf::loadView('user.work-requests.print', compact('workRequest'))
-            ->setPaper('a4', 'portrait');
-            
-        return $pdf->stream('work-request-' . $workRequest->id . '.pdf');
+        return view('user.work-requests.print', compact('workRequest'));
     }
 
     /**
-     * Download work request as PDF
-     */
-    public function download(WorkRequest $workRequest)
-    {
-        // Ensure user can only download their own requests
-        if ($workRequest->requested_by !== Auth::user()->name) {
-            abort(403, 'Unauthorized access to this work request.');
-        }
-
-        $pdf = Pdf::loadView('user.work-requests.print', compact('workRequest'))
-            ->setPaper('a4', 'portrait');
-            
-        return $pdf->download('work-request-' . $workRequest->id . '.pdf');
-    }
-
-    /**
-     * Get employee details for autofill (current user only)
+     * Get employee details for autofill
      */
     public function getEmployeeDetails()
     {
@@ -212,7 +254,7 @@ class UserWorkRequestController extends Controller
         return response()->json([
             'id'          => $employee->id,
             'name'        => Auth::user()->name,
-            'employee_id' => $employee->employee_id,
+            'employee_id' => $employee->employee_number,
             'position'    => $employee->position,
             'department'  => $employee->department,
             'office'      => $employee->office,

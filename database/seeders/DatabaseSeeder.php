@@ -30,13 +30,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Create a test user with 'user' role
-        User::updateOrCreate(
-            ['email' => 'user@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                'role' => 'user',
-            ]
-        );
+        // User::updateOrCreate(
+        //     ['email' => 'user@example.com'],
+        //     [
+        //         'name' => 'Test User',
+        //         'password' => \Illuminate\Support\Facades\Hash::make('password'),
+        //         'role' => 'user',
+        //     ]
+        // );
     }
 }

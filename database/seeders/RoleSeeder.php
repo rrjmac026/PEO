@@ -16,7 +16,7 @@ class RoleSeeder extends Seeder
             [
                 'name'     => 'Juan Dela Cruz',
                 'email'    => 'user@example.com',
-                'role'     => 'user',
+                'role'     => 'contractor',
                 'employee' => [
                     'employee_number' => 'EMP-002',
                     'position'        => 'Contractor',

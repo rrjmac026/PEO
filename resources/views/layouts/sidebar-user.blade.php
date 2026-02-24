@@ -138,12 +138,6 @@
         Work Requests
     </a>
 
-    <a href="#"
-       class="sb-link {{ request()->routeIs('user.documents*') ? 'active' : '' }}">
-        <span class="sb-icon"><i class="fas fa-file-alt"></i></span>
-        My Documents
-    </a>
-
     <div class="sb-divider"></div>
     <span class="sb-section-label">Account</span>
 

@@ -8,6 +8,8 @@ use App\Http\Controllers\User\UserWorkRequestController;
 use App\Http\Controllers\Admin\EmployeeManagementController;
 use App\Http\Controllers\User\UserConcretePouringController;
 use App\Http\Controllers\Admin\AdminConcretePouringController;
+use App\Http\Controllers\Reviewer\ReviewerController;
+use App\Http\Controllers\Reviewer\ReviewerWorkRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -113,16 +115,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 });
 
 // User Routes
-Route::prefix('user')->name('user.')->middleware(['auth', 'role:user'])->group(function () {
+Route::prefix('user')->name('user.')->middleware(['auth', 'role:contractor'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\User\UserController::class, 'dashboard'])
         ->name('dashboard');
     
     // Work Requests
     Route::resource('work-requests', UserWorkRequestController::class);
-    Route::get('work-requests/{workRequest}/print', [UserWorkRequestController::class, 'print'])
-        ->name('work-requests.print');
-    Route::get('work-requests/{workRequest}/download', [UserWorkRequestController::class, 'download'])
-        ->name('work-requests.download');
     Route::get('employee-details', [UserWorkRequestController::class, 'getEmployeeDetails'])
         ->name('employee-details');
 

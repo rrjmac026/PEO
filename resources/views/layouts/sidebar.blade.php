@@ -37,8 +37,10 @@
              @click="if (($event.target.tagName === 'A' || $event.target.closest('a')) && window.innerWidth < 1024) {
                  $store.sidebar.isOpen = false
              }">
-            @if(auth()->user()->role === 'user')
+            @if(auth()->user()->role === 'contractor')
                 @include('layouts.sidebar-user')
+            @elseif(in_array(auth()->user()->role, ['site_inspector', 'surveyor', 'resident_engineer', 'provincial_engineer']))
+                @include('layouts.sidebar-reviewer')
             @else
                 @include('layouts.sidebar-admin')
             @endif

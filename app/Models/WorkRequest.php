@@ -180,9 +180,9 @@ class WorkRequest extends Model
         return $this->contractor_name;
     }
 
-    public function getSubmittedDateAttribute(): ?string
+    public function getSubmittedDateAttribute(): ?\Carbon\Carbon
     {
-        return $this->created_at?->format('Y-m-d');
+        return $this->created_at;
     }
 
     // ---------------------------------------------------------------
