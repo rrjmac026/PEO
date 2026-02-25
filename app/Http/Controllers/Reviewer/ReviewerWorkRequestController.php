@@ -129,6 +129,32 @@ class ReviewerWorkRequestController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // MTQA
+    // ─────────────────────────────────────────────────────────────────────────
+    public function storeMtqaCheck(Request $request, WorkRequest $workRequest)
+    {
+        $request->validate([
+            'recommended_action' => 'nullable|string',
+            'mtqa_signature'     => 'nullable|string',
+        ]);
+
+        $workRequest->update([
+            'checked_by_mtqa'    => Auth::user()->name,
+            'mtqa_signature'     => $this->resolveSignatureValue(
+                                        $request->input('mtqa_signature')
+                                    ),
+            'recommended_action' => $request->recommended_action,
+        ]);
+
+        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+            'description' => 'MTQA check submitted by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
+        ]);
+
+        return back()->with('success', 'MTQA check submitted successfully.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Resident Engineer
     // ─────────────────────────────────────────────────────────────────────────
     public function storeEngineerReview(Request $request, WorkRequest $workRequest)

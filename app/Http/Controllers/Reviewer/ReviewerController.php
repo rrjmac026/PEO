@@ -47,6 +47,27 @@ class ReviewerController extends Controller
                                 ->latest()->take(5)->get(),
             ],
 
+            'mtqa' => $stats = [
+                'total'   => WorkRequest::count(),
+                'pending' => WorkRequest::whereNull('checked_by_mtqa')->count(),
+                'done'    => WorkRequest::whereNotNull('checked_by_mtqa')->count(),
+                'recent'  => WorkRequest::whereNull('checked_by_mtqa')->latest()->take(5)->get(),
+            ],
+
+            'engineeriv' => $stats = [
+                'total'  => WorkRequest::count(),
+                'pending'=> WorkRequest::whereNull('checked_by_mtqa')->count(),
+                'done'   => WorkRequest::whereNotNull('checked_by_mtqa')->count(),
+                'recent' => WorkRequest::whereNull('checked_by_mtqa')->latest()->take(5)->get(),
+            ],
+
+            'engineeriii' => $stats = [
+                'total'  => WorkRequest::count(),
+                'pending'=> WorkRequest::whereNull('recommending_approval_by')->count(),
+                'done'   => WorkRequest::whereNotNull('recommending_approval_by')->count(),
+                'recent' => WorkRequest::whereNull('recommending_approval_by')->latest()->take(5)->get(),
+            ],
+
             'provincial_engineer' => [
                 'title'      => 'Provincial Engineer Dashboard',
                 'total'      => WorkRequest::count(),

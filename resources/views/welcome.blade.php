@@ -698,9 +698,10 @@
                         @php
                             $role = Auth::user()->role ?? null;
                             $dashboardRoute = match($role) {
-                                'admin' => 'admin.dashboard',
-                                'user'  => 'user.dashboard',
-                                default => 'dashboard'
+                                'admin'                                                                                                          => 'admin.dashboard',
+                                'contractor'                                                                                                     => 'user.dashboard',
+                                'site_inspector', 'surveyor', 'resident_engineer', 'engineeriv', 'engineeriii', 'provincial_engineer'           => 'reviewer.dashboard',
+                                default                                                                                                          => 'dashboard',
                             };
                         @endphp
                         <a href="{{ route($dashboardRoute) }}" class="btn-dashboard">

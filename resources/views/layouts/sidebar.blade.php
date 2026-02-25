@@ -39,7 +39,7 @@
              }">
             @if(auth()->user()->role === 'contractor')
                 @include('layouts.sidebar-user')
-            @elseif(in_array(auth()->user()->role, ['site_inspector', 'surveyor', 'resident_engineer', 'provincial_engineer']))
+            @elseif(in_array(auth()->user()->role, ['site_inspector', 'surveyor', 'resident_engineer', 'engineeriii', 'engineeriv', 'provincial_engineer', 'mtqa']))
                 @include('layouts.sidebar-reviewer')
             @else
                 @include('layouts.sidebar-admin')

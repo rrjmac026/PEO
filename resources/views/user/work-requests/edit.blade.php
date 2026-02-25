@@ -102,6 +102,18 @@
                                 <h3 class="wre-section-title text-lg font-semibold mb-4">
                                     {{ __('Project Information') }}
                                 </h3>
+                                <!--Reference Number-->
+                                <div class="mb-4">
+                                        <label for="reference_number" class="wre-label block text-sm mb-2">
+                                            {{ __('Reference Number') }} <span class="text-red-500">*</span>
+                                        </label>
+                                        <input type="text" name="reference_number" id="reference_number" 
+                                            value="{{ old('reference_number', $workRequest->reference_number) }}"
+                                            class="wre-input block w-full px-3 py-2 shadow-sm @error('reference_number') border-red-500 @enderror">
+                                        @error('reference_number')
+                                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                                        @enderror
+                                </div>
 
                                 <!-- Project Name -->
                                 <div class="mb-4">

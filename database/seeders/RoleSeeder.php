@@ -53,6 +53,19 @@ class RoleSeeder extends Seeder
                     'office'          => 'Field Office',
                 ],
             ],
+            // MTQA
+            [
+                'name'     => 'Lucia Gomez',
+                'email'    => 'mtqa@example.com',
+                'role'     => 'mtqa',
+                'employee' => [
+                    'employee_number' => 'EMP-007',
+                    'position'        => 'MTQA',
+                    'department'      => 'Quality Assurance',
+                    'phone'           => '09000000007',
+                    'office'          => 'Head Office',
+                ],
+            ],
 
             // Resident Engineer
             [
@@ -67,10 +80,38 @@ class RoleSeeder extends Seeder
                     'office'          => 'District Office',
                 ],
             ],
+            
+            //Engineer IV
+            [
+                'name'     => 'Randy Diaz',
+                'email'    => 'engineeriv@example.com',
+                'role'     => 'engineeriv',
+                'employee' => [
+                    'employee_number' => 'EMP-008',
+                    'position'        => 'Engineer IV',
+                    'department'      => 'Engineering',
+                    'phone'           => '09000000008',
+                    'office'          => 'Head Office',
+                ],
+            ],
+
+            //Engineer III
+            [
+                'name'     => 'Sanita E. Maiza',
+                'email'    => 'engineeriii@example.com',
+                'role'     => 'engineeriii',
+                'employee' => [
+                    'employee_number' => 'EMP-009',
+                    'position'        => 'Engineer III',
+                    'department'      => 'Engineering',
+                    'phone'           => '09000000009',
+                    'office'          => 'Head Office',
+                ],
+            ],
 
             // Provincial Engineer
             [
-                'name'     => 'Roberto Villanueva',
+                'name'     => 'Jose Pastor P. De La Cerna, III',
                 'email'    => 'provincial.engineer@example.com',
                 'role'     => 'provincial_engineer',
                 'employee' => [

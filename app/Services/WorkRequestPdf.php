@@ -209,7 +209,7 @@ class WorkRequestPdf extends \FPDF
         $y = $this->rowApproval(
                 $y,
                 'Reviewed by :',
-                $this->val($this->wr->reviewed_by ?? 'RANDY P. DIAZ'),
+                $this->val($this->wr->reviewed_by ?? ''),
                 'Engineer IV/Chief, MTQC Division',
                 $this->val($this->wr->reviewed_by_notes ?? ''),
                 null
@@ -217,7 +217,7 @@ class WorkRequestPdf extends \FPDF
         $y = $this->rowApproval(
                 $y,
                 'Recommending Approval :',
-                $this->val($this->wr->recommending_approval_by ?? 'SANITA E. MAIZA'),
+                $this->val($this->wr->recommending_approval_by ?? ''),
                 'Engineer III/ OIC, Construction Division',
                 $this->val($this->wr->recommending_approval_notes ?? ''),
                 $this->wr->recommending_approval_signature ?? null
@@ -225,7 +225,7 @@ class WorkRequestPdf extends \FPDF
         $y = $this->rowApproval(
                 $y,
                 'Approved :',
-                $this->val($this->wr->approved_by ?? 'DELIA E. DAMASCO'),
+                $this->val($this->wr->approved_by ?? ''),
                 'Provincial Engineer',
                 $this->val($this->wr->approved_notes ?? ''),
                 $this->wr->approved_signature ?? null
