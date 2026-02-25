@@ -345,7 +345,7 @@
                             <th>ID</th>
                             <th>Project Name</th>
                             <th>Location</th>
-                            <th>Requested By</th>
+                            <th>Submitted By</th>
                             <th>Start Date</th>
                             <th>Status</th>
                             <th class="right">Actions</th>
@@ -371,7 +371,7 @@
 
                                 <!-- Requested By -->
                                 <td class="muted">
-                                    {{ $request->requested_by }}
+                                    {{ $request->contractor_name ?? '—' }}
                                 </td>
 
                                 <!-- Start Date -->

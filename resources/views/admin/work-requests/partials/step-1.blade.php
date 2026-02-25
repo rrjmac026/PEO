@@ -12,7 +12,7 @@
                 <span class="wr-icon">🔖</span>
                 <input type="text" name="reference_number" id="reference_number"
                        value="{{ old('reference_number', $workRequest->reference_number ?? '') }}"
-                       placeholder="e.g., WR-2024-001">
+                       placeholder="e.g.,2024-001">
             </div>
             @error('reference_number')
                 <p class="wr-err-msg show" id="err-reference_number">⚠ {{ $message }}</p>

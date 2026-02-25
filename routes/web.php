@@ -172,8 +172,12 @@ Route::prefix('reviewer')->name('reviewer.')
         ->name('work-requests.store-engineer-review');
 
     Route::post('/work-requests/{workRequest}/mtqa-check', [ReviewerWorkRequestController::class, 'storeMtqaCheck'])
-        ->middleware('role:engineeriv')
+        ->middleware('role:mtqa')
         ->name('work-requests.store-mtqa-check');
+
+    Route::post('/work-requests/{workRequest}/engineer-iv-review', [ReviewerWorkRequestController::class, 'storeEngineerIvReview'])
+        ->middleware('role:engineeriv')
+        ->name('work-requests.store-engineer-iv-review');
 
     Route::post('/work-requests/{workRequest}/recommending-approval', [ReviewerWorkRequestController::class, 'storeRecommendingApproval'])
         ->middleware('role:engineeriii')

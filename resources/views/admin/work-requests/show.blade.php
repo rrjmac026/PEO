@@ -551,10 +551,10 @@
                     @endif
 
                     {{-- Reviewed By --}}
-                    @if($workRequest->reviewed_by || $workRequest->reviewer_designation || $workRequest->reviewed_by_notes)
+                    @if($workRequest->reviewed_by || $workRequest->reviewed_by_recommendation_action)
                         <div style="padding: 16px; border-left: 4px solid #818cf8; border-radius: 4px; background: rgba(129, 140, 248, 0.06); margin-bottom: 16px;">
                             <p style="font-size: 12px; font-weight: 700; color: #818cf8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fas fa-user-check mr-2"></i> Reviewed By
+                                <i class="fas fa-user-check mr-2"></i> Reviewed By (Engineer IV)
                             </p>
                             <div class="wrd-info-grid">
                                 <div class="wrd-info-item">
@@ -563,16 +563,17 @@
                                         {{ $workRequest->reviewed_by ?? 'Not specified' }}
                                     </span>
                                 </div>
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Designation</span>
-                                    <span class="wrd-info-value {{ !$workRequest->reviewer_designation ? 'empty' : '' }}">
-                                        {{ $workRequest->reviewer_designation ?? 'Not specified' }}
-                                    </span>
-                                </div>
+                                @if($workRequest->reviewer_signature)
+                                    <div class="wrd-info-item">
+                                        <span class="wrd-info-label">Signature</span>
+                                        <img src="{{ $workRequest->reviewer_signature }}" alt="Engineer IV Signature"
+                                             style="max-width:180px; border:1px solid var(--wr-border); border-radius:6px; padding:4px; background:var(--wr-surface);">
+                                    </div>
+                                @endif
                                 <div class="wrd-info-item span2">
-                                    <span class="wrd-info-label">Notes</span>
-                                    <span class="wrd-info-value pre {{ !$workRequest->reviewed_by_notes ? 'empty' : '' }}">
-                                        {{ $workRequest->reviewed_by_notes ?? 'No notes' }}
+                                    <span class="wrd-info-label">Recommendation Action</span>
+                                    <span class="wrd-info-value pre {{ !$workRequest->reviewed_by_recommendation_action ? 'empty' : '' }}">
+                                        {{ $workRequest->reviewed_by_recommendation_action ?? 'No action specified' }}
                                     </span>
                                 </div>
                             </div>
@@ -580,10 +581,10 @@
                     @endif
 
                     {{-- Recommending Approval --}}
-                    @if($workRequest->recommending_approval_by || $workRequest->recommending_approval_designation || $workRequest->recommending_approval_notes)
+                    @if($workRequest->recommending_approval_by || $workRequest->recommending_approval_recommendation_action)
                         <div style="padding: 16px; border-left: 4px solid #f97316; border-radius: 4px; background: rgba(249, 115, 22, 0.06); margin-bottom: 16px;">
                             <p style="font-size: 12px; font-weight: 700; color: #f97316; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fas fa-thumbs-up mr-2"></i> Recommending Approval
+                                <i class="fas fa-thumbs-up mr-2"></i> Recommending Approval (Engineer III)
                             </p>
                             <div class="wrd-info-grid">
                                 <div class="wrd-info-item">
@@ -592,16 +593,17 @@
                                         {{ $workRequest->recommending_approval_by ?? 'Not specified' }}
                                     </span>
                                 </div>
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Designation</span>
-                                    <span class="wrd-info-value {{ !$workRequest->recommending_approval_designation ? 'empty' : '' }}">
-                                        {{ $workRequest->recommending_approval_designation ?? 'Not specified' }}
-                                    </span>
-                                </div>
+                                @if($workRequest->recommending_approval_signature)
+                                    <div class="wrd-info-item">
+                                        <span class="wrd-info-label">Signature</span>
+                                        <img src="{{ $workRequest->recommending_approval_signature }}" alt="Engineer III Signature"
+                                             style="max-width:180px; border:1px solid var(--wr-border); border-radius:6px; padding:4px; background:var(--wr-surface);">
+                                    </div>
+                                @endif
                                 <div class="wrd-info-item span2">
-                                    <span class="wrd-info-label">Notes</span>
-                                    <span class="wrd-info-value pre {{ !$workRequest->recommending_approval_notes ? 'empty' : '' }}">
-                                        {{ $workRequest->recommending_approval_notes ?? 'No notes' }}
+                                    <span class="wrd-info-label">Recommendation Action</span>
+                                    <span class="wrd-info-value pre {{ !$workRequest->recommending_approval_recommendation_action ? 'empty' : '' }}">
+                                        {{ $workRequest->recommending_approval_recommendation_action ?? 'No action specified' }}
                                     </span>
                                 </div>
                             </div>
@@ -609,10 +611,10 @@
                     @endif
 
                     {{-- Approved By --}}
-                    @if($workRequest->approved_by || $workRequest->approved_by_designation || $workRequest->approved_notes)
+                    @if($workRequest->approved_by || $workRequest->approved_recommendation_action)
                         <div style="padding: 16px; border-left: 4px solid #14b8a6; border-radius: 4px; background: rgba(20, 184, 166, 0.06); margin-bottom: 16px;">
                             <p style="font-size: 12px; font-weight: 700; color: #14b8a6; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fas fa-check-circle mr-2"></i> Approved By
+                                <i class="fas fa-check-circle mr-2"></i> Approved By (Provincial Engineer)
                             </p>
                             <div class="wrd-info-grid">
                                 <div class="wrd-info-item">
@@ -621,16 +623,17 @@
                                         {{ $workRequest->approved_by ?? 'Not specified' }}
                                     </span>
                                 </div>
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Designation</span>
-                                    <span class="wrd-info-value {{ !$workRequest->approved_by_designation ? 'empty' : '' }}">
-                                        {{ $workRequest->approved_by_designation ?? 'Not specified' }}
-                                    </span>
-                                </div>
+                                @if($workRequest->approved_signature)
+                                    <div class="wrd-info-item">
+                                        <span class="wrd-info-label">Signature</span>
+                                        <img src="{{ $workRequest->approved_signature }}" alt="Provincial Engineer Signature"
+                                             style="max-width:180px; border:1px solid var(--wr-border); border-radius:6px; padding:4px; background:var(--wr-surface);">
+                                    </div>
+                                @endif
                                 <div class="wrd-info-item span2">
-                                    <span class="wrd-info-label">Notes</span>
-                                    <span class="wrd-info-value pre {{ !$workRequest->approved_notes ? 'empty' : '' }}">
-                                        {{ $workRequest->approved_notes ?? 'No notes' }}
+                                    <span class="wrd-info-label">Recommendation Action</span>
+                                    <span class="wrd-info-value pre {{ !$workRequest->approved_recommendation_action ? 'empty' : '' }}">
+                                        {{ $workRequest->approved_recommendation_action ?? 'No action specified' }}
                                     </span>
                                 </div>
                             </div>

@@ -33,7 +33,6 @@ class WorkRequestController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('name_of_project', 'LIKE', "%{$search}%")
                   ->orWhere('project_location', 'LIKE', "%{$search}%")
-                  ->orWhere('requested_by', 'LIKE', "%{$search}%")
                   ->orWhere('contractor_name', 'LIKE', "%{$search}%");
             });
         }
@@ -57,9 +56,11 @@ class WorkRequestController extends Controller
             'site_inspectors'      => \App\Models\User::where('role', 'site_inspector')->get(),
             'surveyors'            => \App\Models\User::where('role', 'surveyor')->get(),
             'resident_engineers'   => \App\Models\User::where('role', 'resident_engineer')->get(),
+            'mtqas'                 => \App\Models\User::where('role', 'mtqa')->get(),
             'engineers_iv'         => \App\Models\User::where('role', 'engineeriv')->get(),
             'engineers_iii'        => \App\Models\User::where('role', 'engineeriii')->get(),
             'provincial_engineers' => \App\Models\User::where('role', 'provincial_engineer')->get(),
+            'contractors'          => \App\Models\User::where('role', 'contractor')->get(),
         ]);
     }
 
@@ -158,9 +159,11 @@ class WorkRequestController extends Controller
             'site_inspectors'      => \App\Models\User::where('role', 'site_inspector')->get(),
             'surveyors'            => \App\Models\User::where('role', 'surveyor')->get(),
             'resident_engineers'   => \App\Models\User::where('role', 'resident_engineer')->get(),
+            'mtqas'                 => \App\Models\User::where('role', 'mtqa')->get(),
             'engineers_iv'         => \App\Models\User::where('role', 'engineeriv')->get(),
             'engineers_iii'        => \App\Models\User::where('role', 'engineeriii')->get(),
             'provincial_engineers' => \App\Models\User::where('role', 'provincial_engineer')->get(),
+            'contractors'          => \App\Models\User::where('role', 'contractor')->get(),
         ]);
     }
 

@@ -26,21 +26,11 @@
             </div>
 
             <div class="wr-field">
-                <label class="wr-label" for="approved_by_designation">Designation</label>
-                <div class="wr-input-wrap">
-                    <span class="wr-icon">🏅</span>
-                    <input type="text" name="approved_by_designation" id="approved_by_designation"
-                           value="{{ old('approved_by_designation', $workRequest->approved_by_designation ?? '') }}"
-                           placeholder="e.g., Provincial Engineer">
-                </div>
-            </div>
-
-            <div class="wr-field">
-                <label class="wr-label" for="approved_notes">Approval Notes</label>
+                <label class="wr-label" for="approved_recommendation_action">Recommendation Action</label>
                 <div class="wr-input-wrap textarea-wrap">
                     <span class="wr-icon">📋</span>
-                    <textarea name="approved_notes" id="approved_notes" rows="3"
-                              placeholder="Enter approval notes...">{{ old('approved_notes', $workRequest->approved_notes ?? '') }}</textarea>
+                    <textarea name="approved_recommendation_action" id="approved_recommendation_action" rows="3"
+                              placeholder="Enter recommendation action...">{{ old('approved_recommendation_action', $workRequest->approved_recommendation_action ?? '') }}</textarea>
                 </div>
             </div>
         </div>
@@ -56,11 +46,16 @@
         <div class="wr-fields">
             <div class="wr-field">
                 <label class="wr-label" for="accepted_by_contractor">Accepted By</label>
-                <div class="wr-input-wrap">
-                    <span class="wr-icon">🤝</span>
-                    <input type="text" name="accepted_by_contractor" id="accepted_by_contractor"
-                           value="{{ old('accepted_by_contractor', $workRequest->accepted_by_contractor ?? '') }}"
-                           placeholder="Contractor representative name">
+                <div class="wr-input-wrap no-icon">
+                    <select name="accepted_by_contractor" id="accepted_by_contractor">
+                        <option value="">— Select Contractor —</option>
+                        @foreach($contractors as $user)
+                            <option value="{{ $user->name }}"
+                                {{ old('accepted_by_contractor', $workRequest->accepted_by_contractor ?? '') === $user->name ? 'selected' : '' }}>
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
             <div class="wr-fields wr-two-col">

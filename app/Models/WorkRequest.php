@@ -67,20 +67,18 @@ class WorkRequest extends Model
 
         // ── Reviewed By ──────────────────────────────────────────────
         'reviewed_by',
-        'reviewer_designation',
-        'reviewed_by_notes',
+        'reviewer_signature',
+        'reviewed_by_recommendation_action',
 
         // ── Recommending Approval ────────────────────────────────────
         'recommending_approval_by',
-        'recommending_approval_designation',
         'recommending_approval_signature',
-        'recommending_approval_notes',
+        'recommending_approval_recommendation_action',
 
         // ── Approved ─────────────────────────────────────────────────
         'approved_by',
-        'approved_by_designation',
         'approved_signature',
-        'approved_notes',
+        'approved_recommendation_action',
 
         // ── Acceptance ───────────────────────────────────────────────
         'accepted_by_contractor',
@@ -194,7 +192,7 @@ class WorkRequest extends Model
     {
         return [
             // Project Information
-            'reference_number'              => 'nullable|string|max:255|unique:work_requests,reference_number,' . $id,
+            'reference_number' => 'nullable|string|max:255',
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
 
@@ -218,52 +216,50 @@ class WorkRequest extends Model
             // Submission
             'contractor_name'               => 'nullable|string|max:255',
 
-            // Reception
+            // Reception this is for receiving personnel to fill out after submission
             'received_by'                   => 'nullable|string|max:255',
             'received_date'                 => 'nullable|date',
             'received_time'                 => 'nullable|string|max:20',
 
-            // Inspection: Site Inspector
+            // Inspection: Site Inspector this is for site inspector to fill out after receiving the work request
             'inspected_by_site_inspector'   => 'nullable|string|max:255',
             'site_inspector_signature'      => 'nullable|string',
             'findings_comments'             => 'nullable|string',
             'recommendation'                => 'nullable|string',
 
-            // Inspection: Surveyor
+            // Inspection: Surveyor this is for surveyor to fill out after review by site inspector
             'surveyor_name'                 => 'nullable|string|max:255',
             'surveyor_signature'            => 'nullable|string',
             'findings_surveyor'             => 'nullable|string',
             'recommendation_surveyor'       => 'nullable|string',
 
-            // Inspection: Resident Engineer
+            // Inspection: Resident Engineer this is for resident engineer to fill out after review by site inspector and surveyor
             'resident_engineer_name'        => 'nullable|string|max:255',
             'resident_engineer_signature'   => 'nullable|string',
             'findings_engineer'             => 'nullable|string',
             'recommendation_engineer'       => 'nullable|string',
 
-            // MTQA / Checked By
+            // MTQA / Checked By this is for MTQA to fill out after review by provincial engineer
             'checked_by_mtqa'               => 'nullable|string|max:255',
             'mtqa_signature'                => 'nullable|string',
             'recommended_action'            => 'nullable|string',
 
-            // Reviewed By
+            // Reviewed By this is for provincial engineer IV to fill out after review by site inspector, surveyor, and resident engineer
             'reviewed_by'                   => 'nullable|string|max:255',
-            'reviewer_designation'          => 'nullable|string|max:255',
-            'reviewed_by_notes'             => 'nullable|string',
+            'reviewer_signature'            => 'nullable|string',
+            'reviewed_by_recommendation_action' => 'nullable|string',
 
-            // Recommending Approval
+            // Recommending Approval this is for engineer III to fill out
             'recommending_approval_by'          => 'nullable|string|max:255',
-            'recommending_approval_designation' => 'nullable|string|max:255',
             'recommending_approval_signature'   => 'nullable|string',
-            'recommending_approval_notes'       => 'nullable|string',
+            'recommending_approval_recommendation_action' => 'nullable|string',
 
-            // Approved
+            // Approved this is for provincial engineer to fill out
             'approved_by'                   => 'nullable|string|max:255',
-            'approved_by_designation'       => 'nullable|string|max:255',
             'approved_signature'            => 'nullable|string',
-            'approved_notes'                => 'nullable|string',
+            'approved_recommendation_action'    => 'nullable|string',
 
-            // Acceptance
+            // Acceptance this is for contractor to fill out after approval
             'accepted_by_contractor'        => 'nullable|string|max:255',
             'accepted_date'                 => 'nullable|date',
             'accepted_time'                 => 'nullable|string|max:20',

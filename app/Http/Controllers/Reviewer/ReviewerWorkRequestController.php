@@ -184,6 +184,34 @@ class ReviewerWorkRequestController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Engineer IV
+    // ─────────────────────────────────────────────────────────────────────────
+    public function storeEngineerIvReview(Request $request, WorkRequest $workRequest)
+    {
+        $request->validate([
+            'findings_engineer_iv'           => 'nullable|string',
+            'recommendation_engineer_iv'     => 'nullable|string',
+            'engineer_iv_signature'          => 'nullable|string',
+        ]);
+
+        $workRequest->update([
+            'engineer_iv_name'               => Auth::user()->name,
+            'engineer_iv_signature'          => $this->resolveSignatureValue(
+                                                    $request->input('engineer_iv_signature')
+                                                ),
+            'findings_engineer_iv'           => $request->findings_engineer_iv,
+            'recommendation_engineer_iv'     => $request->recommendation_engineer_iv,
+        ]);
+
+        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+            'description' => 'Engineer IV review submitted by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Engineer IV review submitted successfully.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Provincial Engineer
     // ─────────────────────────────────────────────────────────────────────────
     public function storeProvincialNote(Request $request, WorkRequest $workRequest)

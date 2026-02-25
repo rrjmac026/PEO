@@ -8,11 +8,16 @@
         {{-- Contractor Name --}}
         <div class="wr-field">
             <label class="wr-label" for="contractor_name">Contractor Name</label>
-            <div class="wr-input-wrap">
-                <span class="wr-icon">🏛</span>
-                <input type="text" name="contractor_name" id="contractor_name"
-                       value="{{ old('contractor_name', $workRequest->contractor_name ?? '') }}"
-                       placeholder="e.g., XYZ Construction Corp.">
+            <div class="wr-input-wrap no-icon">
+                <select name="contractor_name" id="contractor_name">
+                    <option value="">— Select Contractor —</option>
+                    @foreach($contractors as $user)
+                        <option value="{{ $user->name }}"
+                            {{ old('contractor_name', $workRequest->contractor_name ?? '') === $user->name ? 'selected' : '' }}>
+                            {{ $user->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
         </div>
 
