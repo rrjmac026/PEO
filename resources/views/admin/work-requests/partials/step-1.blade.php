@@ -1,78 +1,81 @@
-{{-- STEP 1: Project Info --}}
+{{-- STEP 1: Project Information --}}
 <div class="wr-panel active" id="panel-1">
-    <div class="wr-panel-tag">📁 Step 1 of 5</div>
+    <div class="wr-panel-tag">📁 Step 1 of 7</div>
     <h2 class="wr-panel-title">Project Information</h2>
-    <p class="wr-panel-sub">Tell us about the project where the work will take place.</p>
+    <p class="wr-panel-sub">Enter the core project details for this work request.</p>
 
     <div class="wr-fields">
+        {{-- Reference Number --}}
+        <div class="wr-field">
+            <label class="wr-label" for="reference_number">Reference Number</label>
+            <div class="wr-input-wrap">
+                <span class="wr-icon">🔖</span>
+                <input type="text" name="reference_number" id="reference_number"
+                       value="{{ old('reference_number', $workRequest->reference_number ?? '') }}"
+                       placeholder="e.g., WR-2024-001">
+            </div>
+            @error('reference_number')
+                <p class="wr-err-msg show" id="err-reference_number">⚠ {{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Project Name --}}
         <div class="wr-field">
             <label class="wr-label" for="name_of_project">
                 Project Name <span class="wr-req">*</span>
             </label>
             <div class="wr-input-wrap">
                 <span class="wr-icon">🏗</span>
-                <input type="text" id="name_of_project" name="name_of_project"
-                    value="{{ old('name_of_project') }}"
-                    placeholder="e.g., Highway Expansion Phase 2"
-                    class="{{ $errors->has('name_of_project') ? 'wr-error' : '' }}">
+                <input type="text" name="name_of_project" id="name_of_project"
+                       value="{{ old('name_of_project', $workRequest->name_of_project ?? '') }}"
+                       placeholder="e.g., Highway Expansion Phase 2"
+                       class="{{ $errors->has('name_of_project') ? 'wr-error' : '' }}"
+                       required>
             </div>
-            <p class="wr-err-msg {{ $errors->has('name_of_project') ? 'show' : '' }}" id="err-name_of_project">
-                ⚠ {{ $errors->first('name_of_project', 'Project name is required.') }}
-            </p>
+            @error('name_of_project')
+                <p class="wr-err-msg show" id="err-name_of_project">⚠ {{ $message }}</p>
+            @enderror
         </div>
 
+        {{-- Project Location --}}
         <div class="wr-field">
             <label class="wr-label" for="project_location">
                 Project Location <span class="wr-req">*</span>
             </label>
             <div class="wr-input-wrap">
                 <span class="wr-icon">📍</span>
-                <input type="text" id="project_location" name="project_location"
-                    value="{{ old('project_location') }}"
-                    placeholder="e.g., Davao City, Zone 3"
-                    class="{{ $errors->has('project_location') ? 'wr-error' : '' }}">
+                <input type="text" name="project_location" id="project_location"
+                       value="{{ old('project_location', $workRequest->project_location ?? '') }}"
+                       placeholder="e.g., Davao City, Zone 3"
+                       class="{{ $errors->has('project_location') ? 'wr-error' : '' }}"
+                       required>
             </div>
-            <p class="wr-err-msg {{ $errors->has('project_location') ? 'show' : '' }}" id="err-project_location">
-                ⚠ {{ $errors->first('project_location', 'Project location is required.') }}
-            </p>
+            @error('project_location')
+                <p class="wr-err-msg show" id="err-project_location">⚠ {{ $message }}</p>
+            @enderror
         </div>
 
         <div class="wr-fields wr-two-col">
+            {{-- For Office --}}
             <div class="wr-field">
-                <label class="wr-label" for="for_office">
-                    For Office <span style="color:var(--wr-muted);font-weight:400;text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;">(optional)</span>
-                </label>
+                <label class="wr-label" for="for_office">For Office</label>
                 <div class="wr-input-wrap">
                     <span class="wr-icon">🏢</span>
-                    <input type="text" id="for_office" name="for_office"
-                        value="{{ old('for_office') }}"
-                        placeholder="e.g., Engineering Department">
+                    <input type="text" name="for_office" id="for_office"
+                           value="{{ old('for_office', $workRequest->for_office ?? '') }}"
+                           placeholder="e.g., Engineering Department">
                 </div>
             </div>
 
+            {{-- From Requester --}}
             <div class="wr-field">
-                <label class="wr-label" for="from_requester">
-                    From / Requester
-                    <span style="color:var(--wr-muted);font-weight:400;text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;">(optional)</span>
-                </label>
+                <label class="wr-label" for="from_requester">From / Requester</label>
                 <div class="wr-input-wrap">
                     <span class="wr-icon">👤</span>
-                    <input type="text" id="from_requester" name="from_requester"
-                        value="{{ old('from_requester') }}"
-                        placeholder="e.g., Project Manager">
+                    <input type="text" name="from_requester" id="from_requester"
+                           value="{{ old('from_requester', $workRequest->from_requester ?? '') }}"
+                           placeholder="e.g., Project Manager">
                 </div>
-            </div>
-        </div>
-
-        <div class="wr-field">
-            <label class="wr-label" for="reference_number">
-                Reference Number <span style="color:var(--wr-muted);font-weight:400;text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;">(optional)</span>
-            </label>
-            <div class="wr-input-wrap">
-                <span class="wr-icon">🔖</span>
-                <input type="text" id="reference_number" name="reference_number"
-                    value="{{ old('reference_number') }}"
-                    placeholder="e.g., 2026-001">
             </div>
         </div>
     </div>
