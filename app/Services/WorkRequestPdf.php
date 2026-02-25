@@ -207,29 +207,29 @@ class WorkRequestPdf extends \FPDF
              );
         $y = $this->rowCheckedBy($y);
         $y = $this->rowApproval(
-                $y,
-                'Reviewed by :',
-                $this->val($this->wr->reviewed_by ?? ''),
-                'Engineer IV/Chief, MTQC Division',
-                $this->val($this->wr->reviewed_by_notes ?? ''),
-                null
-             );
+            $y,
+            'Reviewed by :',
+            $this->val($this->wr->reviewed_by ?? ''),
+            'Engineer IV/Chief, MTQC Division',
+            $this->val($this->wr->reviewed_by_recommendation_action ?? ''),  // ← fixed
+            $this->wr->reviewer_signature ?? null                             // ← added
+        );
         $y = $this->rowApproval(
-                $y,
-                'Recommending Approval :',
-                $this->val($this->wr->recommending_approval_by ?? ''),
-                'Engineer III/ OIC, Construction Division',
-                $this->val($this->wr->recommending_approval_notes ?? ''),
-                $this->wr->recommending_approval_signature ?? null
-             );
+            $y,
+            'Recommending Approval :',
+            $this->val($this->wr->recommending_approval_by ?? ''),
+            'Engineer III/ OIC, Construction Division',
+            $this->val($this->wr->recommending_approval_recommendation_action ?? ''),  // ← fixed
+            $this->wr->recommending_approval_signature ?? null
+        );
         $y = $this->rowApproval(
-                $y,
-                'Approved :',
-                $this->val($this->wr->approved_by ?? ''),
-                'Provincial Engineer',
-                $this->val($this->wr->approved_notes ?? ''),
-                $this->wr->approved_signature ?? null
-             );
+            $y,
+            'Approved :',
+            $this->val($this->wr->approved_by ?? ''),
+            'Provincial Engineer',
+            $this->val($this->wr->approved_recommendation_action ?? ''),  // ← fixed
+            $this->wr->approved_signature ?? null
+        );
         $y = $this->rowAccepted($y);
 
         return $y;

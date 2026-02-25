@@ -54,8 +54,8 @@ class ReviewerWorkRequestController extends Controller
 
         if ($request->filled('noted')) {
             $request->input('noted') === 'pending'
-                ? $query->whereNull('approved_notes')
-                : $query->whereNotNull('approved_notes');
+                ? $query->whereNull('approved_recommendation_action')   // ← was approved_notes
+                : $query->whereNotNull('approved_recommendation_action'); // ← was approved_notes
         }
 
         $workRequests = $query->latest()->paginate(15)->withQueryString();
@@ -189,18 +189,16 @@ class ReviewerWorkRequestController extends Controller
     public function storeEngineerIvReview(Request $request, WorkRequest $workRequest)
     {
         $request->validate([
-            'findings_engineer_iv'           => 'nullable|string',
-            'recommendation_engineer_iv'     => 'nullable|string',
-            'engineer_iv_signature'          => 'nullable|string',
+            'reviewed_by_recommendation_action' => 'nullable|string',
+            'reviewer_signature'                => 'nullable|string',
         ]);
 
         $workRequest->update([
-            'engineer_iv_name'               => Auth::user()->name,
-            'engineer_iv_signature'          => $this->resolveSignatureValue(
-                                                    $request->input('engineer_iv_signature')
+            'reviewed_by'                       => Auth::user()->name,
+            'reviewer_signature'                => $this->resolveSignatureValue(
+                                                    $request->input('reviewer_signature')
                                                 ),
-            'findings_engineer_iv'           => $request->findings_engineer_iv,
-            'recommendation_engineer_iv'     => $request->recommendation_engineer_iv,
+            'reviewed_by_recommendation_action' => $request->reviewed_by_recommendation_action,
         ]);
 
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
@@ -212,30 +210,57 @@ class ReviewerWorkRequestController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Engineer III
+    // ─────────────────────────────────────────────────────────────────────────
+    public function storeRecommendingApproval(Request $request, WorkRequest $workRequest)
+    {
+        $request->validate([
+            'eiii_recommendation' => 'required|string|in:approved,revision_needed,rejected',
+            'eiii_notes'          => 'required|string',
+            'eiii_signature'      => 'nullable|string',
+        ]);
+
+        $workRequest->update([
+            'recommending_approval_by'                    => Auth::user()->name,
+            'recommending_approval_recommendation_action' => $request->eiii_notes,
+            'recommending_approval_signature'             => $this->resolveSignatureValue(
+                                                            $request->input('eiii_signature')
+                                                        ),
+        ]);
+
+        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+            'description' => 'Engineer III recommending approval submitted by ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Recommending approval submitted successfully.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Provincial Engineer
     // ─────────────────────────────────────────────────────────────────────────
     public function storeProvincialNote(Request $request, WorkRequest $workRequest)
     {
         $request->validate([
-            'approved_notes'     => 'required|string',
-            'approved_signature' => 'nullable|string',
+            'approved_recommendation_action' => 'required|string',
+            'approved_signature'             => 'nullable|string',
         ]);
 
         $workRequest->update([
-            'approved_by'        => Auth::user()->name,
-            'approved_notes'     => $request->approved_notes,
-            'approved_signature' => $this->resolveSignatureValue(
-                                        $request->input('approved_signature')
-                                    ),
-            'status'             => WorkRequest::STATUS_APPROVED,
+            'approved_by'                    => Auth::user()->name,
+            'approved_recommendation_action' => $request->approved_recommendation_action,
+            'approved_signature'             => $this->resolveSignatureValue(
+                                                $request->input('approved_signature')
+                                            ),
+            'status'                         => WorkRequest::STATUS_APPROVED,
         ]);
 
         $workRequest->addLog(WorkRequestLog::EVENT_APPROVED, [
-            'description' => 'Provincial engineer note added by ' . Auth::user()->name,
+            'description' => 'Provincial engineer approval submitted by ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Note added successfully.');
+        return back()->with('success', 'Approval submitted successfully.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────

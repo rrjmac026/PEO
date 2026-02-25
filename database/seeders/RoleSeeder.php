@@ -69,7 +69,7 @@ class RoleSeeder extends Seeder
 
             // Resident Engineer
             [
-                'name'     => 'Ana Lim',
+                'name'     => 'Leizel S.Galleposo',
                 'email'    => 'resident.engineer@example.com',
                 'role'     => 'resident_engineer',
                 'employee' => [

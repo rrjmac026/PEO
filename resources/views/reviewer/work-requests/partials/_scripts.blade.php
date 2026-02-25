@@ -105,6 +105,7 @@
     initSignaturePad('re-signature-pad', 're-signature-output', 're-clear-signature', 're_signature_mode');
     initSignaturePad('mq-signature-pad', 'mq-signature-output', 'mq-clear-signature', 'mq_signature_mode');
     initSignaturePad('eiv-signature-pad', 'eiv-signature-output', 'eiv-clear-signature', 'eiv_signature_mode');
+    initSignaturePad('eiii-signature-pad', 'eiii-signature-output', 'eiii-clear-signature', 'eiii_signature_mode');
     initSignaturePad('ra-signature-pad', 'ra-signature-output', 'ra-clear-signature', 'ra_signature_mode');
     initSignaturePad('pe-signature-pad', 'pe-signature-output', 'pe-clear-signature', 'pe_signature_mode');
 </script>
