@@ -53,7 +53,14 @@ class WorkRequestController extends Controller
      */
     public function create()
     {
-        return view('admin.work-requests.create');
+        return view('admin.work-requests.create', [
+            'site_inspectors'      => \App\Models\User::where('role', 'site_inspector')->get(),
+            'surveyors'            => \App\Models\User::where('role', 'surveyor')->get(),
+            'resident_engineers'   => \App\Models\User::where('role', 'resident_engineer')->get(),
+            'engineers_iv'         => \App\Models\User::where('role', 'engineeriv')->get(),
+            'engineers_iii'        => \App\Models\User::where('role', 'engineeriii')->get(),
+            'provincial_engineers' => \App\Models\User::where('role', 'provincial_engineer')->get(),
+        ]);
     }
 
     /**
@@ -146,7 +153,15 @@ class WorkRequestController extends Controller
                 ->with('error', 'This work request cannot be edited.');
         }
         
-        return view('admin.work-requests.edit', compact('workRequest'));
+        return view('admin.work-requests.edit', [
+            'workRequest'          => $workRequest,
+            'site_inspectors'      => \App\Models\User::where('role', 'site_inspector')->get(),
+            'surveyors'            => \App\Models\User::where('role', 'surveyor')->get(),
+            'resident_engineers'   => \App\Models\User::where('role', 'resident_engineer')->get(),
+            'engineers_iv'         => \App\Models\User::where('role', 'engineeriv')->get(),
+            'engineers_iii'        => \App\Models\User::where('role', 'engineeriii')->get(),
+            'provincial_engineers' => \App\Models\User::where('role', 'provincial_engineer')->get(),
+        ]);
     }
 
     /**

@@ -147,7 +147,7 @@ Route::middleware('auth')->group(function () {
 
 
 Route::prefix('reviewer')->name('reviewer.')
-    ->middleware(['auth', 'role:provincial_engineer,site_inspector,surveyor,resident_engineer,engineeriii,engineeriv'])
+    ->middleware(['auth', 'role:provincial_engineer,site_inspector,surveyor,resident_engineer,engineeriii,engineeriv,mtqa'])
     ->group(function () {
 
     Route::get('/dashboard', [ReviewerController::class, 'dashboard'])

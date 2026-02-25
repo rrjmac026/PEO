@@ -4,25 +4,28 @@
         🔍 Step 5 of 7
     </div>
     <h2 class="wr-panel-title">Inspection & Review</h2>
-    <p class="wr-panel-sub">Manually record findings from the site inspector, surveyor, resident engineer, and MTQA.</p>
+    <p class="wr-panel-sub">Select the assigned personnel and record their findings.</p>
 
     {{-- ── Site Inspector ── --}}
     <div class="wr-section-block" style="border-left:4px solid #60a5fa;">
         <div class="wr-section-block-title" style="color:#60a5fa;">
             <i class="fas fa-hard-hat" style="margin-right:6px;"></i> Site Inspector
         </div>
-
         <div class="wr-fields">
             <div class="wr-field">
-                <label class="wr-label" for="inspected_by_site_inspector">Inspector Name</label>
-                <div class="wr-input-wrap">
-                    <span class="wr-icon">👷</span>
-                    <input type="text" name="inspected_by_site_inspector" id="inspected_by_site_inspector"
-                           value="{{ old('inspected_by_site_inspector', $workRequest->inspected_by_site_inspector ?? '') }}"
-                           placeholder="Full name of site inspector">
+                <label class="wr-label" for="inspected_by_site_inspector">Site Inspector</label>
+                <div class="wr-input-wrap no-icon">
+                    <select name="inspected_by_site_inspector" id="inspected_by_site_inspector">
+                        <option value="">— Select Site Inspector —</option>
+                        @foreach($site_inspectors as $user)
+                            <option value="{{ $user->name }}"
+                                {{ old('inspected_by_site_inspector', $workRequest->inspected_by_site_inspector ?? '') === $user->name ? 'selected' : '' }}>
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
-
             <div class="wr-fields wr-two-col">
                 <div class="wr-field">
                     <label class="wr-label" for="findings_comments">Findings & Comments</label>
@@ -32,7 +35,6 @@
                                   placeholder="Enter inspection findings...">{{ old('findings_comments', $workRequest->findings_comments ?? '') }}</textarea>
                     </div>
                 </div>
-
                 <div class="wr-field">
                     <label class="wr-label" for="recommendation">Recommendation</label>
                     <div class="wr-input-wrap textarea-wrap">
@@ -52,18 +54,21 @@
         <div class="wr-section-block-title" style="color:#c084fc;">
             <i class="fas fa-drafting-compass" style="margin-right:6px;"></i> Surveyor
         </div>
-
         <div class="wr-fields">
             <div class="wr-field">
-                <label class="wr-label" for="surveyor_name">Surveyor Name</label>
-                <div class="wr-input-wrap">
-                    <span class="wr-icon">👷</span>
-                    <input type="text" name="surveyor_name" id="surveyor_name"
-                           value="{{ old('surveyor_name', $workRequest->surveyor_name ?? '') }}"
-                           placeholder="Full name of surveyor">
+                <label class="wr-label" for="surveyor_name">Surveyor</label>
+                <div class="wr-input-wrap no-icon">
+                    <select name="surveyor_name" id="surveyor_name">
+                        <option value="">— Select Surveyor —</option>
+                        @foreach($surveyors as $user)
+                            <option value="{{ $user->name }}"
+                                {{ old('surveyor_name', $workRequest->surveyor_name ?? '') === $user->name ? 'selected' : '' }}>
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
-
             <div class="wr-fields wr-two-col">
                 <div class="wr-field">
                     <label class="wr-label" for="findings_surveyor">Findings</label>
@@ -73,7 +78,6 @@
                                   placeholder="Enter survey findings...">{{ old('findings_surveyor', $workRequest->findings_surveyor ?? '') }}</textarea>
                     </div>
                 </div>
-
                 <div class="wr-field">
                     <label class="wr-label" for="recommendation_surveyor">Recommendation</label>
                     <div class="wr-input-wrap textarea-wrap">
@@ -93,18 +97,21 @@
         <div class="wr-section-block-title" style="color:#34d399;">
             <i class="fas fa-hard-hat" style="margin-right:6px;"></i> Resident Engineer
         </div>
-
         <div class="wr-fields">
             <div class="wr-field">
-                <label class="wr-label" for="resident_engineer_name">Engineer Name</label>
-                <div class="wr-input-wrap">
-                    <span class="wr-icon">👷</span>
-                    <input type="text" name="resident_engineer_name" id="resident_engineer_name"
-                           value="{{ old('resident_engineer_name', $workRequest->resident_engineer_name ?? '') }}"
-                           placeholder="Full name of resident engineer">
+                <label class="wr-label" for="resident_engineer_name">Resident Engineer</label>
+                <div class="wr-input-wrap no-icon">
+                    <select name="resident_engineer_name" id="resident_engineer_name">
+                        <option value="">— Select Resident Engineer —</option>
+                        @foreach($resident_engineers as $user)
+                            <option value="{{ $user->name }}"
+                                {{ old('resident_engineer_name', $workRequest->resident_engineer_name ?? '') === $user->name ? 'selected' : '' }}>
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
-
             <div class="wr-fields wr-two-col">
                 <div class="wr-field">
                     <label class="wr-label" for="findings_engineer">Findings</label>
@@ -114,7 +121,6 @@
                                   placeholder="Enter engineer findings...">{{ old('findings_engineer', $workRequest->findings_engineer ?? '') }}</textarea>
                     </div>
                 </div>
-
                 <div class="wr-field">
                     <label class="wr-label" for="recommendation_engineer">Recommendation</label>
                     <div class="wr-input-wrap textarea-wrap">
@@ -127,35 +133,7 @@
         </div>
     </div>
 
-    <div class="wr-section-gap"></div>
-
-    {{-- ── MTQA ── --}}
-    <div class="wr-section-block" style="border-left:4px solid #f59e0b;">
-        <div class="wr-section-block-title" style="color:#f59e0b;">
-            <i class="fas fa-clipboard-check" style="margin-right:6px;"></i> MTQA Check
-        </div>
-
-        <div class="wr-fields">
-            <div class="wr-field">
-                <label class="wr-label" for="checked_by_mtqa">Checked By (MTQA)</label>
-                <div class="wr-input-wrap">
-                    <span class="wr-icon">👷</span>
-                    <input type="text" name="checked_by_mtqa" id="checked_by_mtqa"
-                           value="{{ old('checked_by_mtqa', $workRequest->checked_by_mtqa ?? '') }}"
-                           placeholder="Full name of MTQA officer">
-                </div>
-            </div>
-
-            <div class="wr-field">
-                <label class="wr-label" for="recommended_action">Recommended Action</label>
-                <div class="wr-input-wrap textarea-wrap">
-                    <span class="wr-icon">📋</span>
-                    <textarea name="recommended_action" id="recommended_action" rows="3"
-                              placeholder="Enter recommended action...">{{ old('recommended_action', $workRequest->recommended_action ?? '') }}</textarea>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{-- NOTE: MTQA is handled in Step 6 by the Engineer IV dropdown --}}
 
     <div class="wr-nav">
         <button type="button" class="wr-btn wr-btn-ghost" onclick="wrPrevStep(5)">← Back</button>
