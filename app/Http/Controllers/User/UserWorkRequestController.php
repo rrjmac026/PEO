@@ -108,6 +108,8 @@ class UserWorkRequestController extends Controller
             'description' => 'Work request submitted by contractor',
             'user_id'     => Auth::id(),
         ]);
+        
+        \App\Services\NotificationService::workRequestSubmitted($workRequest);
 
         return redirect()
             ->route('user.work-requests.show', $workRequest)

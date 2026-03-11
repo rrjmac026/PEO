@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminConcretePouringController;
 use App\Http\Controllers\Reviewer\ReviewerController;
 use App\Http\Controllers\Reviewer\ReviewerWorkRequestController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotificationController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -19,6 +20,13 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/',              [NotificationController::class, 'index'])        ->name('index');
+    Route::get('/unread-count',  [NotificationController::class, 'unreadCount'])  ->name('unread-count');
+    Route::post('/mark-all-read',[NotificationController::class, 'markAllRead'])  ->name('mark-all-read');
+    Route::post('/{notification}/read', [NotificationController::class, 'markRead'])->name('mark-read');
+});
 
 // ─── Admin Routes ──────────────────────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {

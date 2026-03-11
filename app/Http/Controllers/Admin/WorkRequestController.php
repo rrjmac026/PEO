@@ -201,6 +201,8 @@ class WorkRequestController extends Controller
             'user_id'     => Auth::id(),
         ]);
 
+        \App\Services\NotificationService::workRequestAssigned($workRequest);
+
         return redirect()
             ->route('admin.work-requests.show', $workRequest)
             ->with('success', 'Engineers assigned successfully! The first reviewer has been notified.');
@@ -258,6 +260,8 @@ class WorkRequestController extends Controller
             'status_from' => WorkRequest::STATUS_REVIEWED,
             'status_to'   => $newStatus,
         ]);
+
+        \App\Services\NotificationService::workRequestDecisionMade($workRequest);
 
         return redirect()
             ->route('admin.work-requests.show', $workRequest)

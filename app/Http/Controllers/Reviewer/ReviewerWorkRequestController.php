@@ -90,6 +90,7 @@ class ReviewerWorkRequestController extends Controller
         ]);
 
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'site_inspector');
 
         return back()->with('success', 'Inspection submitted. Request forwarded to next reviewer.');
     }
@@ -121,6 +122,7 @@ class ReviewerWorkRequestController extends Controller
         ]);
 
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'surveyor');
 
         return back()->with('success', 'Survey submitted. Request forwarded to next reviewer.');
     }
@@ -150,6 +152,7 @@ class ReviewerWorkRequestController extends Controller
         ]);
 
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'mtqa');
 
         return back()->with('success', 'MTQA check submitted. Request forwarded to next reviewer.');
     }
@@ -182,6 +185,7 @@ class ReviewerWorkRequestController extends Controller
         ]);
 
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'resident_engineer');
 
         return back()->with('success', 'Engineer review submitted. Request forwarded to next reviewer.');
     }
@@ -211,6 +215,7 @@ class ReviewerWorkRequestController extends Controller
         ]);
 
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'engineer_iv');
 
         return back()->with('success', 'Engineer IV review submitted. Request forwarded to next reviewer.');
     }
@@ -240,6 +245,7 @@ class ReviewerWorkRequestController extends Controller
         ]);
 
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'engineer_iii');
 
         return back()->with('success', 'Recommending approval submitted. Request forwarded to next reviewer.');
     }
@@ -270,6 +276,7 @@ class ReviewerWorkRequestController extends Controller
 
         // Advance to admin_final
         $workRequest->advanceReviewStep();
+        $this->notifyNextReviewer($workRequest, 'provincial_engineer');
 
         return back()->with('success', 'Note submitted. Request forwarded to admin for final decision.');
     }
@@ -372,5 +379,14 @@ class ReviewerWorkRequestController extends Controller
         }
 
         return $value;
+    }
+
+    private function notifyNextReviewer(WorkRequest $workRequest, string $completedStep): void
+    {
+        \App\Services\NotificationService::workRequestStepAdvanced(
+            $workRequest,
+            Auth::user()->name,
+            $completedStep
+        );
     }
 }
