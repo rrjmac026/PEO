@@ -10,9 +10,16 @@ use Illuminate\Support\Facades\Auth;
 
 class ReviewerWorkRequestController extends Controller
 {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Index — only show requests where THIS user is the current reviewer
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function index(Request $request)
     {
-        $query = WorkRequest::query();
+        $user = Auth::user();
+
+        // Base query: only requests currently waiting for this specific user
+        $query = WorkRequest::assignedToUser($user->id);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -26,85 +33,75 @@ class ReviewerWorkRequestController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('requested_work_start_date', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->whereDate('requested_work_start_date', '<=', $request->date_to);
-        }
-
-        if ($request->filled('inspected')) {
-            $request->input('inspected') === 'pending'
-                ? $query->whereNull('inspected_by_site_inspector')
-                : $query->whereNotNull('inspected_by_site_inspector');
-        }
-
-        if ($request->filled('surveyed')) {
-            $request->input('surveyed') === 'pending'
-                ? $query->whereNull('surveyor_name')
-                : $query->whereNotNull('surveyor_name');
-        }
-
-        if ($request->filled('reviewed')) {
-            $request->input('reviewed') === 'pending'
-                ? $query->whereNull('resident_engineer_name')
-                : $query->whereNotNull('resident_engineer_name');
-        }
-
-        if ($request->filled('noted')) {
-            $request->input('noted') === 'pending'
-                ? $query->whereNull('approved_recommendation_action')   // ← was approved_notes
-                : $query->whereNotNull('approved_recommendation_action'); // ← was approved_notes
-        }
-
         $workRequests = $query->latest()->paginate(15)->withQueryString();
 
-        return view('reviewer.work-requests.index', compact('workRequests'));
+        // Also load "completed" items this reviewer already handled (read-only)
+        $completedQuery = $this->completedByUser($user)->latest()->limit(10)->get();
+
+        return view('reviewer.work-requests.index', compact('workRequests', 'completedQuery'));
     }
 
     public function show(WorkRequest $workRequest)
     {
-        $role = Auth::user()->role;
-        return view('reviewer.work-requests.show', compact('workRequest', 'role'));
+        $user = Auth::user();
+
+        // Reviewer can see the request if they are assigned to ANY step
+        // (so they can view their completed work), but can only act if it's their turn.
+        $isAssignedAnywhere = $this->userIsAssignedAnywhere($workRequest, $user);
+
+        if (!$isAssignedAnywhere) {
+            abort(403, 'You are not assigned to this work request.');
+        }
+
+        $isMyTurn = $workRequest->isCurrentReviewer($user);
+
+        return view('reviewer.work-requests.show', [
+            'workRequest' => $workRequest,
+            'role'        => Auth::user()->role,
+            'isMyTurn'    => $workRequest->isCurrentReviewer(Auth::user()),
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Site Inspector
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeInspection(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'site_inspector');
+
         $request->validate([
             'findings_comments'        => 'nullable|string',
             'recommendation'           => 'nullable|string',
-            // The hidden input contains either a base64 data-URI (drawn) or
-            // the public URL of the saved signature (selected from profile).
             'site_inspector_signature' => 'nullable|string',
         ]);
 
         $workRequest->update([
             'inspected_by_site_inspector' => Auth::user()->name,
-            'site_inspector_signature'    => $this->resolveSignatureValue(
-                                                $request->input('site_inspector_signature')
-                                            ),
+            'site_inspector_signature'    => $this->resolveSignatureValue($request->input('site_inspector_signature')),
             'findings_comments'           => $request->findings_comments,
             'recommendation'              => $request->recommendation,
             'status'                      => WorkRequest::STATUS_INSPECTED,
         ]);
 
         $workRequest->addLog(WorkRequestLog::EVENT_INSPECTED, [
-            'description' => 'Inspection findings submitted by ' . Auth::user()->name,
+            'description' => 'Site inspection submitted by ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Inspection submitted successfully.');
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'Inspection submitted. Request forwarded to next reviewer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Surveyor
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeSurvey(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'surveyor');
+
         $request->validate([
             'findings_surveyor'       => 'nullable|string',
             'recommendation_surveyor' => 'nullable|string',
@@ -113,26 +110,29 @@ class ReviewerWorkRequestController extends Controller
 
         $workRequest->update([
             'surveyor_name'           => Auth::user()->name,
-            'surveyor_signature'      => $this->resolveSignatureValue(
-                                            $request->input('surveyor_signature')
-                                        ),
+            'surveyor_signature'      => $this->resolveSignatureValue($request->input('surveyor_signature')),
             'findings_surveyor'       => $request->findings_surveyor,
             'recommendation_surveyor' => $request->recommendation_surveyor,
         ]);
 
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Survey findings submitted by ' . Auth::user()->name,
+            'description' => 'Survey submitted by ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Survey submitted successfully.');
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'Survey submitted. Request forwarded to next reviewer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // MTQA
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeMtqaCheck(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'mtqa');
+
         $request->validate([
             'recommended_action' => 'nullable|string',
             'mtqa_signature'     => 'nullable|string',
@@ -140,9 +140,7 @@ class ReviewerWorkRequestController extends Controller
 
         $workRequest->update([
             'checked_by_mtqa'    => Auth::user()->name,
-            'mtqa_signature'     => $this->resolveSignatureValue(
-                                        $request->input('mtqa_signature')
-                                    ),
+            'mtqa_signature'     => $this->resolveSignatureValue($request->input('mtqa_signature')),
             'recommended_action' => $request->recommended_action,
         ]);
 
@@ -151,14 +149,19 @@ class ReviewerWorkRequestController extends Controller
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'MTQA check submitted successfully.');
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'MTQA check submitted. Request forwarded to next reviewer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Resident Engineer
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeEngineerReview(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'resident_engineer');
+
         $request->validate([
             'findings_engineer'           => 'nullable|string',
             'recommendation_engineer'     => 'nullable|string',
@@ -167,9 +170,7 @@ class ReviewerWorkRequestController extends Controller
 
         $workRequest->update([
             'resident_engineer_name'      => Auth::user()->name,
-            'resident_engineer_signature' => $this->resolveSignatureValue(
-                                                $request->input('resident_engineer_signature')
-                                            ),
+            'resident_engineer_signature' => $this->resolveSignatureValue($request->input('resident_engineer_signature')),
             'findings_engineer'           => $request->findings_engineer,
             'recommendation_engineer'     => $request->recommendation_engineer,
             'status'                      => WorkRequest::STATUS_REVIEWED,
@@ -180,14 +181,19 @@ class ReviewerWorkRequestController extends Controller
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Engineer review submitted successfully.');
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'Engineer review submitted. Request forwarded to next reviewer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Engineer IV
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeEngineerIvReview(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'engineer_iv');
+
         $request->validate([
             'reviewed_by_recommendation_action' => 'nullable|string',
             'reviewer_signature'                => 'nullable|string',
@@ -195,9 +201,7 @@ class ReviewerWorkRequestController extends Controller
 
         $workRequest->update([
             'reviewed_by'                       => Auth::user()->name,
-            'reviewer_signature'                => $this->resolveSignatureValue(
-                                                    $request->input('reviewer_signature')
-                                                ),
+            'reviewer_signature'                => $this->resolveSignatureValue($request->input('reviewer_signature')),
             'reviewed_by_recommendation_action' => $request->reviewed_by_recommendation_action,
         ]);
 
@@ -206,26 +210,28 @@ class ReviewerWorkRequestController extends Controller
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Engineer IV review submitted successfully.');
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'Engineer IV review submitted. Request forwarded to next reviewer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Engineer III
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeRecommendingApproval(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'engineer_iii');
+
         $request->validate([
-            'eiii_recommendation' => 'required|string|in:approved,revision_needed,rejected',
-            'eiii_notes'          => 'required|string',
-            'eiii_signature'      => 'nullable|string',
+            'eiii_notes'     => 'required|string',
+            'eiii_signature' => 'nullable|string',
         ]);
 
         $workRequest->update([
             'recommending_approval_by'                    => Auth::user()->name,
             'recommending_approval_recommendation_action' => $request->eiii_notes,
-            'recommending_approval_signature'             => $this->resolveSignatureValue(
-                                                            $request->input('eiii_signature')
-                                                        ),
+            'recommending_approval_signature'             => $this->resolveSignatureValue($request->input('eiii_signature')),
         ]);
 
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
@@ -233,14 +239,19 @@ class ReviewerWorkRequestController extends Controller
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Recommending approval submitted successfully.');
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'Recommending approval submitted. Request forwarded to next reviewer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Provincial Engineer
     // ─────────────────────────────────────────────────────────────────────────
+
     public function storeProvincialNote(Request $request, WorkRequest $workRequest)
     {
+        $this->authorizeStep($workRequest, 'provincial_engineer');
+
         $request->validate([
             'approved_recommendation_action' => 'required|string',
             'approved_signature'             => 'nullable|string',
@@ -249,18 +260,18 @@ class ReviewerWorkRequestController extends Controller
         $workRequest->update([
             'approved_by'                    => Auth::user()->name,
             'approved_recommendation_action' => $request->approved_recommendation_action,
-            'approved_signature'             => $this->resolveSignatureValue(
-                                                $request->input('approved_signature')
-                                            ),
-            'status'                         => WorkRequest::STATUS_APPROVED,
+            'approved_signature'             => $this->resolveSignatureValue($request->input('approved_signature')),
         ]);
 
-        $workRequest->addLog(WorkRequestLog::EVENT_APPROVED, [
-            'description' => 'Provincial engineer approval submitted by ' . Auth::user()->name,
+        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+            'description' => 'Provincial engineer note submitted by ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        return back()->with('success', 'Approval submitted successfully.');
+        // Advance to admin_final
+        $workRequest->advanceReviewStep();
+
+        return back()->with('success', 'Note submitted. Request forwarded to admin for final decision.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -268,18 +279,78 @@ class ReviewerWorkRequestController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Normalise the value coming from the signature hidden input so that the
-     * database always holds something the PDF generator can consume:
-     *
-     *  - If the user drew a signature  → the hidden input holds a base64
-     *    data-URI ("data:image/png;base64,…"). Store it as-is.
-     *
-     *  - If the user selected their saved profile signature → the hidden input
-     *    holds the full public URL (asset('storage/…')).  Convert it back to
-     *    a storage-relative path ("signatures/file.png") so the PDF can
-     *    resolve it via storage_path().
-     *
-     *  - If empty / null → return null.
+     * Abort with 403 if it is not the current user's turn for the given step.
+     */
+    private function authorizeStep(WorkRequest $workRequest, string $step): void
+    {
+        $user = Auth::user();
+
+        if ($workRequest->current_review_step !== $step) {
+            abort(403, 'It is not your turn to review this request. Current step: ' . $workRequest->current_step_label);
+        }
+
+        $col = WorkRequest::REVIEW_STEPS[$step]['assigned_col'] ?? null;
+
+        if ($col && $workRequest->$col != $user->id) {
+            abort(403, 'You are not the assigned reviewer for this step.');
+        }
+    }
+
+    /**
+     * Check if a user is assigned to ANY step of the given work request.
+     */
+    private function userIsAssignedAnywhere(WorkRequest $workRequest, $user): bool
+    {
+        $cols = [
+            'assigned_site_inspector_id',
+            'assigned_surveyor_id',
+            'assigned_resident_engineer_id',
+            'assigned_mtqa_id',
+            'assigned_engineer_iv_id',
+            'assigned_engineer_iii_id',
+            'assigned_provincial_engineer_id',
+        ];
+
+        foreach ($cols as $col) {
+            if ($workRequest->$col == $user->id) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Query work requests this user has already reviewed (any completed step).
+     */
+    private function completedByUser($user)
+    {
+        return WorkRequest::where(function ($q) use ($user) {
+            $q->where('assigned_site_inspector_id', $user->id)
+              ->whereNotNull('inspected_by_site_inspector');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('assigned_surveyor_id', $user->id)
+              ->whereNotNull('surveyor_name');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('assigned_resident_engineer_id', $user->id)
+              ->whereNotNull('resident_engineer_name');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('assigned_mtqa_id', $user->id)
+              ->whereNotNull('checked_by_mtqa');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('assigned_engineer_iv_id', $user->id)
+              ->whereNotNull('reviewed_by');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('assigned_engineer_iii_id', $user->id)
+              ->whereNotNull('recommending_approval_by');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('assigned_provincial_engineer_id', $user->id)
+              ->whereNotNull('approved_by');
+        });
+    }
+
+    /**
+     * Normalise the signature hidden-input value before storing.
      */
     private function resolveSignatureValue(?string $value): ?string
     {
@@ -287,23 +358,19 @@ class ReviewerWorkRequestController extends Controller
             return null;
         }
 
-        // Already a base64 data-URI — store as-is
         if (str_starts_with($value, 'data:image')) {
             return $value;
         }
 
-        // Full URL pointing to our own storage — convert to relative path
         $storageUrl = url('storage') . '/';
         if (str_starts_with($value, $storageUrl)) {
             return ltrim(substr($value, strlen($storageUrl)), '/');
         }
 
-        // Also handle /storage/... relative URLs
         if (str_starts_with($value, '/storage/')) {
             return ltrim(substr($value, strlen('/storage/')), '/');
         }
 
-        // Fallback: store whatever was sent (handles already-relative paths)
         return $value;
     }
 }

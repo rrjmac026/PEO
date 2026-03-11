@@ -668,6 +668,116 @@
                             </div>
                         </div>
                     @endif
+
+                    {{-- ── Assignment / Review Pipeline Panel ─────────────────────────────────── --}}
+                    <div class="bg-white shadow rounded-lg p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-semibold text-gray-800">Review Pipeline</h3>
+
+                            {{-- Admin buttons --}}
+                            @if(Auth::user()->role === 'admin')
+                                <div class="flex gap-2">
+                                    {{-- Assign / Re-assign --}}
+                                    @if(in_array($workRequest->status, ['submitted', 'assigned']))
+                                        <a href="{{ route('admin.work-requests.assign-form', $workRequest) }}"
+                                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700">
+                                            {{ $workRequest->isAssigned() ? '↺ Re-assign Engineers' : '+ Assign Engineers' }}
+                                        </a>
+                                    @endif
+
+                                    {{-- Final decision --}}
+                                    @if($workRequest->current_review_step === 'admin_final')
+                                        <a href="{{ route('admin.work-requests.decision-form', $workRequest) }}"
+                                        class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700">
+                                            ✓ Make Final Decision
+                                        </a>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+
+                        @php
+                            $steps = [
+                                ['step' => 'site_inspector',     'label' => 'Site Inspector',      'assigned' => $workRequest->assignedSiteInspector,      'done_field' => $workRequest->inspected_by_site_inspector],
+                                ['step' => 'surveyor',           'label' => 'Surveyor',            'assigned' => $workRequest->assignedSurveyor,            'done_field' => $workRequest->surveyor_name],
+                                ['step' => 'resident_engineer',  'label' => 'Resident Engineer',   'assigned' => $workRequest->assignedResidentEngineer,    'done_field' => $workRequest->resident_engineer_name],
+                                ['step' => 'mtqa',               'label' => 'MTQA',                'assigned' => $workRequest->assignedMtqa,                'done_field' => $workRequest->checked_by_mtqa],
+                                ['step' => 'engineer_iv',        'label' => 'Engineer IV',         'assigned' => $workRequest->assignedEngineerIv,          'done_field' => $workRequest->reviewed_by],
+                                ['step' => 'engineer_iii',       'label' => 'Engineer III',        'assigned' => $workRequest->assignedEngineerIii,         'done_field' => $workRequest->recommending_approval_by],
+                                ['step' => 'provincial_engineer','label' => 'Provincial Engineer', 'assigned' => $workRequest->assignedProvincialEngineer,  'done_field' => $workRequest->approved_by],
+                                ['step' => 'admin_final',        'label' => 'Admin Decision',      'assigned' => null,                                      'done_field' => $workRequest->admin_decision],
+                            ];
+                        @endphp
+
+                        <ol class="relative border-l border-gray-200 ml-3 space-y-4">
+                            @foreach ($steps as $s)
+                                @php
+                                    $isCurrent = $workRequest->current_review_step === $s['step'];
+                                    $isDone    = !empty($s['done_field']);
+                                    $isSkipped = !$isCurrent && !$isDone && is_null($s['assigned']) && $s['step'] !== 'admin_final';
+                                @endphp
+
+                                <li class="ml-6">
+                                    {{-- Circle indicator --}}
+                                    <span class="absolute -left-3 flex items-center justify-center w-6 h-6 rounded-full
+                                        {{ $isDone    ? 'bg-green-100 text-green-700 ring-2 ring-green-300' : '' }}
+                                        {{ $isCurrent ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-400 animate-pulse' : '' }}
+                                        {{ $isSkipped ? 'bg-gray-100 text-gray-400' : '' }}
+                                        {{ !$isDone && !$isCurrent && !$isSkipped ? 'bg-gray-100 text-gray-500' : '' }}
+                                        text-xs font-bold">
+                                        @if($isDone) ✓
+                                        @elseif($isCurrent) →
+                                        @elseif($isSkipped) —
+                                        @else ○
+                                        @endif
+                                    </span>
+
+                                    <div class="flex items-baseline justify-between">
+                                        <p class="text-sm font-medium
+                                            {{ $isDone ? 'text-green-700' : ($isCurrent ? 'text-yellow-700' : 'text-gray-500') }}">
+                                            {{ $s['label'] }}
+                                            @if($isCurrent)
+                                                <span class="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                                                    Waiting
+                                                </span>
+                                            @endif
+                                            @if($isSkipped)
+                                                <span class="ml-1 text-xs text-gray-400 italic">skipped</span>
+                                            @endif
+                                        </p>
+
+                                        @if($s['assigned'])
+                                            <span class="text-xs text-gray-400">{{ $s['assigned']->name }}</span>
+                                        @elseif($s['step'] === 'admin_final')
+                                            <span class="text-xs text-gray-400">Admin</span>
+                                        @endif
+                                    </div>
+
+                                    @if($isDone && !empty($s['done_field']))
+                                        <p class="text-xs text-gray-400 mt-0.5">Completed by: {{ $s['done_field'] }}</p>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
+
+                        {{-- Admin final decision result --}}
+                        @if($workRequest->admin_decision)
+                            <div class="mt-4 p-3 rounded-lg
+                                {{ $workRequest->admin_decision === 'approved' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' }}">
+                                <p class="text-sm font-semibold
+                                    {{ $workRequest->admin_decision === 'approved' ? 'text-green-800' : 'text-red-800' }}">
+                                    Final Decision: {{ ucfirst($workRequest->admin_decision) }}
+                                </p>
+                                @if($workRequest->admin_decision_remarks)
+                                    <p class="text-sm text-gray-600 mt-1">{{ $workRequest->admin_decision_remarks }}</p>
+                                @endif
+                                <p class="text-xs text-gray-400 mt-1">
+                                    by {{ $workRequest->adminDecisionBy?->name }}
+                                    on {{ $workRequest->admin_decision_at?->format('M d, Y H:i') }}
+                                </p>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 

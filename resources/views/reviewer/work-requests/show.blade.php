@@ -529,21 +529,32 @@
             <div class="wrd-section-divider"></div>
 
             {{-- ── Role-specific Action Form ── --}}
-            @if($role === 'site_inspector')
-                @include('reviewer.work-requests.partials._site-inspector-form')
-            @elseif($role === 'surveyor')
-                @include('reviewer.work-requests.partials._surveyor-form')
-            @elseif($role === 'resident_engineer')
-                @include('reviewer.work-requests.partials._resident-engineer-form')
-            @elseif($role === 'mtqa')
-                @include('reviewer.work-requests.partials._mtqa-form')
-            @elseif($role === 'engineeriv')
-                @include('reviewer.work-requests.partials._engineer-iv-form')
-            @elseif($role === 'engineeriii')
-                @include('reviewer.work-requests.partials._recommending-approval-form')
-            @elseif($role === 'provincial_engineer')
-                @include('reviewer.work-requests.partials._provincial-engineer-form')
-            @endif
+                @if($isMyTurn)
+                    @if($role === 'site_inspector')
+                        @include('reviewer.work-requests.partials._site-inspector-form')
+                    @elseif($role === 'surveyor')
+                        @include('reviewer.work-requests.partials._surveyor-form')
+                    @elseif($role === 'resident_engineer')
+                        @include('reviewer.work-requests.partials._resident-engineer-form')
+                    @elseif($role === 'mtqa')
+                        @include('reviewer.work-requests.partials._mtqa-form')
+                    @elseif($role === 'engineeriv')
+                        @include('reviewer.work-requests.partials._engineer-iv-form')
+                    @elseif($role === 'engineeriii')
+                        @include('reviewer.work-requests.partials._recommending-approval-form')
+                    @elseif($role === 'provincial_engineer')
+                        @include('reviewer.work-requests.partials._provincial-engineer-form')
+                    @endif
+                @else
+                    <div class="wrd-card">
+                        <div class="wrd-card-body" style="text-align:center; padding:32px;">
+                            <p style="color:var(--wr-muted); font-size:14px;">
+                                👁 It is not your turn yet. Current step:
+                                <strong style="color:var(--wr-text);">{{ $workRequest->current_step_label }}</strong>
+                            </p>
+                        </div>
+                    </div>
+                @endif
 
         </div>
     </div>

@@ -12,80 +12,98 @@ class WorkRequest extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        // ── Project Information ──────────────────────────────────────
-        'reference_number',//
-        'name_of_project',//
-        'project_location',//
+        // ── Project Information ──────────────────────────────────────────────
+        'reference_number',
+        'name_of_project',
+        'project_location',
 
-        // ── Addressed To / From ──────────────────────────────────────
-        'for_office',//
-        'from_requester',//
+        // ── Addressed To / From ──────────────────────────────────────────────
+        'for_office',
+        'from_requester',
 
-        // ── Request Details ──────────────────────────────────────────
-        'requested_work_start_date',//
-        'requested_work_start_time',//
+        // ── Request Details ──────────────────────────────────────────────────
+        'requested_work_start_date',
+        'requested_work_start_time',
 
-        // ── Pay Item Details ─────────────────────────────────────────
-        'item_no',//
-        'description',//
-        'equipment_to_be_used',//
-        'quantity',//
-        'estimated_quantity',//
-        'unit',//
+        // ── Pay Item Details ─────────────────────────────────────────────────
+        'item_no',
+        'description',
+        'equipment_to_be_used',
+        'quantity',
+        'estimated_quantity',
+        'unit',
         'description_of_work_requested',
 
-        // ── Submission ───────────────────────────────────────────────
-        'contractor_name',// Contractor name (replaces submitted_by)
+        // ── Submission ───────────────────────────────────────────────────────
+        'contractor_name',
 
-        // ── Reception ───────────────────────────────────────────────
-        'received_by',//
-        'received_date',//
-        'received_time',//
+        // ── Assignments (set by admin) ────────────────────────────────────────
+        'assigned_site_inspector_id',
+        'assigned_surveyor_id',
+        'assigned_resident_engineer_id',
+        'assigned_mtqa_id',
+        'assigned_engineer_iv_id',
+        'assigned_engineer_iii_id',
+        'assigned_provincial_engineer_id',
+        'assigned_by_admin_id',
+        'assigned_at',
+        'current_review_step',
 
-        // ── Inspection: Site Inspector ───────────────────────────────
-        'inspected_by_site_inspector',//
-        'site_inspector_signature',//
-        'findings_comments',//
-        'recommendation',//
+        // ── Reception ───────────────────────────────────────────────────────
+        'received_by',
+        'received_date',
+        'received_time',
 
-        // ── Inspection: Surveyor ─────────────────────────────────────
-        'surveyor_name',//
-        'surveyor_signature',//
-        'findings_surveyor',//
-        'recommendation_surveyor',//
+        // ── Inspection: Site Inspector ───────────────────────────────────────
+        'inspected_by_site_inspector',
+        'site_inspector_signature',
+        'findings_comments',
+        'recommendation',
 
-        // ── Inspection: Resident Engineer ────────────────────────────
+        // ── Inspection: Surveyor ─────────────────────────────────────────────
+        'surveyor_name',
+        'surveyor_signature',
+        'findings_surveyor',
+        'recommendation_surveyor',
+
+        // ── Inspection: Resident Engineer ────────────────────────────────────
         'resident_engineer_name',
         'resident_engineer_signature',
         'findings_engineer',
         'recommendation_engineer',
 
-        // ── MTQA / Checked By ────────────────────────────────────────
-        'checked_by_mtqa',//
-        'mtqa_signature',//
-        'recommended_action',//
+        // ── MTQA / Checked By ────────────────────────────────────────────────
+        'checked_by_mtqa',
+        'mtqa_signature',
+        'recommended_action',
 
-        // ── Reviewed By ──────────────────────────────────────────────
+        // ── Reviewed By (Engineer IV) ────────────────────────────────────────
         'reviewed_by',
         'reviewer_signature',
         'reviewed_by_recommendation_action',
 
-        // ── Recommending Approval ────────────────────────────────────
+        // ── Recommending Approval (Engineer III) ─────────────────────────────
         'recommending_approval_by',
         'recommending_approval_signature',
         'recommending_approval_recommendation_action',
 
-        // ── Approved ─────────────────────────────────────────────────
+        // ── Approved (Provincial Engineer) ───────────────────────────────────
         'approved_by',
         'approved_signature',
         'approved_recommendation_action',
 
-        // ── Acceptance ───────────────────────────────────────────────
+        // ── Admin Final Decision ─────────────────────────────────────────────
+        'admin_decision',
+        'admin_decision_remarks',
+        'admin_decision_by',
+        'admin_decision_at',
+
+        // ── Acceptance ───────────────────────────────────────────────────────
         'accepted_by_contractor',
         'accepted_date',
         'accepted_time',
 
-        // ── Status & Notes ───────────────────────────────────────────
+        // ── Status & Notes ───────────────────────────────────────────────────
         'status',
         'notes',
     ];
@@ -96,15 +114,30 @@ class WorkRequest extends Model
         'received_date'             => 'date',
         'estimated_quantity'        => 'decimal:2',
         'quantity'                  => 'decimal:2',
+        'assigned_at'               => 'datetime',
+        'admin_decision_at'         => 'datetime',
     ];
 
     protected $appends = ['submitted_by', 'submitted_date'];
 
-    // ---------------------------------------------------------------
-    // Status constants
-    // ---------------------------------------------------------------
+    // ─── Review step order ───────────────────────────────────────────────────
+    // Maps step key → assigned_*_id column → role string
+    const REVIEW_STEPS = [
+        'site_inspector'       => ['assigned_col' => 'assigned_site_inspector_id',       'role' => 'site_inspector'],
+        'surveyor'             => ['assigned_col' => 'assigned_surveyor_id',              'role' => 'surveyor'],
+        'resident_engineer'    => ['assigned_col' => 'assigned_resident_engineer_id',     'role' => 'resident_engineer'],
+        'mtqa'                 => ['assigned_col' => 'assigned_mtqa_id',                  'role' => 'mtqa'],
+        'engineer_iv'          => ['assigned_col' => 'assigned_engineer_iv_id',           'role' => 'engineeriv'],
+        'engineer_iii'         => ['assigned_col' => 'assigned_engineer_iii_id',          'role' => 'engineeriii'],
+        'provincial_engineer'  => ['assigned_col' => 'assigned_provincial_engineer_id',   'role' => 'provincial_engineer'],
+        'admin_final'          => ['assigned_col' => null,                                'role' => 'admin'],
+    ];
+
+    // ─── Status constants ────────────────────────────────────────────────────
     const STATUS_DRAFT     = 'draft';
     const STATUS_SUBMITTED = 'submitted';
+    const STATUS_ASSIGNED  = 'assigned';      // admin assigned reviewers
+    const STATUS_IN_REVIEW = 'in_review';     // engineers are reviewing
     const STATUS_INSPECTED = 'inspected';
     const STATUS_REVIEWED  = 'reviewed';
     const STATUS_APPROVED  = 'approved';
@@ -116,6 +149,8 @@ class WorkRequest extends Model
         return [
             self::STATUS_DRAFT,
             self::STATUS_SUBMITTED,
+            self::STATUS_ASSIGNED,
+            self::STATUS_IN_REVIEW,
             self::STATUS_INSPECTED,
             self::STATUS_REVIEWED,
             self::STATUS_APPROVED,
@@ -124,18 +159,59 @@ class WorkRequest extends Model
         ];
     }
 
-    // ---------------------------------------------------------------
-    // Relationships
-    // ---------------------------------------------------------------
+    // ─── Relationships ───────────────────────────────────────────────────────
 
     public function logs()
     {
         return $this->hasMany(WorkRequestLog::class)->orderBy('created_at', 'desc');
     }
 
-    // ---------------------------------------------------------------
-    // Scopes
-    // ---------------------------------------------------------------
+    public function assignedSiteInspector()
+    {
+        return $this->belongsTo(User::class, 'assigned_site_inspector_id');
+    }
+
+    public function assignedSurveyor()
+    {
+        return $this->belongsTo(User::class, 'assigned_surveyor_id');
+    }
+
+    public function assignedResidentEngineer()
+    {
+        return $this->belongsTo(User::class, 'assigned_resident_engineer_id');
+    }
+
+    public function assignedMtqa()
+    {
+        return $this->belongsTo(User::class, 'assigned_mtqa_id');
+    }
+
+    public function assignedEngineerIv()
+    {
+        return $this->belongsTo(User::class, 'assigned_engineer_iv_id');
+    }
+
+    public function assignedEngineerIii()
+    {
+        return $this->belongsTo(User::class, 'assigned_engineer_iii_id');
+    }
+
+    public function assignedProvincialEngineer()
+    {
+        return $this->belongsTo(User::class, 'assigned_provincial_engineer_id');
+    }
+
+    public function assignedByAdmin()
+    {
+        return $this->belongsTo(User::class, 'assigned_by_admin_id');
+    }
+
+    public function adminDecisionBy()
+    {
+        return $this->belongsTo(User::class, 'admin_decision_by');
+    }
+
+    // ─── Scopes ──────────────────────────────────────────────────────────────
 
     public function scopeByStatus($query, $status)
     {
@@ -146,14 +222,45 @@ class WorkRequest extends Model
     {
         return $query->whereIn('status', [
             self::STATUS_SUBMITTED,
+            self::STATUS_ASSIGNED,
+            self::STATUS_IN_REVIEW,
             self::STATUS_INSPECTED,
             self::STATUS_REVIEWED,
         ]);
     }
 
-    // ---------------------------------------------------------------
-    // Predicates
-    // ---------------------------------------------------------------
+    /**
+     * Scope: requests where the given user is the current assigned reviewer.
+     */
+    public function scopeAssignedToUser($query, int $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'site_inspector')
+                   ->where('assigned_site_inspector_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'surveyor')
+                   ->where('assigned_surveyor_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'resident_engineer')
+                   ->where('assigned_resident_engineer_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'mtqa')
+                   ->where('assigned_mtqa_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'engineer_iv')
+                   ->where('assigned_engineer_iv_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'engineer_iii')
+                   ->where('assigned_engineer_iii_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'provincial_engineer')
+                   ->where('assigned_provincial_engineer_id', $userId);
+            });
+        });
+    }
+
+    // ─── Predicates ──────────────────────────────────────────────────────────
 
     public function isApproved(): bool
     {
@@ -165,9 +272,96 @@ class WorkRequest extends Model
         return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SUBMITTED]);
     }
 
-    // ---------------------------------------------------------------
-    // Accessors
-    // ---------------------------------------------------------------
+    public function isAssigned(): bool
+    {
+        return !is_null($this->assigned_by_admin_id);
+    }
+
+    /**
+     * Check if the given user is the current assigned reviewer.
+     */
+    public function isCurrentReviewer(User $user): bool
+    {
+        $step = $this->current_review_step;
+
+        if (!$step || !isset(self::REVIEW_STEPS[$step])) {
+            return false;
+        }
+
+        $col = self::REVIEW_STEPS[$step]['assigned_col'];
+
+        if (!$col) {
+            return false; // admin_final — handled separately
+        }
+
+        return $this->$col == $user->id;
+    }
+
+    /**
+     * Advance to the next review step.
+     * Skips steps where no engineer was assigned.
+     * Returns true if advanced, false if we've reached admin_final.
+     */
+    public function advanceReviewStep(): bool
+    {
+        $steps    = array_keys(self::REVIEW_STEPS);
+        $current  = $this->current_review_step;
+        $idx      = array_search($current, $steps);
+
+        // Find next step that has an assigned user (or is admin_final)
+        for ($i = $idx + 1; $i < count($steps); $i++) {
+            $nextStep = $steps[$i];
+            $col      = self::REVIEW_STEPS[$nextStep]['assigned_col'];
+
+            if ($nextStep === 'admin_final' || ($col && !is_null($this->$col))) {
+                $this->current_review_step = $nextStep;
+                $this->status = ($nextStep === 'admin_final')
+                    ? self::STATUS_REVIEWED
+                    : self::STATUS_IN_REVIEW;
+                $this->save();
+                return true;
+            }
+        }
+
+        // Should not reach here normally
+        return false;
+    }
+
+    /**
+     * Get human-readable label for current_review_step.
+     */
+    public function getCurrentStepLabelAttribute(): string
+    {
+        return match ($this->current_review_step) {
+            'site_inspector'      => 'Site Inspector',
+            'surveyor'            => 'Surveyor',
+            'resident_engineer'   => 'Resident Engineer',
+            'mtqa'                => 'MTQA',
+            'engineer_iv'         => 'Engineer IV',
+            'engineer_iii'        => 'Engineer III',
+            'provincial_engineer' => 'Provincial Engineer',
+            'admin_final'         => 'Admin Final Decision',
+            default               => 'Pending Assignment',
+        };
+    }
+
+    /**
+     * Get the User assigned to the current step (for display).
+     */
+    public function getCurrentReviewerAttribute(): ?User
+    {
+        $step = $this->current_review_step;
+
+        if (!$step || !isset(self::REVIEW_STEPS[$step])) {
+            return null;
+        }
+
+        $col = self::REVIEW_STEPS[$step]['assigned_col'];
+
+        return $col ? $this->$col()->first() : null;
+    }
+
+    // ─── Accessors ───────────────────────────────────────────────────────────
 
     public function getProjectNameAttribute(): string
     {
@@ -184,101 +378,84 @@ class WorkRequest extends Model
         return $this->created_at;
     }
 
-    // ---------------------------------------------------------------
-    // Validation
-    // ---------------------------------------------------------------
+    public function getStatusBadgeColorAttribute(): string
+    {
+        return match ($this->status) {
+            self::STATUS_DRAFT      => 'gray',
+            self::STATUS_SUBMITTED  => 'blue',
+            self::STATUS_ASSIGNED   => 'indigo',
+            self::STATUS_IN_REVIEW  => 'yellow',
+            self::STATUS_INSPECTED  => 'cyan',
+            self::STATUS_REVIEWED   => 'purple',
+            self::STATUS_APPROVED   => 'green',
+            self::STATUS_ACCEPTED   => 'teal',
+            self::STATUS_REJECTED   => 'red',
+            default                 => 'gray',
+        };
+    }
+
+    // ─── Validation ──────────────────────────────────────────────────────────
 
     public static function validationRules($id = null): array
     {
         return [
-            // Project Information
-            'reference_number' => 'nullable|string|max:255',
-            'name_of_project'               => 'required|string|max:255',
-            'project_location'              => 'required|string|max:255',
-
-            // Addressed To / From
-            'for_office'                    => 'nullable|string|max:255',
-            'from_requester'                => 'nullable|string|max:255',
-
-            // Request Details
-            'requested_work_start_date'     => 'required|date',
-            'requested_work_start_time'     => 'nullable|string|max:20',
-
-            // Work Details
-            'item_no'                       => 'nullable|string|max:100',
-            'description'                   => 'nullable|string|max:255',
-            'equipment_to_be_used'          => 'nullable|string|max:255',
-            'estimated_quantity'            => 'nullable|numeric|min:0',
-            'quantity'                      => 'nullable|numeric|min:0',
-            'unit'                          => 'nullable|string|max:50',
-            'description_of_work_requested' => 'required|string',
-
-            // Submission
-            'contractor_name'               => 'nullable|string|max:255',
-
-            // Reception this is for receiving personnel to fill out after submission
-            'received_by'                   => 'nullable|string|max:255',
-            'received_date'                 => 'nullable|date',
-            'received_time'                 => 'nullable|string|max:20',
-
-            // Inspection: Site Inspector this is for site inspector to fill out after receiving the work request
-            'inspected_by_site_inspector'   => 'nullable|string|max:255',
-            'site_inspector_signature'      => 'nullable|string',
-            'findings_comments'             => 'nullable|string',
-            'recommendation'                => 'nullable|string',
-
-            // Inspection: Surveyor this is for surveyor to fill out after review by site inspector
-            'surveyor_name'                 => 'nullable|string|max:255',
-            'surveyor_signature'            => 'nullable|string',
-            'findings_surveyor'             => 'nullable|string',
-            'recommendation_surveyor'       => 'nullable|string',
-
-            // Inspection: Resident Engineer this is for resident engineer to fill out after review by site inspector and surveyor
-            'resident_engineer_name'        => 'nullable|string|max:255',
-            'resident_engineer_signature'   => 'nullable|string',
-            'findings_engineer'             => 'nullable|string',
-            'recommendation_engineer'       => 'nullable|string',
-
-            // MTQA / Checked By this is for MTQA to fill out after review by provincial engineer
-            'checked_by_mtqa'               => 'nullable|string|max:255',
-            'mtqa_signature'                => 'nullable|string',
-            'recommended_action'            => 'nullable|string',
-
-            // Reviewed By this is for provincial engineer IV to fill out after review by site inspector, surveyor, and resident engineer
-            'reviewed_by'                   => 'nullable|string|max:255',
-            'reviewer_signature'            => 'nullable|string',
-            'reviewed_by_recommendation_action' => 'nullable|string',
-
-            // Recommending Approval this is for engineer III to fill out
-            'recommending_approval_by'          => 'nullable|string|max:255',
-            'recommending_approval_signature'   => 'nullable|string',
+            'reference_number'                            => 'nullable|string|max:255',
+            'name_of_project'                             => 'required|string|max:255',
+            'project_location'                            => 'required|string|max:255',
+            'for_office'                                  => 'nullable|string|max:255',
+            'from_requester'                              => 'nullable|string|max:255',
+            'requested_work_start_date'                   => 'required|date',
+            'requested_work_start_time'                   => 'nullable|string|max:20',
+            'item_no'                                     => 'nullable|string|max:100',
+            'description'                                 => 'nullable|string|max:255',
+            'equipment_to_be_used'                        => 'nullable|string|max:255',
+            'estimated_quantity'                          => 'nullable|numeric|min:0',
+            'quantity'                                    => 'nullable|numeric|min:0',
+            'unit'                                        => 'nullable|string|max:50',
+            'description_of_work_requested'               => 'required|string',
+            'contractor_name'                             => 'nullable|string|max:255',
+            'received_by'                                 => 'nullable|string|max:255',
+            'received_date'                               => 'nullable|date',
+            'received_time'                               => 'nullable|string|max:20',
+            'inspected_by_site_inspector'                 => 'nullable|string|max:255',
+            'site_inspector_signature'                    => 'nullable|string',
+            'findings_comments'                           => 'nullable|string',
+            'recommendation'                              => 'nullable|string',
+            'surveyor_name'                               => 'nullable|string|max:255',
+            'surveyor_signature'                          => 'nullable|string',
+            'findings_surveyor'                           => 'nullable|string',
+            'recommendation_surveyor'                     => 'nullable|string',
+            'resident_engineer_name'                      => 'nullable|string|max:255',
+            'resident_engineer_signature'                 => 'nullable|string',
+            'findings_engineer'                           => 'nullable|string',
+            'recommendation_engineer'                     => 'nullable|string',
+            'checked_by_mtqa'                             => 'nullable|string|max:255',
+            'mtqa_signature'                              => 'nullable|string',
+            'recommended_action'                          => 'nullable|string',
+            'reviewed_by'                                 => 'nullable|string|max:255',
+            'reviewer_signature'                          => 'nullable|string',
+            'reviewed_by_recommendation_action'           => 'nullable|string',
+            'recommending_approval_by'                    => 'nullable|string|max:255',
+            'recommending_approval_signature'             => 'nullable|string',
             'recommending_approval_recommendation_action' => 'nullable|string',
-
-            // Approved this is for provincial engineer to fill out
-            'approved_by'                   => 'nullable|string|max:255',
-            'approved_signature'            => 'nullable|string',
-            'approved_recommendation_action'    => 'nullable|string',
-
-            // Acceptance this is for contractor to fill out after approval
-            'accepted_by_contractor'        => 'nullable|string|max:255',
-            'accepted_date'                 => 'nullable|date',
-            'accepted_time'                 => 'nullable|string|max:20',
-
-            // Status & Notes
-            'status'                        => 'nullable|string|in:' . implode(',', self::getStatuses()),
-            'notes'                         => 'nullable|string',
+            'approved_by'                                 => 'nullable|string|max:255',
+            'approved_signature'                          => 'nullable|string',
+            'approved_recommendation_action'              => 'nullable|string',
+            'accepted_by_contractor'                      => 'nullable|string|max:255',
+            'accepted_date'                               => 'nullable|date',
+            'accepted_time'                               => 'nullable|string|max:20',
+            'status'  => 'nullable|string|in:' . implode(',', self::getStatuses()),
+            'notes'   => 'nullable|string',
         ];
     }
 
-    // ---------------------------------------------------------------
-    // Logging helpers
-    // ---------------------------------------------------------------
+    // ─── Logging helpers ─────────────────────────────────────────────────────
 
     public function addLog(string $event, array $data = []): WorkRequestLog
     {
         return $this->logs()->create([
             'event'       => $event,
-            'user_id'     => $data['user_id'] ?? Auth::id(), // change employee_id to user_id
+            'user_id'     => $data['user_id'] ?? Auth::id(),
             'description' => $data['description'] ?? null,
             'note'        => $data['note'] ?? null,
             'changes'     => $data['changes'] ?? null,
@@ -292,14 +469,12 @@ class WorkRequest extends Model
     public function buildChanges(array $newData): array
     {
         $changes = [];
-
         foreach ($newData as $field => $newValue) {
             $oldValue = $this->getOriginal($field);
             if ((string) $oldValue !== (string) $newValue) {
                 $changes[$field] = [$oldValue, $newValue];
             }
         }
-
         return $changes;
     }
 }
