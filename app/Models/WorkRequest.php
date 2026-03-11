@@ -304,16 +304,23 @@ class WorkRequest extends Model
      */
     public function advanceReviewStep(): bool
     {
-        $steps    = array_keys(self::REVIEW_STEPS);
-        $current  = $this->current_review_step;
-        $idx      = array_search($current, $steps);
+        // Refresh from DB to ensure assigned_*_id values are current
+        $this->refresh();
 
-        // Find next step that has an assigned user (or is admin_final)
+        $steps   = array_keys(self::REVIEW_STEPS);
+        $current = $this->current_review_step;
+        $idx     = array_search($current, $steps);
+
+        if ($idx === false) {
+            return false;
+        }
+
         for ($i = $idx + 1; $i < count($steps); $i++) {
             $nextStep = $steps[$i];
             $col      = self::REVIEW_STEPS[$nextStep]['assigned_col'];
 
-            if ($nextStep === 'admin_final' || ($col && !is_null($this->$col))) {
+            // admin_final always runs; for other steps, only if a user is assigned (not null, not "")
+            if ($nextStep === 'admin_final' || ($col && !empty($this->$col))) {
                 $this->current_review_step = $nextStep;
                 $this->status = ($nextStep === 'admin_final')
                     ? self::STATUS_REVIEWED
@@ -323,7 +330,6 @@ class WorkRequest extends Model
             }
         }
 
-        // Should not reach here normally
         return false;
     }
 

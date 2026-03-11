@@ -9,14 +9,12 @@ use Illuminate\Http\Request;
 
 class WorkRequestLogController extends Controller
 {
-    /**
-     * Display a listing of the work request logs.
-     */
     public function index(Request $request)
     {
-        $query = WorkRequestLog::with(['workRequest', 'employee.user'])->latest();
+        // Eager-load workRequest + the acting User (stored as user_id by addLog())
+        // Also load employee.user as fallback for any legacy rows
+        $query = WorkRequestLog::with(['workRequest', 'user', 'employee.user'])->latest();
 
-        // Optional filters
         if ($request->filled('employee_id')) {
             $query->byEmployee($request->employee_id);
         }
@@ -27,12 +25,12 @@ class WorkRequestLogController extends Controller
 
         $logs = $query->paginate(20);
 
-        // For filter dropdowns
+        // For the "Filter by Employee" dropdown
         $employees = Employee::join('users', 'employees.user_id', '=', 'users.id')
             ->orderBy('users.name')
             ->select('employees.*')
             ->get();
-        
+
         $events = [
             WorkRequestLog::EVENT_CREATED,
             WorkRequestLog::EVENT_UPDATED,
@@ -47,7 +45,6 @@ class WorkRequestLogController extends Controller
             WorkRequestLog::EVENT_RESTORED,
         ];
 
-        // Map events to labels for the view
         $eventLabels = array_reduce($events, function ($carry, $event) {
             $carry[$event] = match ($event) {
                 WorkRequestLog::EVENT_CREATED        => 'Created',

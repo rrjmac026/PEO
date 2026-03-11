@@ -9,9 +9,6 @@ class WorkRequestLog extends Model
 {
     use HasFactory;
 
-    // ---------------------------------------------------------------
-    // Event constants – use these instead of bare strings
-    // ---------------------------------------------------------------
     const EVENT_CREATED        = 'created';
     const EVENT_UPDATED        = 'updated';
     const EVENT_STATUS_CHANGED = 'status_changed';
@@ -27,6 +24,7 @@ class WorkRequestLog extends Model
     protected $fillable = [
         'work_request_id',
         'employee_id',
+        'user_id',          // ← ADDED: this is what addLog() actually saves
         'event',
         'status_from',
         'status_to',
@@ -41,23 +39,26 @@ class WorkRequestLog extends Model
         'changes' => 'array',
     ];
 
-    // ---------------------------------------------------------------
-    // Relationships
-    // ---------------------------------------------------------------
+    // ── Relationships ────────────────────────────────────────────────────────
 
     public function workRequest()
     {
         return $this->belongsTo(WorkRequest::class);
     }
 
+    /** Legacy relationship (employee_id) — kept for backwards compat */
     public function employee()
     {
         return $this->belongsTo(Employee::class);
     }
 
-    // ---------------------------------------------------------------
-    // Scopes
-    // ---------------------------------------------------------------
+    /** Direct relationship to the User who performed the action */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    // ── Scopes ───────────────────────────────────────────────────────────────
 
     public function scopeForRequest($query, int $workRequestId)
     {
@@ -74,13 +75,8 @@ class WorkRequestLog extends Model
         return $query->where('employee_id', $employeeId);
     }
 
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
-    /**
-     * Return a human-readable label for an event constant.
-     */
     public function getEventLabelAttribute(): string
     {
         return match ($this->event) {
@@ -99,9 +95,6 @@ class WorkRequestLog extends Model
         };
     }
 
-    /**
-     * Badge colour suggestion for the event (useful in Blade / Vue).
-     */
     public function getEventColorAttribute(): string
     {
         return match ($this->event) {

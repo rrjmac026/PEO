@@ -371,14 +371,39 @@
 
                                 <!-- Employee -->
                                 <td>
-                                    @if ($log->employee)
+                                    @php
+                                        // Priority 1: user_id (what addLog() saves)
+                                        // Priority 2: employee_id (legacy rows)
+                                        $actorName   = null;
+                                        $actorInitial = null;
+                                        $actorLink   = null;
+
+                                        if ($log->user) {
+                                            $actorName    = $log->user->name;
+                                            $actorInitial = strtoupper(substr($actorName, 0, 1));
+                                            // If this user also has an employee record, link to it
+                                            if ($log->user->employee) {
+                                                $actorLink = route('admin.employees.show', $log->user->employee);
+                                            }
+                                        } elseif ($log->employee && $log->employee->user) {
+                                            $actorName    = $log->employee->user->name;
+                                            $actorInitial = strtoupper(substr($actorName, 0, 1));
+                                            $actorLink    = route('admin.employees.show', $log->employee);
+                                        }
+                                    @endphp
+
+                                    @if ($actorName)
                                         <div class="flex items-center gap-2">
-                                            <div class="lg-avatar">
-                                                {{ strtoupper(substr($log->employee->user->name, 0, 1)) }}
-                                            </div>
-                                            <a href="{{ route('admin.employees.show', $log->employee) }}" class="lg-emp-link">
-                                                {{ $log->employee->user->name }}
-                                            </a>
+                                            <div class="lg-avatar">{{ $actorInitial }}</div>
+                                            @if ($actorLink)
+                                                <a href="{{ $actorLink }}" class="lg-emp-link">
+                                                    {{ $actorName }}
+                                                </a>
+                                            @else
+                                                <span class="lg-emp-link" style="cursor:default;">
+                                                    {{ $actorName }}
+                                                </span>
+                                            @endif
                                         </div>
                                     @else
                                         <span class="lg-system-user">System User</span>

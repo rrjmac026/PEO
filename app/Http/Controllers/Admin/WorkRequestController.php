@@ -148,22 +148,23 @@ class WorkRequestController extends Controller
             'assigned_provincial_engineer_id'  => 'nullable|exists:users,id',
         ]);
 
-        // At least one assignment required
-        $anyAssigned = collect([
-            $request->assigned_site_inspector_id,
-            $request->assigned_surveyor_id,
-            $request->assigned_resident_engineer_id,
-            $request->assigned_mtqa_id,
-            $request->assigned_engineer_iv_id,
-            $request->assigned_engineer_iii_id,
-            $request->assigned_provincial_engineer_id,
-        ])->filter()->isNotEmpty();
+        // Normalize empty strings to null so advanceReviewStep() works correctly
+        $assignments = [
+            'assigned_site_inspector_id'      => $request->assigned_site_inspector_id      ?: null,
+            'assigned_surveyor_id'             => $request->assigned_surveyor_id             ?: null,
+            'assigned_resident_engineer_id'    => $request->assigned_resident_engineer_id    ?: null,
+            'assigned_mtqa_id'                 => $request->assigned_mtqa_id                 ?: null,
+            'assigned_engineer_iv_id'          => $request->assigned_engineer_iv_id          ?: null,
+            'assigned_engineer_iii_id'         => $request->assigned_engineer_iii_id         ?: null,
+            'assigned_provincial_engineer_id'  => $request->assigned_provincial_engineer_id  ?: null,
+        ];
 
-        if (!$anyAssigned) {
+        // At least one assignment required
+        if (collect($assignments)->filter()->isEmpty()) {
             return back()->with('error', 'Please assign at least one engineer before proceeding.');
         }
 
-        // Determine the first step that has someone assigned
+        // Determine the first step that has someone assigned (in pipeline order)
         $stepsInOrder = [
             'site_inspector'      => 'assigned_site_inspector_id',
             'surveyor'            => 'assigned_surveyor_id',
@@ -176,25 +177,18 @@ class WorkRequestController extends Controller
 
         $firstStep = null;
         foreach ($stepsInOrder as $step => $col) {
-            if (!empty($request->$col)) {
+            if (!is_null($assignments[$col])) {
                 $firstStep = $step;
                 break;
             }
         }
 
-        $workRequest->update([
-            'assigned_site_inspector_id'     => $request->assigned_site_inspector_id,
-            'assigned_surveyor_id'            => $request->assigned_surveyor_id,
-            'assigned_resident_engineer_id'   => $request->assigned_resident_engineer_id,
-            'assigned_mtqa_id'                => $request->assigned_mtqa_id,
-            'assigned_engineer_iv_id'         => $request->assigned_engineer_iv_id,
-            'assigned_engineer_iii_id'        => $request->assigned_engineer_iii_id,
-            'assigned_provincial_engineer_id' => $request->assigned_provincial_engineer_id,
-            'assigned_by_admin_id'            => Auth::id(),
-            'assigned_at'                     => now(),
-            'current_review_step'             => $firstStep,
-            'status'                          => WorkRequest::STATUS_ASSIGNED,
-        ]);
+        $workRequest->update(array_merge($assignments, [
+            'assigned_by_admin_id' => Auth::id(),
+            'assigned_at'          => now(),
+            'current_review_step'  => $firstStep,
+            'status'               => WorkRequest::STATUS_ASSIGNED,
+        ]));
 
         $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, [
             'description' => 'Engineers assigned by admin. First step: ' . $firstStep,

@@ -15,6 +15,7 @@
 
     $dashboardRoute = match(Auth::user()->role) {
         'admin' => route('admin.dashboard'),
+        'reviewer' => route('reviewer.dashboard'),
         'user'  => route('user.dashboard'),
         default => '/',
     };
