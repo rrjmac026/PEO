@@ -29,7 +29,7 @@ class RoleSeeder extends Seeder
             // Site Inspector
             [
                 'name'     => 'Maria Santos',
-                'email'    => 'prototypecapstone@gmail.com',
+                'email'    => 'site.inspector@example.com',
                 'role'     => 'site_inspector',
                 'employee' => [
                     'employee_number' => 'EMP-003',
@@ -43,7 +43,7 @@ class RoleSeeder extends Seeder
             // Surveyor
             [
                 'name'     => 'Carlos Reyes',
-                'email'    => 'macalutasreyramesesjudeiii@gmail.com',
+                'email'    => 'surveyor@example.com',
                 'role'     => 'surveyor',
                 'employee' => [
                     'employee_number' => 'EMP-004',
@@ -57,7 +57,7 @@ class RoleSeeder extends Seeder
             // MTQA
             [
                 'name'     => 'Randy P. Diaz',
-                'email'    => 'namisanchez123@gmail.com',
+                'email'    => 'mtqa@example.com',
                 'role'     => 'mtqa',
                 'employee' => [
                     'employee_number' => 'EMP-007',
@@ -71,7 +71,7 @@ class RoleSeeder extends Seeder
             // Resident Engineers
             [
                 'name'     => 'Leizel S. Galleposo',
-                'email'    => '1901102366@student.buksu.edu.ph',
+                'email'    => 'resident.engineer@example.com',
                 'role'     => 'resident_engineer',
                 'employee' => [
                     'employee_number' => 'EMP-005',
