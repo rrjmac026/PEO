@@ -276,7 +276,7 @@
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>ID</th>
+                            <th>Employee ID</th>
                             <th>Position</th>
                             <th>Department</th>
                             <th>Phone</th>
@@ -301,7 +301,7 @@
 
                                 <!-- Employee ID -->
                                 <td>
-                                    <span class="em-id-chip">{{ $employee->employee_id }}</span>
+                                    <span class="em-id-chip">{{ $employee->employee_number }}</span>
                                 </td>
 
                                 <!-- Position -->

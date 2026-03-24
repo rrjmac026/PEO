@@ -2,10 +2,16 @@
 
 namespace App\Services;
 
+use App\Mail\WorkRequestAssignedMail;
+use App\Mail\WorkRequestDecisionMadeMail;
+use App\Mail\WorkRequestReadyForDecisionMail;
+use App\Mail\WorkRequestStepAdvancedMail;
+use App\Mail\WorkRequestSubmittedMail;
 use App\Models\Notification;
 use App\Models\WorkRequest;
 use App\Models\ConcretePouring;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -18,18 +24,24 @@ class NotificationService
      */
     public static function workRequestSubmitted(WorkRequest $wr): void
     {
-        $admins = User::where('role', 'admin')->pluck('id')->toArray();
+        $admins = User::where('role', 'admin')->get();
 
-        if (empty($admins)) return;
+        if ($admins->isEmpty()) return;
 
+        // In-app
         Notification::send(
-            $admins,
+            $admins->pluck('id')->toArray(),
             'work_request',
             '📋 New Work Request Submitted',
             "Contractor \"{$wr->contractor_name}\" submitted a new work request for \"{$wr->name_of_project}\".",
             route('admin.work-requests.show', $wr),
             $wr
         );
+
+        // Email
+        foreach ($admins as $admin) {
+            Mail::to($admin->email)->queue(new WorkRequestSubmittedMail($wr));
+        }
     }
 
     /**
@@ -38,22 +50,26 @@ class NotificationService
     public static function workRequestAssigned(WorkRequest $wr): void
     {
         $steps = [
-            'assigned_site_inspector_id'     => ['role' => 'Site Inspector',      'step' => 'site_inspector'],
-            'assigned_surveyor_id'            => ['role' => 'Surveyor',            'step' => 'surveyor'],
-            'assigned_resident_engineer_id'   => ['role' => 'Resident Engineer',   'step' => 'resident_engineer'],
-            'assigned_mtqa_id'                => ['role' => 'MTQA',                'step' => 'mtqa'],
-            'assigned_engineer_iv_id'         => ['role' => 'Engineer IV',         'step' => 'engineer_iv'],
-            'assigned_engineer_iii_id'        => ['role' => 'Engineer III',        'step' => 'engineer_iii'],
-            'assigned_provincial_engineer_id' => ['role' => 'Provincial Engineer', 'step' => 'provincial_engineer'],
+            'assigned_site_inspector_id'      => ['role' => 'Site Inspector',      'step' => 'site_inspector'],
+            'assigned_surveyor_id'             => ['role' => 'Surveyor',            'step' => 'surveyor'],
+            'assigned_resident_engineer_id'    => ['role' => 'Resident Engineer',   'step' => 'resident_engineer'],
+            'assigned_mtqa_id'                 => ['role' => 'MTQA',                'step' => 'mtqa'],
+            'assigned_engineer_iv_id'          => ['role' => 'Engineer IV',         'step' => 'engineer_iv'],
+            'assigned_engineer_iii_id'         => ['role' => 'Engineer III',        'step' => 'engineer_iii'],
+            'assigned_provincial_engineer_id'  => ['role' => 'Provincial Engineer', 'step' => 'provincial_engineer'],
         ];
 
         foreach ($steps as $col => $info) {
             $userId = $wr->$col;
             if (!$userId) continue;
 
-            // Only notify the FIRST assigned reviewer right now (it's their turn).
-            // Others will be notified when the step advances to them.
-            if ($wr->current_review_step === $info['step']) {
+            $reviewer = User::find($userId);
+            if (!$reviewer) continue;
+
+            $isFirst = $wr->current_review_step === $info['step'];
+
+            // In-app
+            if ($isFirst) {
                 Notification::send(
                     $userId,
                     'work_request',
@@ -63,7 +79,6 @@ class NotificationService
                     $wr
                 );
             } else {
-                // Notify others that they are in the queue (informational)
                 Notification::send(
                     $userId,
                     'work_request',
@@ -73,6 +88,11 @@ class NotificationService
                     $wr
                 );
             }
+
+            // Email
+            Mail::to($reviewer->email)->queue(
+                new WorkRequestAssignedMail($wr, $info['role'], $isFirst)
+            );
         }
     }
 
@@ -98,16 +118,23 @@ class NotificationService
         $nextStep = $wr->current_review_step;
 
         if ($nextStep === 'admin_final') {
-            // Notify admins for final decision
-            $admins = User::where('role', 'admin')->pluck('id')->toArray();
+            $admins = User::where('role', 'admin')->get();
+
+            // In-app
             Notification::send(
-                $admins,
+                $admins->pluck('id')->toArray(),
                 'work_request',
                 '✅ Work Request Ready for Final Decision',
                 "Work request \"{$wr->name_of_project}\" has completed all reviews. Please make a final decision.",
                 route('admin.work-requests.decision-form', $wr),
                 $wr
             );
+
+            // Email
+            foreach ($admins as $admin) {
+                Mail::to($admin->email)->queue(new WorkRequestReadyForDecisionMail($wr));
+            }
+
             return;
         }
 
@@ -115,16 +142,25 @@ class NotificationService
         $col = WorkRequest::REVIEW_STEPS[$nextStep]['assigned_col'] ?? null;
         if (!$col || !$wr->$col) return;
 
-        $stepLabel = $stepLabels[$nextStep] ?? $nextStep;
-        $prevLabel = $stepLabels[$completedStep] ?? $completedStep;
+        $nextReviewer = User::find($wr->$col);
+        if (!$nextReviewer) return;
 
+        $nextStepLabel = $stepLabels[$nextStep]    ?? $nextStep;
+        $prevLabel     = $stepLabels[$completedStep] ?? $completedStep;
+
+        // In-app
         Notification::send(
             $wr->$col,
             'work_request',
             "🔔 It's Your Turn to Review",
-            "{$prevLabel} \"{$completedByName}\" completed their review of \"{$wr->name_of_project}\". It's now your turn as {$stepLabel}.",
+            "{$prevLabel} \"{$completedByName}\" completed their review of \"{$wr->name_of_project}\". It's now your turn as {$nextStepLabel}.",
             route('reviewer.work-requests.show', $wr),
             $wr
+        );
+
+        // Email
+        Mail::to($nextReviewer->email)->queue(
+            new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
         );
     }
 
@@ -133,7 +169,6 @@ class NotificationService
      */
     public static function workRequestDecisionMade(WorkRequest $wr): void
     {
-        // Find the contractor user by name
         $contractor = User::where('name', $wr->contractor_name)
             ->where('role', 'contractor')
             ->first();
@@ -143,6 +178,7 @@ class NotificationService
         $decision = $wr->admin_decision === 'approved' ? 'Approved ✅' : 'Rejected ❌';
         $emoji    = $wr->admin_decision === 'approved' ? '🎉' : '😔';
 
+        // In-app
         Notification::send(
             $contractor->id,
             'work_request',
@@ -152,15 +188,15 @@ class NotificationService
             route('user.work-requests.show', $wr),
             $wr
         );
+
+        // Email
+        Mail::to($contractor->email)->queue(new WorkRequestDecisionMadeMail($wr));
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  CONCRETE POURING NOTIFICATIONS
+    //  CONCRETE POURING NOTIFICATIONS  (unchanged — not touched)
     // ══════════════════════════════════════════════════════════════
 
-    /**
-     * Contractor submitted a concrete pouring request → notify admins.
-     */
     public static function concretePouringSubmitted(ConcretePouring $cp): void
     {
         $admins = User::where('role', 'admin')->pluck('id')->toArray();
@@ -176,9 +212,6 @@ class NotificationService
         );
     }
 
-    /**
-     * Admin approved concrete pouring → notify requester.
-     */
     public static function concretePouringApproved(ConcretePouring $cp): void
     {
         $requester = $cp->requestedBy?->user;
@@ -195,9 +228,6 @@ class NotificationService
         );
     }
 
-    /**
-     * Admin disapproved concrete pouring → notify requester.
-     */
     public static function concretePouringDisapproved(ConcretePouring $cp): void
     {
         $requester = $cp->requestedBy?->user;
