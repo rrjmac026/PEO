@@ -1,20 +1,49 @@
-<x-mail::message>
-# It's Your Turn to Review
+@php
+    $emailTitle = 'Action Required — Your Review Turn';
+    $badgeClass = 'orange';
+    $badgeText  = 'Action Required';
+@endphp
 
-The previous reviewer has completed their step. It is now **your turn** as **{{ $nextStepLabel }}**.
+@extends('emails.work-requests.layout')
 
-| Field | Details |
-|---|---|
-| **Project** | {{ $workRequest->name_of_project }} |
-| **Location** | {{ $workRequest->project_location }} |
-| **Contractor** | {{ $workRequest->contractor_name }} |
-| **Previous Reviewer** | {{ $completedByName }} ({{ ucwords(str_replace('_', ' ', $completedStep)) }}) |
-| **Your Step** | {{ $nextStepLabel }} |
+@section('content')
+<h2 class="email-title">It's Your Turn to Review</h2>
+<p class="email-intro">
+    The previous reviewer has completed their step and the work request has been forwarded to you.
+    Please log in and submit your review as <strong>{{ $nextStepLabel }}</strong>.
+</p>
 
-<x-mail::button :url="route('reviewer.work-requests.show', $workRequest)">
-Open Work Request
-</x-mail::button>
+<table class="info-table">
+    <tr>
+        <td class="lbl">Project</td>
+        <td class="val">{{ $workRequest->name_of_project }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Location</td>
+        <td class="val">{{ $workRequest->project_location }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Contractor</td>
+        <td class="val">{{ $workRequest->contractor_name ?? '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Previous Reviewer</td>
+        <td class="val">
+            {{ $completedByName }}
+            <span class="step-pill" style="margin-left:6px;">
+                {{ ucwords(str_replace('_', ' ', $completedStep)) }}
+            </span>
+        </td>
+    </tr>
+    <tr>
+        <td class="lbl">Your Step</td>
+        <td class="val"><span class="step-pill">{{ $nextStepLabel }}</span></td>
+    </tr>
+</table>
 
-Thanks,<br>
-{{ config('app.name') }}
-</x-mail::message>
+<div class="cta-wrap">
+    <a href="{{ route('reviewer.work-requests.show', $workRequest) }}" class="cta-btn">
+        Open &amp; Review
+    </a>
+</div>
+@endsection

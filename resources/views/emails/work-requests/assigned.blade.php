@@ -1,30 +1,52 @@
-<x-mail::message>
-# {{ $isFirst ? 'Action Required — Your Review Turn' : 'Heads Up — You Are in the Queue' }}
+@php
+    $emailTitle = $isFirst ? 'Action Required — Work Request Assigned' : 'Heads Up — You Are in the Queue';
+    $badgeClass = $isFirst ? 'orange' : 'green';
+    $badgeText  = $isFirst ? 'Action Required' : 'In the Queue';
+@endphp
 
-@if($isFirst)
-You have been assigned as **{{ $role }}** for a work request and it is **your turn to review**.
-@else
-You have been assigned as **{{ $role }}** for a work request. You will be notified again when it is your turn.
-@endif
+@extends('emails.work-requests.layout')
 
-| Field | Details |
-|---|---|
-| **Project** | {{ $workRequest->name_of_project }} |
-| **Location** | {{ $workRequest->project_location }} |
-| **Contractor** | {{ $workRequest->contractor_name }} |
-| **Work Start** | {{ $workRequest->requested_work_start_date?->format('F j, Y') ?? 'TBD' }} |
-| **Your Role** | {{ $role }} |
+@section('content')
+<h2 class="email-title">
+    {{ $isFirst ? 'It\'s Your Turn to Review' : 'You\'ve Been Queued for Review' }}
+</h2>
+<p class="email-intro">
+    @if($isFirst)
+        You have been assigned as <strong>{{ $role }}</strong> for the work request below.
+        It is currently <strong>your turn</strong> — please log in and submit your review.
+    @else
+        You have been added to the review queue as <strong>{{ $role }}</strong> for the work request below.
+        You will receive another notification when it is your turn to act.
+    @endif
+</p>
 
-@if($isFirst)
-<x-mail::button :url="route('reviewer.work-requests.show', $workRequest)">
-Start Your Review
-</x-mail::button>
-@else
-<x-mail::button :url="route('reviewer.work-requests.show', $workRequest)" color="secondary">
-Preview Work Request
-</x-mail::button>
-@endif
+<table class="info-table">
+    <tr>
+        <td class="lbl">Project</td>
+        <td class="val">{{ $workRequest->name_of_project }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Location</td>
+        <td class="val">{{ $workRequest->project_location }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Contractor</td>
+        <td class="val">{{ $workRequest->contractor_name ?? '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Work Start Date</td>
+        <td class="val">{{ $workRequest->requested_work_start_date?->format('F j, Y') ?? 'TBD' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">Your Role</td>
+        <td class="val"><span class="step-pill">{{ $role }}</span></td>
+    </tr>
+</table>
 
-Thanks,<br>
-{{ config('app.name') }}
-</x-mail::message>
+<div class="cta-wrap">
+    <a href="{{ route('reviewer.work-requests.show', $workRequest) }}"
+       class="cta-btn {{ $isFirst ? '' : 'secondary' }}">
+        {{ $isFirst ? 'Start Your Review' : 'Preview Work Request' }}
+    </a>
+</div>
+@endsection

@@ -11,6 +11,7 @@ use App\Models\Notification;
 use App\Models\WorkRequest;
 use App\Models\ConcretePouring;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class NotificationService
@@ -40,7 +41,14 @@ class NotificationService
 
         // Email
         foreach ($admins as $admin) {
-            Mail::to($admin->email)->queue(new WorkRequestSubmittedMail($wr));
+            try {
+                Mail::to($admin->email)->send(new WorkRequestSubmittedMail($wr));
+            } catch (\Throwable $e) {
+                Log::error('WorkRequestSubmittedMail failed', [
+                    'to'    => $admin->email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 
@@ -90,9 +98,17 @@ class NotificationService
             }
 
             // Email
-            Mail::to($reviewer->email)->queue(
-                new WorkRequestAssignedMail($wr, $info['role'], $isFirst)
-            );
+            try {
+                Mail::to($reviewer->email)->send(
+                    new WorkRequestAssignedMail($wr, $info['role'], $isFirst)
+                );
+            } catch (\Throwable $e) {
+                Log::error('WorkRequestAssignedMail failed', [
+                    'to'    => $reviewer->email,
+                    'role'  => $info['role'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 
@@ -132,7 +148,14 @@ class NotificationService
 
             // Email
             foreach ($admins as $admin) {
-                Mail::to($admin->email)->queue(new WorkRequestReadyForDecisionMail($wr));
+                try {
+                    Mail::to($admin->email)->send(new WorkRequestReadyForDecisionMail($wr));
+                } catch (\Throwable $e) {
+                    Log::error('WorkRequestReadyForDecisionMail failed', [
+                        'to'    => $admin->email,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return;
@@ -145,7 +168,7 @@ class NotificationService
         $nextReviewer = User::find($wr->$col);
         if (!$nextReviewer) return;
 
-        $nextStepLabel = $stepLabels[$nextStep]    ?? $nextStep;
+        $nextStepLabel = $stepLabels[$nextStep]      ?? $nextStep;
         $prevLabel     = $stepLabels[$completedStep] ?? $completedStep;
 
         // In-app
@@ -159,9 +182,16 @@ class NotificationService
         );
 
         // Email
-        Mail::to($nextReviewer->email)->queue(
-            new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
-        );
+        try {
+            Mail::to($nextReviewer->email)->send(
+                new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
+            );
+        } catch (\Throwable $e) {
+            Log::error('WorkRequestStepAdvancedMail failed', [
+                'to'    => $nextReviewer->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -190,7 +220,14 @@ class NotificationService
         );
 
         // Email
-        Mail::to($contractor->email)->queue(new WorkRequestDecisionMadeMail($wr));
+        try {
+            Mail::to($contractor->email)->send(new WorkRequestDecisionMadeMail($wr));
+        } catch (\Throwable $e) {
+            Log::error('WorkRequestDecisionMadeMail failed', [
+                'to'    => $contractor->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════

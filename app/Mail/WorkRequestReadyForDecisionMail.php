@@ -5,8 +5,6 @@ namespace App\Mail;
 use App\Models\WorkRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class WorkRequestReadyForDecisionMail extends Mailable
@@ -15,15 +13,10 @@ class WorkRequestReadyForDecisionMail extends Mailable
 
     public function __construct(public WorkRequest $workRequest) {}
 
-    public function envelope(): Envelope
+    public function build(): static
     {
-        return new Envelope(
-            subject: '[Action Required] Final Decision Needed — ' . $this->workRequest->name_of_project,
-        );
-    }
-
-    public function content(): Content
-    {
-        return new Content(view: 'emails.work-requests.ready-for-decision');
+        return $this
+            ->subject('[Action Required] Final Decision Needed — ' . $this->workRequest->name_of_project)
+            ->view('emails.work-requests.ready-for-decision');
     }
 }
