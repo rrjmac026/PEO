@@ -23,10 +23,10 @@ class UserController extends Controller
 
         // Concrete Pouring stats
         $concretePouringStats = [
-            'total'       => ConcretePouring::where('requested_by_employee_id', $user->employee?->id)->count(),
-            'pending'     => ConcretePouring::where('requested_by_employee_id', $user->employee?->id)->where('status', 'requested')->count(),
-            'approved'    => ConcretePouring::where('requested_by_employee_id', $user->employee?->id)->where('status', 'approved')->count(),
-            'disapproved' => ConcretePouring::where('requested_by_employee_id', $user->employee?->id)->where('status', 'disapproved')->count(),
+            'total'       => ConcretePouring::where('requested_by_user_id', $user->id)->count(),
+            'pending'     => ConcretePouring::where('requested_by_user_id', $user->id)->where('status', 'requested')->count(),
+            'approved'    => ConcretePouring::where('requested_by_user_id', $user->id)->where('status', 'approved')->count(),
+            'disapproved' => ConcretePouring::where('requested_by_user_id', $user->id)->where('status', 'disapproved')->count(),
         ];
 
         // Recent Work Requests
@@ -36,7 +36,7 @@ class UserController extends Controller
             ->get();
 
         // Recent Concrete Pourings
-        $recentConcretePourings = ConcretePouring::where('requested_by_employee_id', $user->employee?->id)
+        $recentConcretePourings = ConcretePouring::where('requested_by_user_id', $user->id)
             ->latest()
             ->take(5)
             ->get();
