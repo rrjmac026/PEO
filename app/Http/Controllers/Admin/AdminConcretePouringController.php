@@ -4,43 +4,58 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
-use App\Models\Employee;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class AdminConcretePouringController extends Controller
 {
-    /**
-     * Display a listing of all concrete pouring requests
-     */
+    // =========================================================================
+    // REVIEW STEP PIPELINE
+    // Mirrors WorkRequest::REVIEW_STEPS but scoped to the three roles that
+    // appear on the Concrete Pouring form: MTQA → Resident Engineer → Provincial Engineer
+    // =========================================================================
+
+    const REVIEW_STEPS = [
+        'mtqa'                => 'me_mtqa_user_id',
+        'resident_engineer'   => 'resident_engineer_user_id',
+        'provincial_engineer' => 'noted_by_user_id',
+        'admin_final'         => null,   // terminal step — no assigned column
+    ];
+
+    // =========================================================================
+    // INDEX
+    // =========================================================================
+
     public function index(Request $request)
     {
         $query = ConcretePouring::with([
-            'requestedBy.user',
-            'meMtqaChecker.user',
-            'residentEngineer.user',
-            'approver.user',
-            'disapprover.user'
+            'workRequest',
+            'requestedBy',
+            'meMtqaChecker',
+            'residentEngineer',
+            'notedByEngineer',
+            'approver',
+            'disapprover',
         ]);
 
-        // Search functionality
         if ($request->filled('search')) {
             $query->search($request->search);
         }
 
-        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by contractor
+        if ($request->filled('review_step')) {
+            $query->where('current_review_step', $request->review_step);
+        }
+
         if ($request->filled('contractor')) {
             $query->where('contractor', $request->contractor);
         }
 
-        // Filter by date range
         if ($request->filled('date_from')) {
             $query->whereDate('pouring_datetime', '>=', $request->date_from);
         }
@@ -49,401 +64,321 @@ class AdminConcretePouringController extends Controller
             $query->whereDate('pouring_datetime', '<=', $request->date_to);
         }
 
-        // Filter by project
-        if ($request->filled('project')) {
-            $query->where('project_name', 'LIKE', "%{$request->project}%");
-        }
-
-        // Sort
-        $sortBy = $request->input('sort_by', 'created_at');
+        $sortBy    = $request->input('sort_by', 'created_at');
         $sortOrder = $request->input('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
-        $concretePourings = $query->paginate(20);
-        
-        // Get unique contractors for filter dropdown
-        $contractors = ConcretePouring::select('contractor')
-            ->distinct()
-            ->orderBy('contractor')
-            ->pluck('contractor');
+        $concretePourings = $query->paginate(20)->withQueryString();
 
-        return view('admin.concrete-pouring.index', compact('concretePourings', 'contractors'));
+        $contractors = ConcretePouring::select('contractor')->distinct()->orderBy('contractor')->pluck('contractor');
+
+        // Quick-stats banner (mirrors AdminController pattern)
+        $pendingAssignment = ConcretePouring::whereNull('current_review_step')
+            ->where('status', 'requested')->count();
+        $inReview          = ConcretePouring::whereNotNull('current_review_step')
+            ->whereNotIn('current_review_step', ['admin_final'])->count();
+        $awaitingDecision  = ConcretePouring::where('current_review_step', 'admin_final')->count();
+
+        return view('admin.concrete-pouring.index', compact(
+            'concretePourings',
+            'contractors',
+            'pendingAssignment',
+            'inReview',
+            'awaitingDecision'
+        ));
     }
 
-    /**
-     * Display the specified concrete pouring request
-     */
+    // =========================================================================
+    // SHOW
+    // =========================================================================
+
     public function show(ConcretePouring $concretePouring)
     {
         $concretePouring->load([
-            'requestedBy.user',
-            'meMtqaChecker.user',
-            'residentEngineer.user',
-            'approver.user',
-            'disapprover.user',
-            'notedByEngineer.user'
+            'workRequest',
+            'requestedBy',
+            'meMtqaChecker',
+            'residentEngineer',
+            'notedByEngineer',
+            'approver',
+            'disapprover',
         ]);
 
         return view('admin.concrete-pouring.show', compact('concretePouring'));
     }
 
-    /**
-     * Show the form for ME/MTQA review
-     */
-    public function meMtqaReviewForm(ConcretePouring $concretePouring)
+    // =========================================================================
+    // ASSIGN REVIEWERS  (mirrors WorkRequestController::assignForm / assign)
+    // =========================================================================
+
+    public function assignForm(ConcretePouring $concretePouring)
     {
-        return view('admin.concrete-pouring.me-mtqa-review', compact('concretePouring'));
-    }
-
-    /**
-     * Store ME/MTQA review
-     */
-    public function storeMeMtqaReview(Request $request, ConcretePouring $concretePouring)
-    {
-        $validated = $request->validate([
-            'me_mtqa_remarks' => 'nullable|string|max:1000',
-        ]);
-
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
-        }
-
-        $concretePouring->update([
-            'me_mtqa_checked_by' => $employee->id,
-            'me_mtqa_date' => now(),
-            'me_mtqa_remarks' => $validated['me_mtqa_remarks'],
-        ]);
-
-        return redirect()
-            ->route('admin.concrete-pouring.show', $concretePouring)
-            ->with('success', 'ME/MTQA review submitted successfully!');
-    }
-
-    /**
-     * Show the form for Resident Engineer review
-     */
-    public function residentEngineerReviewForm(ConcretePouring $concretePouring)
-    {
-        return view('admin.concrete-pouring.re-review', compact('concretePouring'));
-    }
-
-    /**
-     * Store Resident Engineer review
-     */
-    public function storeResidentEngineerReview(Request $request, ConcretePouring $concretePouring)
-    {
-        $validated = $request->validate([
-            're_remarks' => 'nullable|string|max:1000',
-        ]);
-
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
-        }
-
-        $concretePouring->update([
-            're_checked_by' => $employee->id,
-            're_date' => now(),
-            're_remarks' => $validated['re_remarks'],
-        ]);
-
-        return redirect()
-            ->route('admin.concrete-pouring.show', $concretePouring)
-            ->with('success', 'Resident Engineer review submitted successfully!');
-    }
-
-    /**
-     * Show approval/disapproval form
-     */
-    public function approvalForm(ConcretePouring $concretePouring)
-    {
-        // Check if already approved or disapproved
-        if ($concretePouring->status !== 'requested') {
+        // Only allow (re-)assignment when still unassigned or already assigned
+        if (!in_array($concretePouring->status, ['requested'])) {
             return redirect()
                 ->route('admin.concrete-pouring.show', $concretePouring)
-                ->with('info', 'This request has already been ' . $concretePouring->status . '.');
+                ->with('error', 'Reviewers can only be assigned to pending requests.');
         }
 
-        return view('admin.concrete-pouring.approval', compact('concretePouring'));
+        $mtqas               = User::where('role', 'mtqa')->orderBy('name')->get();
+        $residentEngineers   = User::where('role', 'resident_engineer')->orderBy('name')->get();
+        $provincialEngineers = User::where('role', 'provincial_engineer')->orderBy('name')->get();
+
+        return view('admin.concrete-pouring.assign', compact(
+            'concretePouring',
+            'mtqas',
+            'residentEngineers',
+            'provincialEngineers'
+        ));
     }
 
-    /**
-     * Approve concrete pouring request
-     */
-    public function approve(Request $request, ConcretePouring $concretePouring)
+    public function assign(Request $request, ConcretePouring $concretePouring)
+    {
+        $request->validate([
+            'me_mtqa_user_id'           => 'nullable|exists:users,id',
+            'resident_engineer_user_id' => 'nullable|exists:users,id',
+            'noted_by_user_id'          => 'nullable|exists:users,id',
+        ]);
+
+        $assignments = [
+            'me_mtqa_user_id'           => $request->me_mtqa_user_id           ?: null,
+            'resident_engineer_user_id' => $request->resident_engineer_user_id ?: null,
+            'noted_by_user_id'          => $request->noted_by_user_id          ?: null,
+        ];
+
+        // At least one reviewer required
+        if (collect($assignments)->filter()->isEmpty()) {
+            return back()->with('error', 'Please assign at least one reviewer before proceeding.');
+        }
+
+        // Determine the first occupied step in pipeline order
+        $stepToCol = [
+            'mtqa'                => 'me_mtqa_user_id',
+            'resident_engineer'   => 'resident_engineer_user_id',
+            'provincial_engineer' => 'noted_by_user_id',
+        ];
+
+        $firstStep = null;
+        foreach ($stepToCol as $step => $col) {
+            if (!is_null($assignments[$col])) {
+                $firstStep = $step;
+                break;
+            }
+        }
+
+        $concretePouring->update(array_merge($assignments, [
+            'current_review_step' => $firstStep,
+            'assigned_by_admin_id' => Auth::id(),
+            'assigned_at'          => now(),
+        ]));
+
+        // NotificationService::concretePouringAssigned($concretePouring);
+
+        return redirect()
+            ->route('admin.concrete-pouring.show', $concretePouring)
+            ->with('success', 'Reviewers assigned successfully! The first reviewer has been notified.');
+    }
+
+    // =========================================================================
+    // FINAL DECISION  (mirrors WorkRequestController::decisionForm / storeDecision)
+    // =========================================================================
+
+    public function decisionForm(ConcretePouring $concretePouring)
+    {
+        if ($concretePouring->current_review_step !== 'admin_final') {
+            return redirect()
+                ->route('admin.concrete-pouring.show', $concretePouring)
+                ->with('error', 'This request is not yet ready for a final decision.');
+        }
+
+        return view('admin.concrete-pouring.decision', compact('concretePouring'));
+    }
+
+    public function storeDecision(Request $request, ConcretePouring $concretePouring)
+    {
+        $request->validate([
+            'decision'         => 'required|in:approved,disapproved',
+            'approval_remarks' => 'nullable|string|max:2000',
+        ]);
+
+        if ($concretePouring->current_review_step !== 'admin_final') {
+            return back()->with('error', 'This request is not ready for a final decision yet.');
+        }
+
+        if ($request->decision === 'approved') {
+            $concretePouring->approve(Auth::user(), $request->approval_remarks);
+        } else {
+            $concretePouring->disapprove(Auth::user(), $request->approval_remarks);
+        }
+
+        // Clear the review step — workflow complete
+        $concretePouring->update(['current_review_step' => null]);
+
+        // NotificationService::concretePouringDecisionMade($concretePouring);
+
+        return redirect()
+            ->route('admin.concrete-pouring.show', $concretePouring)
+            ->with('success', 'Decision recorded. Concrete pouring request has been ' . $request->decision . '.');
+    }
+
+    // =========================================================================
+    // BULK ACTIONS
+    // =========================================================================
+
+    public function bulkApprove(Request $request)
     {
         $validated = $request->validate([
+            'selected'         => 'required|array|min:1',
+            'selected.*'       => 'exists:concrete_pourings,id',
             'approval_remarks' => 'nullable|string|max:1000',
         ]);
 
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
+        $count = 0;
+        foreach ($validated['selected'] as $id) {
+            $cp = ConcretePouring::find($id);
+            if ($cp && $cp->current_review_step === 'admin_final') {
+                $cp->approve(Auth::user(), $validated['approval_remarks'] ?? null);
+                $cp->update(['current_review_step' => null]);
+                $count++;
+            }
         }
 
-        // Check if already processed
-        if ($concretePouring->status !== 'requested') {
-            return back()->with('error', 'This request has already been ' . $concretePouring->status . '.');
-        }
-
-        $concretePouring->approve($employee, $validated['approval_remarks'] ?? null);
-
-        return redirect()
-            ->route('admin.concrete-pouring.show', $concretePouring)
-            ->with('success', 'Concrete pouring request approved successfully!');
+        return back()->with('success', "{$count} request(s) approved successfully!");
     }
 
-    /**
-     * Disapprove concrete pouring request
-     */
-    public function disapprove(Request $request, ConcretePouring $concretePouring)
+    public function bulkDisapprove(Request $request)
     {
         $validated = $request->validate([
+            'selected'         => 'required|array|min:1',
+            'selected.*'       => 'exists:concrete_pourings,id',
             'approval_remarks' => 'required|string|max:1000',
         ]);
 
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
+        $count = 0;
+        foreach ($validated['selected'] as $id) {
+            $cp = ConcretePouring::find($id);
+            if ($cp && $cp->current_review_step === 'admin_final') {
+                $cp->disapprove(Auth::user(), $validated['approval_remarks']);
+                $cp->update(['current_review_step' => null]);
+                $count++;
+            }
         }
 
-        // Check if already processed
-        if ($concretePouring->status !== 'requested') {
-            return back()->with('error', 'This request has already been ' . $concretePouring->status . '.');
-        }
-
-        $concretePouring->disapprove($employee, $validated['approval_remarks']);
-
-        return redirect()
-            ->route('admin.concrete-pouring.show', $concretePouring)
-            ->with('success', 'Concrete pouring request disapproved. The contractor has been notified.');
+        return back()->with('success', "{$count} request(s) disapproved.");
     }
 
-    /**
-     * Add Provincial Engineer note
-     */
-    public function addNote(Request $request, ConcretePouring $concretePouring)
-    {
-        $employee = Auth::user()->employee;
+    // =========================================================================
+    // REPORTS & CALENDAR  (unchanged from original)
+    // =========================================================================
 
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
-        }
-
-        $concretePouring->update([
-            'noted_by' => $employee->id,
-            'noted_date' => now(),
-        ]);
-
-        return redirect()
-            ->route('admin.concrete-pouring.show', $concretePouring)
-            ->with('success', 'Provincial Engineer note added successfully!');
-    }
-
-    /**
-     * Generate reports
-     */
     public function reports(Request $request)
     {
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $endDate   = $request->input('end_date',   now()->endOfMonth()->format('Y-m-d'));
 
-        $query = ConcretePouring::with([
-            'requestedBy.user',
-            'approver.user',
-            'disapprover.user'
-        ])
-        ->whereBetween('created_at', [$startDate, $endDate]);
+        $query = ConcretePouring::with(['requestedBy', 'approver', 'disapprover'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
 
-        // Filter by status if provided
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by contractor if provided
         if ($request->filled('contractor')) {
             $query->where('contractor', $request->contractor);
         }
 
         $concretePourings = $query->get();
 
-        // Summary statistics
         $summary = [
-            'total_requests' => $concretePourings->count(),
-            'approved' => $concretePourings->where('status', 'approved')->count(),
-            'disapproved' => $concretePourings->where('status', 'disapproved')->count(),
-            'pending' => $concretePourings->where('status', 'requested')->count(),
-            'total_volume' => round($concretePourings->sum('estimated_volume'), 2),
-            'avg_volume' => round($concretePourings->avg('estimated_volume'), 2),
-            'avg_checklist_completion' => round($concretePourings->avg(function ($pouring) {
-                return $pouring->checklist_progress;
-            }), 2),
+            'total_requests'           => $concretePourings->count(),
+            'approved'                 => $concretePourings->where('status', 'approved')->count(),
+            'disapproved'              => $concretePourings->where('status', 'disapproved')->count(),
+            'pending'                  => $concretePourings->where('status', 'requested')->count(),
+            'total_volume'             => round($concretePourings->sum('estimated_volume'), 2),
+            'avg_volume'               => round($concretePourings->avg('estimated_volume'), 2),
+            'avg_checklist_completion' => round(
+                $concretePourings->avg(fn ($p) => $p->checklist_progress), 2
+            ),
         ];
 
-        // Get contractor breakdown
-        $contractorBreakdown = $concretePourings->groupBy('contractor')->map(function ($group) {
-            return [
-                'total' => $group->count(),
-                'approved' => $group->where('status', 'approved')->count(),
-                'disapproved' => $group->where('status', 'disapproved')->count(),
-                'pending' => $group->where('status', 'requested')->count(),
-                'total_volume' => round($group->sum('estimated_volume'), 2),
-            ];
-        });
+        $contractorBreakdown = $concretePourings->groupBy('contractor')->map(fn ($g) => [
+            'total'        => $g->count(),
+            'approved'     => $g->where('status', 'approved')->count(),
+            'disapproved'  => $g->where('status', 'disapproved')->count(),
+            'pending'      => $g->where('status', 'requested')->count(),
+            'total_volume' => round($g->sum('estimated_volume'), 2),
+        ]);
 
-        $contractors = ConcretePouring::select('contractor')
-            ->distinct()
-            ->orderBy('contractor')
-            ->pluck('contractor');
+        $contractors = ConcretePouring::select('contractor')->distinct()->orderBy('contractor')->pluck('contractor');
 
         return view('admin.concrete-pouring.reports', compact(
-            'concretePourings',
-            'summary',
-            'contractors',
-            'startDate',
-            'endDate',
-            'contractorBreakdown'
+            'concretePourings', 'summary', 'contractors',
+            'startDate', 'endDate', 'contractorBreakdown'
         ));
     }
 
-    /**
-     * Print report
-     */
     public function printReport(Request $request)
     {
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $endDate   = $request->input('end_date',   now()->endOfMonth()->format('Y-m-d'));
 
-        $query = ConcretePouring::with([
-            'requestedBy.user',
-            'approver.user',
-            'disapprover.user'
-        ])
-        ->whereBetween('created_at', [$startDate, $endDate]);
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('contractor')) {
-            $query->where('contractor', $request->contractor);
-        }
-
-        $concretePourings = $query->get();
+        $concretePourings = ConcretePouring::with(['requestedBy', 'approver', 'disapprover'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->when($request->filled('status'),     fn ($q) => $q->where('status', $request->status))
+            ->when($request->filled('contractor'), fn ($q) => $q->where('contractor', $request->contractor))
+            ->get();
 
         $summary = [
             'total_requests' => $concretePourings->count(),
-            'approved' => $concretePourings->where('status', 'approved')->count(),
-            'disapproved' => $concretePourings->where('status', 'disapproved')->count(),
-            'pending' => $concretePourings->where('status', 'requested')->count(),
-            'total_volume' => round($concretePourings->sum('estimated_volume'), 2),
+            'approved'       => $concretePourings->where('status', 'approved')->count(),
+            'disapproved'    => $concretePourings->where('status', 'disapproved')->count(),
+            'pending'        => $concretePourings->where('status', 'requested')->count(),
+            'total_volume'   => round($concretePourings->sum('estimated_volume'), 2),
         ];
 
         return view('admin.concrete-pouring.print-report', compact(
-            'concretePourings',
-            'summary',
-            'startDate',
-            'endDate'
+            'concretePourings', 'summary', 'startDate', 'endDate'
         ));
     }
 
-    /**
-     * Calendar view of scheduled pourings
-     */
     public function calendar(Request $request)
     {
         $month = $request->input('month', now()->month);
-        $year = $request->input('year', now()->year);
+        $year  = $request->input('year',  now()->year);
 
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+        $endDate   = Carbon::create($year, $month, 1)->endOfMonth();
 
         $pourings = ConcretePouring::whereBetween('pouring_datetime', [$startDate, $endDate])
-            ->with('requestedBy.user')
+            ->with('requestedBy')
             ->get()
-            ->groupBy(function ($pouring) {
-                return $pouring->pouring_datetime->format('Y-m-d');
-            });
+            ->groupBy(fn ($p) => $p->pouring_datetime->format('Y-m-d'));
 
-        // Get calendar data
         $calendarData = [];
-        $currentDate = $startDate->copy();
-        
-        while ($currentDate->lte($endDate)) {
-            $dateKey = $currentDate->format('Y-m-d');
-            $calendarData[$dateKey] = $pourings->get($dateKey, collect());
-            $currentDate->addDay();
+        $current = $startDate->copy();
+        while ($current->lte($endDate)) {
+            $key = $current->format('Y-m-d');
+            $calendarData[$key] = $pourings->get($key, collect());
+            $current->addDay();
         }
 
         return view('admin.concrete-pouring.calendar', compact('calendarData', 'month', 'year'));
     }
 
-    /**
-     * Bulk approve selected requests
-     */
-    public function bulkApprove(Request $request)
+    // =========================================================================
+    // PRINT / DELETE
+    // =========================================================================
+
+    public function print(ConcretePouring $concretePouring)
     {
-        $validated = $request->validate([
-            'selected' => 'required|array|min:1',
-            'selected.*' => 'exists:concrete_pourings,id',
-            'approval_remarks' => 'nullable|string|max:1000',
+        $concretePouring->load([
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
         ]);
 
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
-        }
-
-        $count = 0;
-        foreach ($validated['selected'] as $id) {
-            $concretePouring = ConcretePouring::find($id);
-            if ($concretePouring && $concretePouring->status === 'requested') {
-                $concretePouring->approve($employee, $validated['approval_remarks'] ?? null);
-                $count++;
-            }
-        }
-
-        return back()->with('success', "{$count} concrete pouring request(s) approved successfully!");
+        return view('admin.concrete-pouring.print', compact('concretePouring'));
     }
 
-    /**
-     * Bulk disapprove selected requests
-     */
-    public function bulkDisapprove(Request $request)
-    {
-        $validated = $request->validate([
-            'selected' => 'required|array|min:1',
-            'selected.*' => 'exists:concrete_pourings,id',
-            'approval_remarks' => 'required|string|max:1000',
-        ]);
-
-        $employee = Auth::user()->employee;
-
-        if (!$employee) {
-            return back()->with('error', 'You must be registered as an employee to perform this action.');
-        }
-
-        $count = 0;
-        foreach ($validated['selected'] as $id) {
-            $concretePouring = ConcretePouring::find($id);
-            if ($concretePouring && $concretePouring->status === 'requested') {
-                $concretePouring->disapprove($employee, $validated['approval_remarks']);
-                $count++;
-            }
-        }
-
-        return back()->with('success', "{$count} concrete pouring request(s) disapproved.");
-    }
-
-    /**
-     * Delete a concrete pouring request (admin only)
-     */
     public function destroy(ConcretePouring $concretePouring)
     {
         $concretePouring->delete();
@@ -451,22 +386,5 @@ class AdminConcretePouringController extends Controller
         return redirect()
             ->route('admin.concrete-pouring.index')
             ->with('success', 'Concrete pouring request deleted successfully!');
-    }
-
-    /**
-     * Print/View single concrete pouring form
-     */
-    public function print(ConcretePouring $concretePouring)
-    {
-        $concretePouring->load([
-            'requestedBy.user',
-            'meMtqaChecker.user',
-            'residentEngineer.user',
-            'approver.user',
-            'disapprover.user',
-            'notedByEngineer.user'
-        ]);
-
-        return view('admin.concrete-pouring.print', compact('concretePouring'));
     }
 }

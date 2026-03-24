@@ -6,25 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('concrete_pourings', function (Blueprint $table) {
             $table->id();
 
             // ── Linked Work Request ──────────────────────────────────────────
-            // A concrete pouring form is always tied to a work request.
-            // nullable() allows standalone forms if needed in the future.
             $table->foreignId('work_request_id')
                 ->nullable()
                 ->constrained('work_requests')
                 ->onDelete('set null');
 
+            // ── Reference Number ─────────────────────────────────────────────
+            $table->string('reference_number')->nullable()->unique()
+                ->comment('e.g. CP-2025-0001 — auto-generated or set by admin');
+
             // ── Project Information ──────────────────────────────────────────
-            // Mirrored from the linked WorkRequest but kept here so the form
-            // is self-contained (values may diverge per pour/section).
             $table->string('project_name');
             $table->string('location');
             $table->string('contractor');
@@ -34,13 +31,12 @@ return new class extends Migration
             $table->dateTime('pouring_datetime');
 
             // ── Requested by (Contractor) ────────────────────────────────────
-            // Same User who submitted / is named on the linked WorkRequest.
             $table->foreignId('requested_by_user_id')
                 ->nullable()
                 ->constrained('users')
                 ->onDelete('set null');
 
-            // ── Checklist Items (20 items from the form) ─────────────────────
+            // ── Checklist Items ──────────────────────────────────────────────
             $table->boolean('concrete_vibrator')->default(false);
             $table->boolean('field_density_test')->default(false);
             $table->boolean('protective_covering_materials')->default(false);
@@ -62,54 +58,51 @@ return new class extends Migration
             $table->boolean('rebars_installation')->default(false);
             $table->boolean('falseworks_formworks')->default(false);
 
-            // ── ME/MTQA Review ───────────────────────────────────────────────
-            // Same User as WorkRequest::assigned_mtqa_id on the linked request.
-            $table->text('me_mtqa_remarks')->nullable();
-            $table->foreignId('me_mtqa_user_id')
+            // ── Review Pipeline ──────────────────────────────────────────────
+            // Mirrors WorkRequest pipeline columns
+            $table->string('current_review_step')->nullable()
+                ->comment('null=unassigned, mtqa, resident_engineer, provincial_engineer, admin_final');
+            $table->foreignId('assigned_by_admin_id')
                 ->nullable()
                 ->constrained('users')
                 ->onDelete('set null');
+            $table->timestamp('assigned_at')->nullable();
+
+            // ── ME/MTQA Review ───────────────────────────────────────────────
+            $table->foreignId('me_mtqa_user_id')
+                ->nullable()->constrained('users')->onDelete('set null');
+            $table->text('me_mtqa_remarks')->nullable();
             $table->date('me_mtqa_date')->nullable();
 
             // ── Resident Engineer Review ─────────────────────────────────────
-            // Same User as WorkRequest::assigned_resident_engineer_id.
-            $table->text('re_remarks')->nullable();
             $table->foreignId('resident_engineer_user_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
+                ->nullable()->constrained('users')->onDelete('set null');
+            $table->text('re_remarks')->nullable();
             $table->date('re_date')->nullable();
 
+            // ── Noted by (Provincial Engineer) ───────────────────────────────
+            $table->foreignId('noted_by_user_id')
+                ->nullable()->constrained('users')->onDelete('set null');
+            $table->date('noted_date')->nullable();
+
             // ── Final Approval / Disapproval ─────────────────────────────────
-            // Mirrors the WorkRequest approval flow (approved_by / admin_decision_by).
-            $table->enum('status', ['requested', 'approved', 'disapproved'])
-                ->default('requested');
+            $table->enum('status', ['requested', 'approved', 'disapproved'])->default('requested');
             $table->text('approval_remarks')->nullable();
 
             $table->foreignId('approved_by_user_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
+                ->nullable()->constrained('users')->onDelete('set null');
             $table->date('approved_date')->nullable();
 
             $table->foreignId('disapproved_by_user_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
+                ->nullable()->constrained('users')->onDelete('set null');
             $table->date('disapproved_date')->nullable();
-
-            // ── Noted by (Provincial Engineer) ───────────────────────────────
-            // Same User as WorkRequest::assigned_provincial_engineer_id.
-            $table->foreignId('noted_by_user_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
-            $table->date('noted_date')->nullable();
 
             $table->timestamps();
 
             // ── Indexes ───────────────────────────────────────────────────────
             $table->index('work_request_id');
+            $table->index('reference_number');
+            $table->index('current_review_step');
             $table->index('project_name');
             $table->index('location');
             $table->index('contractor');
@@ -118,9 +111,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('concrete_pourings');
