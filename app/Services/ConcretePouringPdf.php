@@ -199,16 +199,17 @@ class ConcretePouringPdf extends \FPDF
     private function drawRequestedBy(float $y): float
     {
         $y += 4;
+        $lineW = 115;
+        $lineX = self::ML + (self::BW - $lineW) / 1;
 
-        $this->SetXY(self::ML, $y);
+        $this->SetXY($lineX, $y);
         $this->SetFont('Arial', '', 8);
         $this->setColor('text', ...self::BLACK);
-        $this->Cell(self::BW, 4, 'Requested by:', 0, 1, 'L');
+        $this->Cell($lineW, 4, 'Requested by:', 0, 1, 'L');
 
         $y += 4;
 
-        $lineW = 70;
-        $lineX = self::ML + (self::BW - $lineW) / 2;
+        
 
         // Contractor name above the line (if available)
         $contractorName = $this->cp->requestedBy?->name ?? $this->cp->contractor ?? '';
