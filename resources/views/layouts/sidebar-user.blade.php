@@ -1,11 +1,5 @@
 {{-- sidebar-user.blade.php --}}
-{{-- Tokens are already declared in sidebar-admin.blade.php;
-     if this file is used standalone, include the <style> block below. --}}
 <style>
-    /* ══════════════════════════════════════════
-       SIDEBAR DESIGN TOKENS (mirrors dashboard)
-       (safe to include twice — properties just override)
-    ══════════════════════════════════════════ */
     :root {
         --sb-surface:      #ffffff;
         --sb-surface2:     #f8fafc;
@@ -31,92 +25,56 @@
     }
 
     .sb-section-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .1em;
-        text-transform: uppercase;
-        color: var(--sb-muted);
-        padding: 0 16px;
-        margin-bottom: 6px;
-        margin-top: 16px;
-        display: block;
+        font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--sb-muted); padding: 0 16px; margin-bottom: 6px; margin-top: 16px; display: block;
     }
 
     .sb-link {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        border-radius: 10px;
-        font-size: 13.5px;
-        font-weight: 500;
-        color: var(--sb-muted);
-        text-decoration: none;
-        transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-        position: relative;
-        overflow: hidden;
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+        border-radius: 10px; font-size: 13.5px; font-weight: 500; color: var(--sb-muted);
+        text-decoration: none; transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+        position: relative; overflow: hidden;
     }
-
     .sb-link .sb-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        flex-shrink: 0;
-        background: transparent;
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; flex-shrink: 0; background: transparent;
         transition: background 0.18s ease, color 0.18s ease;
     }
-
-    .sb-link:hover {
-        background: var(--sb-surface2);
-        color: var(--sb-text-sec);
-        box-shadow: var(--sb-shadow);
-    }
-    .sb-link:hover .sb-icon {
-        background: var(--sb-border);
-        color: var(--sb-text);
-    }
-
-    .sb-link.active {
-        background: var(--sb-accent-bg);
-        color: var(--sb-accent);
-        font-weight: 600;
-        box-shadow: 0 1px 4px rgba(234,88,12,.12);
-    }
-    .dark .sb-link.active {
-        color: var(--sb-accent-dark);
-        background: var(--sb-accent-bg);
-        box-shadow: 0 1px 6px rgba(194,65,12,.20);
-    }
-    .sb-link.active .sb-icon {
-        background: rgba(234,88,12,.15);
-        color: var(--sb-accent);
-    }
-    .dark .sb-link.active .sb-icon {
-        background: rgba(194,65,12,.25);
-        color: var(--sb-accent-dark);
-    }
-
+    .sb-link:hover { background: var(--sb-surface2); color: var(--sb-text-sec); box-shadow: var(--sb-shadow); }
+    .sb-link:hover .sb-icon { background: var(--sb-border); color: var(--sb-text); }
+    .sb-link.active { background: var(--sb-accent-bg); color: var(--sb-accent); font-weight: 600; box-shadow: 0 1px 4px rgba(234,88,12,.12); }
+    .dark .sb-link.active { color: var(--sb-accent-dark); background: var(--sb-accent-bg); box-shadow: 0 1px 6px rgba(194,65,12,.20); }
+    .sb-link.active .sb-icon { background: rgba(234,88,12,.15); color: var(--sb-accent); }
+    .dark .sb-link.active .sb-icon { background: rgba(194,65,12,.25); color: var(--sb-accent-dark); }
     .sb-link.active::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 20%; bottom: 20%;
-        width: 3px;
-        border-radius: 0 3px 3px 0;
-        background: var(--sb-accent);
+        content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+        width: 3px; border-radius: 0 3px 3px 0; background: var(--sb-accent);
     }
-    .dark .sb-link.active::before {
-        background: var(--sb-accent-dark);
-    }
+    .dark .sb-link.active::before { background: var(--sb-accent-dark); }
 
-    .sb-divider {
-        height: 1px;
-        background: var(--sb-border);
-        margin: 12px 16px;
+    /* Cyan variant for concrete pouring links */
+    .sb-link.active.cyan-active { background: rgba(8,145,178,.1); color: #0891b2; box-shadow: 0 1px 4px rgba(8,145,178,.12); }
+    .dark .sb-link.active.cyan-active { color: #22d3ee; background: rgba(8,145,178,.15); }
+    .sb-link.active.cyan-active .sb-icon { background: rgba(8,145,178,.15); color: #0891b2; }
+    .dark .sb-link.active.cyan-active .sb-icon { color: #22d3ee; }
+    .sb-link.active.cyan-active::before { background: #0891b2; }
+    .dark .sb-link.active.cyan-active::before { background: #22d3ee; }
+
+    .sb-divider { height: 1px; background: var(--sb-border); margin: 12px 16px; }
+
+    /* Sub-link for status filters */
+    .sb-sub-link {
+        display: flex; align-items: center; gap: 10px;
+        padding: 6px 16px 6px 44px; border-radius: 8px;
+        font-size: 12.5px; font-weight: 500; color: var(--sb-muted);
+        text-decoration: none; transition: background 0.18s, color 0.18s;
     }
+    .sb-sub-link:hover { background: var(--sb-surface2); color: var(--sb-text-sec); }
+    .sb-sub-link.active { color: #0891b2; font-weight: 600; }
+    .dark .sb-sub-link.active { color: #22d3ee; }
+    .sb-sub-link .sb-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: 0.5; }
+    .sb-sub-link.active .sb-dot { opacity: 1; }
 </style>
 
 <nav class="space-y-1 p-3">
@@ -130,7 +88,7 @@
     </a>
 
     <div class="sb-divider"></div>
-    <span class="sb-section-label">Work</span>
+    <span class="sb-section-label">Work Requests</span>
 
     <a href="{{ route('user.work-requests.index') }}"
        class="sb-link {{ request()->routeIs('user.work-requests*') ? 'active' : '' }}">
@@ -138,13 +96,56 @@
         Work Requests
     </a>
 
+    <a href="{{ route('user.work-requests.create') }}"
+       class="sb-sub-link {{ request()->routeIs('user.work-requests.create') ? 'active' : '' }}">
+        <span class="sb-dot"></span> New Request
+    </a>
+
+    <div class="sb-divider"></div>
+    <span class="sb-section-label">Concrete Pouring</span>
+
+    <a href="{{ route('user.concrete-pouring.index') }}"
+       class="sb-link cyan-active {{ request()->routeIs('user.concrete-pouring.index') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-fill-drip"></i></span>
+        My Pourings
+    </a>
+
+    <a href="{{ route('user.concrete-pouring.index', ['status' => 'requested']) }}"
+       class="sb-sub-link {{ request()->routeIs('user.concrete-pouring.index') && request('status') === 'requested' ? 'active' : '' }}">
+        <span class="sb-dot"></span> Pending
+    </a>
+
+    <a href="{{ route('user.concrete-pouring.index', ['status' => 'approved']) }}"
+       class="sb-sub-link {{ request()->routeIs('user.concrete-pouring.index') && request('status') === 'approved' ? 'active' : '' }}">
+        <span class="sb-dot"></span> Approved
+    </a>
+
+    <a href="{{ route('user.concrete-pouring.index', ['status' => 'disapproved']) }}"
+       class="sb-sub-link {{ request()->routeIs('user.concrete-pouring.index') && request('status') === 'disapproved' ? 'active' : '' }}">
+        <span class="sb-dot"></span> Disapproved
+    </a>
+
+    <a href="{{ route('user.concrete-pouring.create') }}"
+       class="sb-link cyan-active {{ request()->routeIs('user.concrete-pouring.create') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-plus-circle"></i></span>
+        New Pouring
+    </a>
+
     <div class="sb-divider"></div>
     <span class="sb-section-label">Account</span>
 
-    <a href="#"
-       class="sb-link {{ request()->routeIs('user.settings*') ? 'active' : '' }}">
-        <span class="sb-icon"><i class="fas fa-cog"></i></span>
-        Settings
+    <a href="{{ route('profile.edit') }}"
+       class="sb-link {{ request()->routeIs('profile*') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-user-circle"></i></span>
+        My Profile
     </a>
+
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit" class="sb-link w-full text-left">
+            <span class="sb-icon"><i class="fas fa-sign-out-alt"></i></span>
+            Logout
+        </button>
+    </form>
 
 </nav>
