@@ -700,7 +700,7 @@
                             $dashboardRoute = match($role) {
                                 'admin'                                                                                                          => 'admin.dashboard',
                                 'contractor'                                                                                                     => 'user.dashboard',
-                                'site_inspector', 'surveyor', 'resident_engineer', 'engineeriv', 'engineeriii', 'provincial_engineer'           => 'reviewer.dashboard',
+                                'site_inspector', 'surveyor', 'resident_engineer','mtqa', 'engineeriv', 'engineeriii', 'provincial_engineer'           => 'reviewer.dashboard',
                                 default                                                                                                          => 'dashboard',
                             };
                         @endphp

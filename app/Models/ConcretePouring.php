@@ -14,7 +14,6 @@ class ConcretePouring extends Model
     /**
      * Auto-generate a reference number on creation if one is not supplied.
      * Format: CP-YYYY-NNNN  (e.g. CP-2025-0001)
-     * Mirrors the pattern used for WorkRequest reference numbers.
      */
     protected static function boot(): void
     {
@@ -71,7 +70,7 @@ class ConcretePouring extends Model
         'falseworks_formworks',
 
         // ── Review Pipeline ──────────────────────────────────────────────────
-        'current_review_step',   // null | 'mtqa' | 'resident_engineer' | 'provincial_engineer' | 'admin_final'
+        'current_review_step',
         'assigned_by_admin_id',
         'assigned_at',
 
@@ -79,18 +78,21 @@ class ConcretePouring extends Model
         'me_mtqa_user_id',
         'me_mtqa_remarks',
         'me_mtqa_date',
+        'me_mtqa_signature',          // ← NEW
 
         // ── Resident Engineer Review ─────────────────────────────────────────
         'resident_engineer_user_id',
         're_remarks',
         're_date',
+        're_signature',               // ← NEW
 
         // ── Noted by (Provincial Engineer) ──────────────────────────────────
         'noted_by_user_id',
         'noted_date',
+        'noted_by_signature',         // ← NEW
 
         // ── Final Approval ───────────────────────────────────────────────────
-        'status',            // 'requested' | 'approved' | 'disapproved'
+        'status',
         'approval_remarks',
         'approved_by_user_id',
         'approved_date',
@@ -284,6 +286,25 @@ class ConcretePouring extends Model
             'requested'   => 'warning',
             default       => 'secondary',
         };
+    }
+
+    /**
+     * Resolve a stored signature value to a display URL.
+     * Handles: base64 data URIs, full URLs, and storage-relative paths.
+     */
+    public function resolveSignatureUrl(?string $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+        if (str_starts_with($value, 'data:image')) {
+            return $value;
+        }
+        if (str_starts_with($value, 'http')) {
+            return $value;
+        }
+        // Treat as storage-relative path
+        return asset('storage/' . ltrim($value, '/'));
     }
 
     // =========================================================================

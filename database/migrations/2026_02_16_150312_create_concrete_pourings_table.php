@@ -73,17 +73,20 @@ return new class extends Migration
                 ->nullable()->constrained('users')->onDelete('set null');
             $table->text('me_mtqa_remarks')->nullable();
             $table->date('me_mtqa_date')->nullable();
+            $table->text('me_mtqa_signature')->nullable();
 
             // ── Resident Engineer Review ─────────────────────────────────────
             $table->foreignId('resident_engineer_user_id')
                 ->nullable()->constrained('users')->onDelete('set null');
             $table->text('re_remarks')->nullable();
             $table->date('re_date')->nullable();
+            $table->text('re_signature')->nullable();
 
             // ── Noted by (Provincial Engineer) ───────────────────────────────
             $table->foreignId('noted_by_user_id')
                 ->nullable()->constrained('users')->onDelete('set null');
             $table->date('noted_date')->nullable();
+            $table->text('noted_by_signature')->nullable();
 
             // ── Final Approval / Disapproval ─────────────────────────────────
             $table->enum('status', ['requested', 'approved', 'disapproved'])->default('requested');
