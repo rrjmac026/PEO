@@ -4,6 +4,8 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
+use App\Models\Notification;
+use App\Models\User;
 use App\Models\WorkRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +54,6 @@ class UserConcretePouringController extends Controller
      */
     public function create(Request $request)
     {
-        // Allow pre-filling from a work request the contractor already owns
         $workRequest = null;
         if ($request->filled('work_request_id')) {
             $workRequest = WorkRequest::where('id', $request->work_request_id)
@@ -61,7 +62,6 @@ class UserConcretePouringController extends Controller
                 ->first();
         }
 
-        // Contractor's own approved work requests for the dropdown
         $approvedWorkRequests = WorkRequest::where('contractor_name', Auth::user()->name)
             ->where('status', WorkRequest::STATUS_APPROVED)
             ->orderByDesc('created_at')
@@ -72,6 +72,10 @@ class UserConcretePouringController extends Controller
 
     /**
      * Store a newly submitted concrete pouring request.
+     *
+     * Notifications fired:
+     *  1. Contractor  — confirmation that their request was received
+     *  2. All admins  — a new request is waiting for reviewer assignment
      */
     public function store(Request $request)
     {
@@ -131,8 +135,28 @@ class UserConcretePouringController extends Controller
 
         $concretePouring = ConcretePouring::create($validated);
 
-        // Notify admin (optional — wire up to your NotificationService)
-        // NotificationService::concretePouringSubmitted($concretePouring);
+        // ── 1. Notify the contractor: submission received ──────────────────
+        Notification::send(
+            Auth::id(),
+            'concrete_pouring',
+            'Concrete Pouring Request Submitted ✅',
+            "Your concrete pouring request {$concretePouring->reference_number} for {$concretePouring->project_name} has been successfully submitted and is awaiting admin assignment.",
+            route('user.concrete-pouring.show', $concretePouring->id),
+            $concretePouring
+        );
+
+        // ── 2. Notify all admins: new request needs reviewer assignment ─────
+        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+        if (!empty($adminIds)) {
+            Notification::send(
+                $adminIds,
+                'concrete_pouring',
+                'New Concrete Pouring Request Submitted',
+                "A new concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has been submitted by {$concretePouring->contractor} and is awaiting reviewer assignment.",
+                route('admin.concrete-pouring.show', $concretePouring->id),
+                $concretePouring
+            );
+        }
 
         return redirect()
             ->route('user.concrete-pouring.show', $concretePouring)
@@ -182,6 +206,9 @@ class UserConcretePouringController extends Controller
 
     /**
      * Update — same restrictions as edit.
+     *
+     * Notification fired:
+     *  1. Contractor — confirmation that their edit was saved
      */
     public function update(Request $request, ConcretePouring $concretePouring)
     {
@@ -231,6 +258,16 @@ class UserConcretePouringController extends Controller
 
         $concretePouring->update($validated);
 
+        // ── Notify the contractor: their edit was saved ────────────────────
+        Notification::send(
+            Auth::id(),
+            'concrete_pouring',
+            'Concrete Pouring Request Updated',
+            "Your concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has been updated successfully.",
+            route('user.concrete-pouring.show', $concretePouring->id),
+            $concretePouring
+        );
+
         return redirect()
             ->route('user.concrete-pouring.show', $concretePouring)
             ->with('success', 'Concrete pouring request updated successfully!');
@@ -247,7 +284,22 @@ class UserConcretePouringController extends Controller
             return back()->with('error', 'Cannot delete a request that has already been assigned or reviewed.');
         }
 
+        // Capture details before deletion for the notification message
+        $refNumber   = $concretePouring->reference_number;
+        $projectName = $concretePouring->project_name;
+        $contractorId = Auth::id();
+
         $concretePouring->delete();
+
+        // ── Notify the contractor: deletion confirmed ──────────────────────
+        Notification::send(
+            $contractorId,
+            'concrete_pouring',
+            'Concrete Pouring Request Deleted',
+            "Your concrete pouring request {$refNumber} ({$projectName}) has been deleted successfully.",
+            route('user.concrete-pouring.index'),
+            null   // notifiable is gone, pass null
+        );
 
         return redirect()
             ->route('user.concrete-pouring.index')

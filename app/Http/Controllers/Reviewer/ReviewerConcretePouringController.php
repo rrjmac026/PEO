@@ -4,15 +4,13 @@ namespace App\Http\Controllers\Reviewer;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
+use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ReviewerConcretePouringController extends Controller
 {
-    // =========================================================================
-    // Step → assigned column mapping
-    // Mirrors AdminConcretePouringController::REVIEW_STEPS
-    // =========================================================================
 
     const REVIEW_STEPS = [
         'mtqa'                => 'me_mtqa_user_id',
@@ -20,9 +18,12 @@ class ReviewerConcretePouringController extends Controller
         'provincial_engineer' => 'noted_by_user_id',
     ];
 
-    // =========================================================================
-    // INDEX — only requests currently waiting for THIS reviewer
-    // =========================================================================
+    // ── Human-readable labels for each step ───────────────────────────────
+    const REVIEW_STEP_LABELS = [
+        'mtqa'                => 'ME/MTQA',
+        'resident_engineer'   => 'Resident Engineer',
+        'provincial_engineer' => 'Provincial Engineer',
+    ];
 
     public function index(Request $request)
     {
@@ -46,10 +47,6 @@ class ReviewerConcretePouringController extends Controller
         return view('reviewer.concrete-pouring.index', compact('concretePourings', 'completed'));
     }
 
-    // =========================================================================
-    // SHOW — accessible to any reviewer assigned to any step on this record
-    // =========================================================================
-
     public function show(ConcretePouring $concretePouring)
     {
         $user = Auth::user();
@@ -67,10 +64,6 @@ class ReviewerConcretePouringController extends Controller
 
         return view('reviewer.concrete-pouring.show', compact('concretePouring', 'isMyTurn'));
     }
-
-    // =========================================================================
-    // STEP 1 — ME/MTQA Review
-    // =========================================================================
 
     public function storeMtqaReview(Request $request, ConcretePouring $concretePouring)
     {
@@ -90,10 +83,6 @@ class ReviewerConcretePouringController extends Controller
         return back()->with('success', 'ME/MTQA review submitted. Request forwarded to next reviewer.');
     }
 
-    // =========================================================================
-    // STEP 2 — Resident Engineer Review
-    // =========================================================================
-
     public function storeResidentEngineerReview(Request $request, ConcretePouring $concretePouring)
     {
         $this->authorizeStep($concretePouring, 'resident_engineer');
@@ -112,10 +101,6 @@ class ReviewerConcretePouringController extends Controller
         return back()->with('success', 'Resident Engineer review submitted. Request forwarded to next reviewer.');
     }
 
-    // =========================================================================
-    // STEP 3 — Provincial Engineer Note
-    // =========================================================================
-
     public function storeProvincialNote(Request $request, ConcretePouring $concretePouring)
     {
         $this->authorizeStep($concretePouring, 'provincial_engineer');
@@ -124,11 +109,8 @@ class ReviewerConcretePouringController extends Controller
             'provincial_remarks' => 'nullable|string|max:2000',
         ]);
 
-        // Store the note in approval_remarks (the "Noted by" block on the form)
         $concretePouring->update([
-            'noted_date' => now(),
-            // You may add a dedicated `provincial_remarks` column if needed;
-            // for now we reuse approval_remarks as a holding field pre-decision.
+            'noted_date'       => now(),
             'approval_remarks' => $request->provincial_remarks,
         ]);
 
@@ -137,10 +119,6 @@ class ReviewerConcretePouringController extends Controller
 
         return back()->with('success', 'Note submitted. Request forwarded to admin for final decision.');
     }
-
-    // =========================================================================
-    // PRIVATE HELPERS
-    // =========================================================================
 
     /**
      * Abort 403 if it is not the current user's turn for $step.
@@ -159,15 +137,11 @@ class ReviewerConcretePouringController extends Controller
         }
     }
 
-    /**
-     * Advance to the next step in the pipeline, skipping unassigned slots.
-     * When no further reviewer steps remain, the step becomes 'admin_final'.
-     */
     private function advanceStep(ConcretePouring $concretePouring, string $completedStep): void
     {
-        $steps   = array_keys(self::REVIEW_STEPS);          // mtqa, resident_engineer, provincial_engineer
-        $allSteps = array_merge($steps, ['admin_final']);    // add terminal step
-        $idx     = array_search($completedStep, $allSteps);
+        $steps    = array_keys(self::REVIEW_STEPS);           // mtqa, resident_engineer, provincial_engineer
+        $allSteps = array_merge($steps, ['admin_final']);      // add terminal step
+        $idx      = array_search($completedStep, $allSteps);
 
         // Find the next occupied step
         for ($i = $idx + 1; $i < count($allSteps); $i++) {
@@ -175,21 +149,57 @@ class ReviewerConcretePouringController extends Controller
 
             if ($nextStep === 'admin_final') {
                 $concretePouring->update(['current_review_step' => 'admin_final']);
-                // NotificationService::concretePouringReadyForDecision($concretePouring);
+
+                // ── Notify all admins the request is ready for final decision ──
+                $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+                if (!empty($adminIds)) {
+                    Notification::send(
+                        $adminIds,
+                        'concrete_pouring',
+                        'Concrete Pouring Ready for Final Decision',
+                        "Concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has completed all reviews and is awaiting your final decision.",
+                        route('admin.concrete-pouring.show', $concretePouring->id),
+                        $concretePouring
+                    );
+                }
+
                 return;
             }
 
             $col = self::REVIEW_STEPS[$nextStep];
             if (!empty($concretePouring->$col)) {
                 $concretePouring->update(['current_review_step' => $nextStep]);
-                // NotificationService::concretePouringStepAdvanced($concretePouring, $nextStep);
+
+                // ── Notify the next reviewer it is now their turn ──────────
+                $nextLabel = self::REVIEW_STEP_LABELS[$nextStep] ?? $nextStep;
+                Notification::send(
+                    $concretePouring->$col,
+                    'concrete_pouring',
+                    'Action Required — Concrete Pouring Review',
+                    "It is now your turn as {$nextLabel} to review concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}).",
+                    route('reviewer.concrete-pouring.show', $concretePouring->id),
+                    $concretePouring
+                );
+
                 return;
             }
         }
 
         // All reviewer steps skipped — go straight to admin_final
         $concretePouring->update(['current_review_step' => 'admin_final']);
-        // NotificationService::concretePouringReadyForDecision($concretePouring);
+
+        // ── Notify all admins ──────────────────────────────────────────────
+        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+        if (!empty($adminIds)) {
+            Notification::send(
+                $adminIds,
+                'concrete_pouring',
+                'Concrete Pouring Ready for Final Decision',
+                "Concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has completed all reviews and is awaiting your final decision.",
+                route('admin.concrete-pouring.show', $concretePouring->id),
+                $concretePouring
+            );
+        }
     }
 
     /**

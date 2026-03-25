@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
+use App\Models\Notification;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -11,12 +12,6 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminConcretePouringController extends Controller
 {
-    // =========================================================================
-    // REVIEW STEP PIPELINE
-    // Mirrors WorkRequest::REVIEW_STEPS but scoped to the three roles that
-    // appear on the Concrete Pouring form: MTQA → Resident Engineer → Provincial Engineer
-    // =========================================================================
-
     const REVIEW_STEPS = [
         'mtqa'                => 'me_mtqa_user_id',
         'resident_engineer'   => 'resident_engineer_user_id',
@@ -72,7 +67,7 @@ class AdminConcretePouringController extends Controller
 
         $contractors = ConcretePouring::select('contractor')->distinct()->orderBy('contractor')->pluck('contractor');
 
-        // Quick-stats banner (mirrors AdminController pattern)
+        // Quick-stats banner
         $pendingAssignment = ConcretePouring::whereNull('current_review_step')
             ->where('status', 'requested')->count();
         $inReview          = ConcretePouring::whereNotNull('current_review_step')
@@ -87,10 +82,6 @@ class AdminConcretePouringController extends Controller
             'awaitingDecision'
         ));
     }
-
-    // =========================================================================
-    // SHOW
-    // =========================================================================
 
     public function show(ConcretePouring $concretePouring)
     {
@@ -107,13 +98,8 @@ class AdminConcretePouringController extends Controller
         return view('admin.concrete-pouring.show', compact('concretePouring'));
     }
 
-    // =========================================================================
-    // ASSIGN REVIEWERS  (mirrors WorkRequestController::assignForm / assign)
-    // =========================================================================
-
     public function assignForm(ConcretePouring $concretePouring)
     {
-        // Only allow (re-)assignment when still unassigned or already assigned
         if (!in_array($concretePouring->status, ['requested'])) {
             return redirect()
                 ->route('admin.concrete-pouring.show', $concretePouring)
@@ -167,21 +153,62 @@ class AdminConcretePouringController extends Controller
         }
 
         $concretePouring->update(array_merge($assignments, [
-            'current_review_step' => $firstStep,
+            'current_review_step'  => $firstStep,
             'assigned_by_admin_id' => Auth::id(),
             'assigned_at'          => now(),
         ]));
 
-        // NotificationService::concretePouringAssigned($concretePouring);
+        // ── Notify each assigned reviewer ──────────────────────────────────
+        $reviewerMeta = [
+            'mtqa'                => ['col' => 'me_mtqa_user_id',           'label' => 'ME/MTQA'],
+            'resident_engineer'   => ['col' => 'resident_engineer_user_id', 'label' => 'Resident Engineer'],
+            'provincial_engineer' => ['col' => 'noted_by_user_id',          'label' => 'Provincial Engineer'],
+        ];
+
+        foreach ($reviewerMeta as $step => $meta) {
+            $userId = $concretePouring->{$meta['col']};
+            if ($userId) {
+                Notification::send(
+                    $userId,
+                    'concrete_pouring',
+                    'Concrete Pouring Review Assigned',
+                    "You have been assigned as {$meta['label']} reviewer for concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}).",
+                    route('reviewer.concrete-pouring.show', $concretePouring->id),
+                    $concretePouring
+                );
+            }
+        }
+
+        // ── Notify the first reviewer it's immediately their turn ──────────
+        if ($firstStep && isset($reviewerMeta[$firstStep])) {
+            $firstUserId = $concretePouring->{$reviewerMeta[$firstStep]['col']};
+            $firstLabel  = $reviewerMeta[$firstStep]['label'];
+            if ($firstUserId) {
+                Notification::send(
+                    $firstUserId,
+                    'concrete_pouring',
+                    'Action Required — Concrete Pouring Review',
+                    "The review pipeline for {$concretePouring->reference_number} ({$concretePouring->project_name}) has started. It is now your turn as {$firstLabel} to review this request.",
+                    route('reviewer.concrete-pouring.show', $concretePouring->id),
+                    $concretePouring
+                );
+            }
+        }
+
+        // ── Notify the contractor: their request is now under review ────────
+        Notification::send(
+            $concretePouring->requested_by_user_id,
+            'concrete_pouring',
+            'Concrete Pouring Request Now Under Review 🔍',
+            "Your concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has been picked up by admin and reviewers have been assigned. The review process has begun.",
+            route('user.concrete-pouring.show', $concretePouring->id),
+            $concretePouring
+        );
 
         return redirect()
             ->route('admin.concrete-pouring.show', $concretePouring)
             ->with('success', 'Reviewers assigned successfully! The first reviewer has been notified.');
     }
-
-    // =========================================================================
-    // FINAL DECISION  (mirrors WorkRequestController::decisionForm / storeDecision)
-    // =========================================================================
 
     public function decisionForm(ConcretePouring $concretePouring)
     {
@@ -214,16 +241,45 @@ class AdminConcretePouringController extends Controller
         // Clear the review step — workflow complete
         $concretePouring->update(['current_review_step' => null]);
 
-        // NotificationService::concretePouringDecisionMade($concretePouring);
+        // ── Notify the contractor of the final decision ────────────────────
+        $decisionLabel = $request->decision === 'approved' ? 'Approved ✅' : 'Disapproved ❌';
+        $remarksNote   = $request->approval_remarks
+            ? " Remarks: {$request->approval_remarks}"
+            : '';
+
+        Notification::send(
+            $concretePouring->requested_by_user_id,
+            'concrete_pouring',
+            "Concrete Pouring Request {$decisionLabel}",
+            "Your concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has been {$request->decision}.{$remarksNote}",
+            route('user.concrete-pouring.show', $concretePouring->id),
+            $concretePouring
+        );
+
+        // ── Notify all assigned reviewers of the final outcome ─────────────
+        $reviewerCols = ['me_mtqa_user_id', 'resident_engineer_user_id', 'noted_by_user_id'];
+        $reviewerIds  = collect($reviewerCols)
+            ->map(fn ($col) => $concretePouring->$col)
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        if (!empty($reviewerIds)) {
+            Notification::send(
+                $reviewerIds,
+                'concrete_pouring',
+                "Concrete Pouring Request {$decisionLabel}",
+                "Concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) that you reviewed has been {$request->decision} by admin.{$remarksNote}",
+                route('reviewer.concrete-pouring.show', $concretePouring->id),
+                $concretePouring
+            );
+        }
 
         return redirect()
             ->route('admin.concrete-pouring.show', $concretePouring)
             ->with('success', 'Decision recorded. Concrete pouring request has been ' . $request->decision . '.');
     }
-
-    // =========================================================================
-    // BULK ACTIONS
-    // =========================================================================
 
     public function bulkApprove(Request $request)
     {
@@ -239,6 +295,18 @@ class AdminConcretePouringController extends Controller
             if ($cp && $cp->current_review_step === 'admin_final') {
                 $cp->approve(Auth::user(), $validated['approval_remarks'] ?? null);
                 $cp->update(['current_review_step' => null]);
+
+                // Notify contractor
+                Notification::send(
+                    $cp->requested_by_user_id,
+                    'concrete_pouring',
+                    'Concrete Pouring Request Approved ✅',
+                    "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been approved." .
+                        (!empty($validated['approval_remarks']) ? " Remarks: {$validated['approval_remarks']}" : ''),
+                    route('user.concrete-pouring.show', $cp->id),
+                    $cp
+                );
+
                 $count++;
             }
         }
@@ -260,16 +328,23 @@ class AdminConcretePouringController extends Controller
             if ($cp && $cp->current_review_step === 'admin_final') {
                 $cp->disapprove(Auth::user(), $validated['approval_remarks']);
                 $cp->update(['current_review_step' => null]);
+
+                // Notify contractor
+                Notification::send(
+                    $cp->requested_by_user_id,
+                    'concrete_pouring',
+                    'Concrete Pouring Request Disapproved ❌',
+                    "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been disapproved. Remarks: {$validated['approval_remarks']}",
+                    route('user.concrete-pouring.show', $cp->id),
+                    $cp
+                );
+
                 $count++;
             }
         }
 
         return back()->with('success', "{$count} request(s) disapproved.");
     }
-
-    // =========================================================================
-    // REPORTS & CALENDAR  (unchanged from original)
-    // =========================================================================
 
     public function reports(Request $request)
     {
@@ -364,10 +439,6 @@ class AdminConcretePouringController extends Controller
 
         return view('admin.concrete-pouring.calendar', compact('calendarData', 'month', 'year'));
     }
-
-    // =========================================================================
-    // PRINT / DELETE
-    // =========================================================================
 
     public function print(ConcretePouring $concretePouring)
     {
