@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\ConcretePouringPdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class AdminConcretePouringController extends Controller
         'mtqa'                => 'me_mtqa_user_id',
         'resident_engineer'   => 'resident_engineer_user_id',
         'provincial_engineer' => 'noted_by_user_id',
-        'admin_final'         => null,   // terminal step — no assigned column
+        'admin_final'         => null,
     ];
 
     // =========================================================================
@@ -67,7 +68,6 @@ class AdminConcretePouringController extends Controller
 
         $contractors = ConcretePouring::select('contractor')->distinct()->orderBy('contractor')->pluck('contractor');
 
-        // Quick-stats banner
         $pendingAssignment = ConcretePouring::whereNull('current_review_step')
             ->where('status', 'requested')->count();
         $inReview          = ConcretePouring::whereNotNull('current_review_step')
@@ -83,6 +83,10 @@ class AdminConcretePouringController extends Controller
         ));
     }
 
+    // =========================================================================
+    // SHOW
+    // =========================================================================
+
     public function show(ConcretePouring $concretePouring)
     {
         $concretePouring->load([
@@ -97,6 +101,10 @@ class AdminConcretePouringController extends Controller
 
         return view('admin.concrete-pouring.show', compact('concretePouring'));
     }
+
+    // =========================================================================
+    // ASSIGN REVIEWERS
+    // =========================================================================
 
     public function assignForm(ConcretePouring $concretePouring)
     {
@@ -132,12 +140,10 @@ class AdminConcretePouringController extends Controller
             'noted_by_user_id'          => $request->noted_by_user_id          ?: null,
         ];
 
-        // At least one reviewer required
         if (collect($assignments)->filter()->isEmpty()) {
             return back()->with('error', 'Please assign at least one reviewer before proceeding.');
         }
 
-        // Determine the first occupied step in pipeline order
         $stepToCol = [
             'mtqa'                => 'me_mtqa_user_id',
             'resident_engineer'   => 'resident_engineer_user_id',
@@ -158,7 +164,6 @@ class AdminConcretePouringController extends Controller
             'assigned_at'          => now(),
         ]));
 
-        // ── Notify each assigned reviewer ──────────────────────────────────
         $reviewerMeta = [
             'mtqa'                => ['col' => 'me_mtqa_user_id',           'label' => 'ME/MTQA'],
             'resident_engineer'   => ['col' => 'resident_engineer_user_id', 'label' => 'Resident Engineer'],
@@ -179,7 +184,6 @@ class AdminConcretePouringController extends Controller
             }
         }
 
-        // ── Notify the first reviewer it's immediately their turn ──────────
         if ($firstStep && isset($reviewerMeta[$firstStep])) {
             $firstUserId = $concretePouring->{$reviewerMeta[$firstStep]['col']};
             $firstLabel  = $reviewerMeta[$firstStep]['label'];
@@ -195,7 +199,6 @@ class AdminConcretePouringController extends Controller
             }
         }
 
-        // ── Notify the contractor: their request is now under review ────────
         Notification::send(
             $concretePouring->requested_by_user_id,
             'concrete_pouring',
@@ -209,6 +212,10 @@ class AdminConcretePouringController extends Controller
             ->route('admin.concrete-pouring.show', $concretePouring)
             ->with('success', 'Reviewers assigned successfully! The first reviewer has been notified.');
     }
+
+    // =========================================================================
+    // FINAL DECISION
+    // =========================================================================
 
     public function decisionForm(ConcretePouring $concretePouring)
     {
@@ -238,14 +245,10 @@ class AdminConcretePouringController extends Controller
             $concretePouring->disapprove(Auth::user(), $request->approval_remarks);
         }
 
-        // Clear the review step — workflow complete
         $concretePouring->update(['current_review_step' => null]);
 
-        // ── Notify the contractor of the final decision ────────────────────
         $decisionLabel = $request->decision === 'approved' ? 'Approved ✅' : 'Disapproved ❌';
-        $remarksNote   = $request->approval_remarks
-            ? " Remarks: {$request->approval_remarks}"
-            : '';
+        $remarksNote   = $request->approval_remarks ? " Remarks: {$request->approval_remarks}" : '';
 
         Notification::send(
             $concretePouring->requested_by_user_id,
@@ -256,14 +259,10 @@ class AdminConcretePouringController extends Controller
             $concretePouring
         );
 
-        // ── Notify all assigned reviewers of the final outcome ─────────────
         $reviewerCols = ['me_mtqa_user_id', 'resident_engineer_user_id', 'noted_by_user_id'];
         $reviewerIds  = collect($reviewerCols)
             ->map(fn ($col) => $concretePouring->$col)
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
+            ->filter()->unique()->values()->toArray();
 
         if (!empty($reviewerIds)) {
             Notification::send(
@@ -281,6 +280,10 @@ class AdminConcretePouringController extends Controller
             ->with('success', 'Decision recorded. Concrete pouring request has been ' . $request->decision . '.');
     }
 
+    // =========================================================================
+    // BULK ACTIONS
+    // =========================================================================
+
     public function bulkApprove(Request $request)
     {
         $validated = $request->validate([
@@ -296,7 +299,6 @@ class AdminConcretePouringController extends Controller
                 $cp->approve(Auth::user(), $validated['approval_remarks'] ?? null);
                 $cp->update(['current_review_step' => null]);
 
-                // Notify contractor
                 Notification::send(
                     $cp->requested_by_user_id,
                     'concrete_pouring',
@@ -329,7 +331,6 @@ class AdminConcretePouringController extends Controller
                 $cp->disapprove(Auth::user(), $validated['approval_remarks']);
                 $cp->update(['current_review_step' => null]);
 
-                // Notify contractor
                 Notification::send(
                     $cp->requested_by_user_id,
                     'concrete_pouring',
@@ -345,6 +346,10 @@ class AdminConcretePouringController extends Controller
 
         return back()->with('success', "{$count} request(s) disapproved.");
     }
+
+    // =========================================================================
+    // REPORTS
+    // =========================================================================
 
     public function reports(Request $request)
     {
@@ -416,6 +421,10 @@ class AdminConcretePouringController extends Controller
         ));
     }
 
+    // =========================================================================
+    // CALENDAR
+    // =========================================================================
+
     public function calendar(Request $request)
     {
         $month = $request->input('month', now()->month);
@@ -440,15 +449,62 @@ class AdminConcretePouringController extends Controller
         return view('admin.concrete-pouring.calendar', compact('calendarData', 'month', 'year'));
     }
 
+    // =========================================================================
+    // PRINT / DOWNLOAD  — uses ConcretePouringPdf (with embedded signatures)
+    // =========================================================================
+
+    /**
+     * Stream the official Concrete Pouring Form PDF inline in the browser.
+     * Reviewer signatures are automatically embedded via ConcretePouringPdf.
+     */
     public function print(ConcretePouring $concretePouring)
     {
         $concretePouring->load([
-            'workRequest', 'requestedBy', 'meMtqaChecker',
-            'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
+            'workRequest',
+            'requestedBy',
+            'meMtqaChecker',
+            'residentEngineer',
+            'notedByEngineer',
+            'approver',
+            'disapprover',
         ]);
 
-        return view('admin.concrete-pouring.print', compact('concretePouring'));
+        $pdf      = new ConcretePouringPdf($concretePouring);
+        $filename = 'concrete-pouring-' . ($concretePouring->reference_number ?? $concretePouring->id) . '.pdf';
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
+
+    /**
+     * Force-download the Concrete Pouring Form PDF.
+     */
+    public function download(ConcretePouring $concretePouring)
+    {
+        $concretePouring->load([
+            'workRequest',
+            'requestedBy',
+            'meMtqaChecker',
+            'residentEngineer',
+            'notedByEngineer',
+            'approver',
+            'disapprover',
+        ]);
+
+        $pdf      = new ConcretePouringPdf($concretePouring);
+        $filename = 'concrete-pouring-' . ($concretePouring->reference_number ?? $concretePouring->id) . '.pdf';
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    // =========================================================================
+    // DELETE
+    // =========================================================================
 
     public function destroy(ConcretePouring $concretePouring)
     {
