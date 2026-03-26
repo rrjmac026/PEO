@@ -542,19 +542,18 @@ class WorkRequestPdf extends \FPDF
     // ─── ROW: Accepted By ──────────────────────────────────────────────────────
     private function rowAccepted(float $y): float
     {
-        $h = 15;
+        $h = 18;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
-        $this->lbl(self::ML + 1, $y + 1, 'Accepted by :');
-        $this->SetXY(self::ML + 1, $y + 5);
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(...self::BLACK);
-        $this->Cell(self::CA - 2, 4, $this->val($this->wr->accepted_by_contractor ?? ''), 'B');
-        $this->SetXY(self::ML + 1, $y + 11);
-        $this->SetFont('Arial', '', 6.5);
-        $this->SetTextColor(...self::DGRAY);
-        $this->Cell(self::CA - 2, 3, 'Contractor', 0, 0, 'C');
+       $this->lbl(self::ML + 1, $y + 1, 'Accepted by :');
+        $this->sigLine(
+            self::ML,
+            $y,
+            self::CA,
+            $this->val($this->wr->accepted_by_contractor ?? $this->wr->contractor_name ?? ''),
+            'Contractor',
+        );
 
         $rx = self::ML + self::CA + 1;
         $this->lbl($rx, $y + 1, 'Date:');
@@ -738,7 +737,6 @@ class WorkRequestPdf extends \FPDF
         $this->SetXY($cellX, $lineY + 0.5);
         $this->SetFont('Arial', '', 6);
         $this->SetTextColor(...self::DGRAY);
-        $this->Cell($cellW, 3, 'Signature Over Printed Name', 0, 2, 'C');
         $this->SetX($cellX);
         $this->SetFont('Arial', '', 6.5);
         $this->Cell($cellW, 3, $role, 0, 0, 'C');
