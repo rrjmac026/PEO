@@ -205,16 +205,35 @@ class NotificationService
 
         if (!$contractor) return;
 
-        $decision = $wr->admin_decision === 'approved' ? 'Approved ✅' : 'Rejected ❌';
-        $emoji    = $wr->admin_decision === 'approved' ? '🎉' : '😔';
+        // FIX: Use $wr->status (set by Provincial Engineer via storeProvincialDecision)
+        // The old code read $wr->admin_decision which is never set in this flow → always null → always "Rejected"
+        $isApproved = $wr->status === WorkRequest::STATUS_APPROVED;
+        $decision   = $isApproved ? 'Approved ✅' : 'Rejected ❌';
+        $emoji      = $isApproved ? '🎉' : '😔';
+        $statusWord = $isApproved ? 'approved' : 'rejected';
 
-        // In-app
+        // Also notify the assigned MTQA if approved (ready to print)
+        if ($isApproved && $wr->assigned_mtqa_id) {
+            $mtqaUser = User::find($wr->assigned_mtqa_id);
+            if ($mtqaUser) {
+                Notification::send(
+                    $mtqaUser->id,
+                    'work_request',
+                    '🖨️ Work Request Ready to Print',
+                    "Work request \"{$wr->name_of_project}\" has been approved by the Provincial Engineer and is ready to print.",
+                    route('reviewer.work-requests.show', $wr),
+                    $wr
+                );
+            }
+        }
+
+        // In-app → contractor
         Notification::send(
             $contractor->id,
             'work_request',
             "{$emoji} Work Request {$decision}",
-            "Your work request for \"{$wr->name_of_project}\" has been {$wr->admin_decision}." .
-            ($wr->admin_decision_remarks ? " Remarks: {$wr->admin_decision_remarks}" : ''),
+            "Your work request for \"{$wr->name_of_project}\" has been {$statusWord}." .
+            ($wr->approved_recommendation_action ? " Remarks: {$wr->approved_recommendation_action}" : ''),
             route('user.work-requests.show', $wr),
             $wr
         );
