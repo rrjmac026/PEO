@@ -837,7 +837,7 @@
 
                             <!-- Footer -->
                             <div class="ndd-footer">
-                                <a href="#" class="ndd-footer-link">
+                                <a href="{{ route('notifications.page') }}" class="ndd-footer-link">
                                     View all <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
                                 </a>
                                 <span class="ndd-footer-count"

@@ -27,6 +27,7 @@ Route::middleware('auth')->prefix('notifications')->name('notifications.')->grou
     Route::get('/unread-count',   [NotificationController::class, 'unreadCount']) ->name('unread-count');
     Route::post('/mark-all-read', [NotificationController::class, 'markAllRead']) ->name('mark-all-read');
     Route::post('/{notification}/read', [NotificationController::class, 'markRead'])->name('mark-read');
+    Route::get('/notifications', [NotificationController::class, 'page'])->name('page');
 });
 
 // =============================================================================
