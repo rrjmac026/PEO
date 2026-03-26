@@ -382,14 +382,14 @@ class WorkRequestPdf extends \FPDF
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
         $this->lbl(self::ML + 1, $y + 1, 'Submitted by :');
-        $this->SetXY(self::ML + 1, $y + 5);
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(...self::BLACK);
-        $this->Cell(self::CA - 2, 4, $this->val($this->wr->contractor_name ?? ''), 'B');
-        $this->SetXY(self::ML + 1, $y + 11);
-        $this->SetFont('Arial', '', 6.5);
-        $this->SetTextColor(...self::DGRAY);
-        $this->Cell(self::CA - 2, 3, 'Contractor', 0, 0, 'C');
+        $this->sigLine(
+            self::ML,
+            $y,
+            self::CA,
+            $this->val($this->wr->contractor_name ?? ''),
+            'Contractor',
+            $this->wr->contractor_signature ?? null
+        );
 
         $rx = self::ML + self::CA + 1;
         $this->lbl($rx, $y + 1, 'Received By :');
