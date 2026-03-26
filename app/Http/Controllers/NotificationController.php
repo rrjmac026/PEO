@@ -53,7 +53,8 @@ class NotificationController extends Controller
             ->unread()
             ->update(['is_read' => true]);
 
-        return response()->json(['success' => true]);
+        return redirect()->route('notifications.page')
+            ->with('success', 'All notifications marked as read.');
     }
 
     /**
