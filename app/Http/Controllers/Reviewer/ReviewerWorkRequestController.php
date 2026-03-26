@@ -11,14 +11,32 @@ use Illuminate\Support\Facades\Auth;
 class ReviewerWorkRequestController extends Controller
 {
     // ─────────────────────────────────────────────────────────────────────────
-    // Index — only show requests where THIS user is the current reviewer
+    // Index — show requests where THIS user is (or was) a reviewer
+    // For MTQA: also shows approved requests they are assigned to (for printing)
     // ─────────────────────────────────────────────────────────────────────────
 
     public function index(Request $request)
     {
         $user = Auth::user();
 
+        // Base query: requests where it is currently this user's turn
         $query = WorkRequest::assignedToUser($user->id);
+
+        // MTQA special case: also surface approved requests they are assigned to
+        if ($user->role === 'mtqa') {
+            $query = WorkRequest::where(function ($q) use ($user) {
+                // Their active turn
+                $q->where(function ($q2) use ($user) {
+                    $q2->where('current_review_step', 'mtqa')
+                       ->where('assigned_mtqa_id', $user->id);
+                })
+                // OR: approved and they are the assigned MTQA
+                ->orWhere(function ($q2) use ($user) {
+                    $q2->where('assigned_mtqa_id', $user->id)
+                       ->where('status', WorkRequest::STATUS_APPROVED);
+                });
+            });
+        }
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -37,6 +55,31 @@ class ReviewerWorkRequestController extends Controller
         $completedQuery = $this->completedByUser($user)->latest()->limit(10)->get();
 
         return view('reviewer.work-requests.index', compact('workRequests', 'completedQuery'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Approved Work Requests — MTQA dedicated page
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function approvedIndex(Request $request)
+    {
+        $user = Auth::user();
+
+        // Any MTQA user can see ALL approved work requests (not just their assigned ones)
+        // so they can always find and print them.
+        $query = WorkRequest::where('status', WorkRequest::STATUS_APPROVED);
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name_of_project', 'LIKE', "%{$request->search}%")
+                  ->orWhere('project_location', 'LIKE', "%{$request->search}%")
+                  ->orWhere('contractor_name', 'LIKE', "%{$request->search}%");
+            });
+        }
+
+        $workRequests = $query->latest()->paginate(15)->withQueryString();
+
+        return view('reviewer.work-requests.approved', compact('workRequests'));
     }
 
     public function show(WorkRequest $workRequest)
@@ -295,35 +338,31 @@ class ReviewerWorkRequestController extends Controller
 
     public function printApproved(WorkRequest $workRequest)
     {
-        // Only MTQA assigned to this request (or any MTQA) can print once approved
         if (Auth::user()->role !== 'mtqa') {
             abort(403, 'Only MTQA can print approved work requests.');
         }
-    
+
         if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
             abort(403, 'This work request has not been approved yet.');
         }
-    
+
         $pdf = new \App\Services\WorkRequestPdf($workRequest);
         return response($pdf->Output('S'), 200, [
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'inline; filename="work-request-' . $workRequest->id . '.pdf"',
         ]);
     }
-    
-    /**
-     * Download approved work request PDF — MTQA role only.
-     */
+
     public function downloadApproved(WorkRequest $workRequest)
     {
         if (Auth::user()->role !== 'mtqa') {
             abort(403, 'Only MTQA can download approved work requests.');
         }
-    
+
         if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
             abort(403, 'This work request has not been approved yet.');
         }
-    
+
         $pdf = new \App\Services\WorkRequestPdf($workRequest);
         return response($pdf->Output('S'), 200, [
             'Content-Type'        => 'application/pdf',

@@ -134,8 +134,11 @@ Route::prefix('reviewer')->name('reviewer.')
     Route::get('/dashboard', [ReviewerController::class, 'dashboard'])->name('dashboard');
 
     // ── Work Requests ─────────────────────────────────────────────────────────
+    Route::get('/work-requests/approved',      [ReviewerWorkRequestController::class, 'approvedIndex'])
+    ->name('work-requests.approved');
     Route::get('/work-requests',               [ReviewerWorkRequestController::class, 'index'])->name('work-requests.index');
     Route::get('/work-requests/{workRequest}', [ReviewerWorkRequestController::class, 'show']) ->name('work-requests.show');
+    
 
     // Reviewer step submissions
     Route::post('/work-requests/{workRequest}/inspection',

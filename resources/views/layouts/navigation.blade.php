@@ -13,11 +13,23 @@
         })->toArray();
     }
 
-    $dashboardRoute = match(Auth::user()->role) {
-        'admin' => route('admin.dashboard'),
-        'reviewer' => route('reviewer.dashboard'),
-        'user'  => route('user.dashboard'),
-        default => '/',
+    $userRole = Auth::user()->role ?? null;
+
+    $reviewerRoles = [
+        'site_inspector',
+        'surveyor',
+        'resident_engineer',
+        'provincial_engineer',
+        'mtqa',
+        'engineeriii',
+        'engineeriv',
+    ];
+
+    $dashboardRoute = match(true) {
+        $userRole === 'admin'              => route('admin.dashboard'),
+        $userRole === 'contractor'         => route('user.dashboard'),
+        in_array($userRole, $reviewerRoles) => route('reviewer.dashboard'),
+        default                            => '/',
     };
 @endphp
 

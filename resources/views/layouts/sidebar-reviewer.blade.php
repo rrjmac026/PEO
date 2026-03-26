@@ -60,6 +60,14 @@
     .sb-link.cyan-active.active::before { background: #0891b2; }
     .dark .sb-link.cyan-active.active::before { background: #22d3ee; }
 
+    /* Green variant for approved work requests */
+    .sb-link.green-active.active { background: rgba(5,150,105,.1); color: #059669; box-shadow: 0 1px 4px rgba(5,150,105,.12); }
+    .dark .sb-link.green-active.active { color: #34d399; background: rgba(52,211,153,.12); }
+    .sb-link.green-active.active .sb-icon { background: rgba(5,150,105,.15); color: #059669; }
+    .dark .sb-link.green-active.active .sb-icon { color: #34d399; }
+    .sb-link.green-active.active::before { background: #059669; }
+    .dark .sb-link.green-active.active::before { background: #34d399; }
+
     .sb-divider { height: 1px; background: var(--sb-border); margin: 12px 16px; }
     .sb-role-badge {
         display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
@@ -79,6 +87,8 @@
     .dark .sb-sub-link.active { color: var(--sb-accent-dark); }
     .sb-sub-link.cyan-sub.active { color: #0891b2; }
     .dark .sb-sub-link.cyan-sub.active { color: #22d3ee; }
+    .sb-sub-link.green-sub.active { color: #059669; }
+    .dark .sb-sub-link.green-sub.active { color: #34d399; }
     .sb-sub-link .sb-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: 0.5; }
     .sb-sub-link.active .sb-dot { opacity: 1; }
 
@@ -89,6 +99,14 @@
         padding: 2px 7px; border-radius: 10px; line-height: 1.4;
     }
     .dark .sb-count { background: #22d3ee; color: #0f172a; }
+
+    /* Green count badge for approved */
+    .sb-count-green {
+        margin-left: auto; font-size: 11px; font-weight: 700;
+        background: #059669; color: white;
+        padding: 2px 7px; border-radius: 10px; line-height: 1.4;
+    }
+    .dark .sb-count-green { background: #34d399; color: #0f172a; }
 </style>
 
 @php $role = Auth::user()->role; @endphp
@@ -97,13 +115,13 @@
 
     {{-- Role Badge --}}
     <div class="sb-role-badge">
-        @if($role === 'site_inspector')       <i class="fas fa-hard-hat"></i> Site Inspector
-        @elseif($role === 'surveyor')          <i class="fas fa-drafting-compass"></i> Surveyor
-        @elseif($role === 'resident_engineer') <i class="fas fa-hard-hat"></i> Resident Engineer
+        @if($role === 'site_inspector')        <i class="fas fa-hard-hat"></i> Site Inspector
+        @elseif($role === 'surveyor')           <i class="fas fa-drafting-compass"></i> Surveyor
+        @elseif($role === 'resident_engineer')  <i class="fas fa-hard-hat"></i> Resident Engineer
         @elseif($role === 'provincial_engineer')<i class="fas fa-user-tie"></i> Provincial Engineer
-        @elseif($role === 'mtqa')              <i class="fas fa-clipboard-check"></i> ME / MTQA
-        @elseif($role === 'engineeriii')       <i class="fas fa-drafting-compass"></i> Engineer III
-        @elseif($role === 'engineeriv')        <i class="fas fa-drafting-compass"></i> Engineer IV
+        @elseif($role === 'mtqa')               <i class="fas fa-clipboard-check"></i> ME / MTQA
+        @elseif($role === 'engineeriii')        <i class="fas fa-drafting-compass"></i> Engineer III
+        @elseif($role === 'engineeriv')         <i class="fas fa-drafting-compass"></i> Engineer IV
         @else <i class="fas fa-user"></i> {{ ucfirst($role) }}
         @endif
     </div>
@@ -120,7 +138,7 @@
     <span class="sb-section-label">Work Requests</span>
 
     <a href="{{ route('reviewer.work-requests.index') }}"
-       class="sb-link {{ request()->routeIs('reviewer.work-requests*') && !request('status') ? 'active' : '' }}">
+       class="sb-link {{ request()->routeIs('reviewer.work-requests.index') && !request()->routeIs('reviewer.work-requests.approved') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-file-contract"></i></span>
         All Requests
     </a>
@@ -137,14 +155,29 @@
        class="sb-sub-link {{ request('status') === 'reviewed' ? 'active' : '' }}">
         <span class="sb-dot"></span> Reviewed
     </a>
-    <a href="{{ route('reviewer.work-requests.index', ['status' => 'approved']) }}"
-       class="sb-sub-link {{ request('status') === 'approved' ? 'active' : '' }}">
-        <span class="sb-dot"></span> Approved
-    </a>
     <a href="{{ route('reviewer.work-requests.index', ['status' => 'rejected']) }}"
        class="sb-sub-link {{ request('status') === 'rejected' ? 'active' : '' }}">
         <span class="sb-dot"></span> Rejected
     </a>
+
+    {{-- ── MTQA: Dedicated Approved Work Requests section ── --}}
+    @if($role === 'mtqa')
+        @php
+            $approvedCount = \App\Models\WorkRequest::where('status', \App\Models\WorkRequest::STATUS_APPROVED)->count();
+        @endphp
+
+        <div class="sb-divider"></div>
+        <span class="sb-section-label">Print / Download</span>
+
+        <a href="{{ route('reviewer.work-requests.approved') }}"
+           class="sb-link green-active {{ request()->routeIs('reviewer.work-requests.approved') ? 'active' : '' }}">
+            <span class="sb-icon"><i class="fas fa-check-double"></i></span>
+            Approved Requests
+            @if($approvedCount > 0)
+                <span class="sb-count-green">{{ $approvedCount }}</span>
+            @endif
+        </a>
+    @endif
 
     <div class="sb-divider"></div>
     <span class="sb-section-label">Concrete Pouring</span>
@@ -156,7 +189,7 @@
         My Review Queue
     </a>
 
-    {{-- Concrete pouring status filters (passed as query param to index) --}}
+    {{-- Concrete pouring status filters --}}
     <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'requested']) }}"
        class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'requested' ? 'active' : '' }}">
         <span class="sb-dot"></span> Pending
