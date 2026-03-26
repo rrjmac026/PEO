@@ -36,6 +36,7 @@ class WorkRequest extends Model
 
         // ── Submission ───────────────────────────────────────────────────────
         'contractor_name',
+        'contractor_signature',
 
         // ── Assignments (set by admin) ────────────────────────────────────────
         'assigned_site_inspector_id',

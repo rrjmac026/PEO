@@ -306,6 +306,19 @@
                     </div>
                 </div>
             @endif
+
+            @if($workRequest->contractor_signature)
+            <div class="row">
+                <div class="col full-width">
+                    <div class="field-label">Contractor Signature</div>
+                    <div class="field-value">
+                        <img src="{{ $workRequest->contractor_signature }}" 
+                            style="max-width: 250px; max-height: 70px;" 
+                            alt="Contractor Signature">
+                    </div>
+                </div>
+            </div>
+            @endif
         </section>
 
         <div class="footer">

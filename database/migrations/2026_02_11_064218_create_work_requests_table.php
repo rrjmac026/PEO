@@ -35,6 +35,7 @@ return new class extends Migration
 
             // ── Submission ───────────────────────────────────────────
             $table->string('contractor_name')->nullable();
+            $table->longText('contractor_signature')->nullable();
 
             // ── Reception ───────────────────────────────────────────
             $table->string('received_by')->nullable();

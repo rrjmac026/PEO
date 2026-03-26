@@ -98,6 +98,7 @@ class UserWorkRequestController extends Controller
 
             // Submission
             'contractor_name'               => 'nullable|string|max:255',
+            'contractor_signature' => 'nullable|string',
         ]);
 
         // Force contractor_name to logged-in user's name
