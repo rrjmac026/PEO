@@ -152,27 +152,16 @@
 (function () {
     'use strict';
 
-    /* ----------------------------------------------------------
-       Data — fed directly from Laravel
-    ---------------------------------------------------------- */
     const ALL_REFS = @json($referenceNumbers ?? []);
 
-    /* ----------------------------------------------------------
-       State
-    ---------------------------------------------------------- */
-    let _selected  = null;   // currently selected value (from list)
-    let _isCustom  = false;  // true when user chose "enter custom"
-    let _filtered  = [];     // currently visible items
-    let _focusIdx  = -1;     // keyboard-focused row index
+    let _selected  = null;
+    let _isCustom  = false;
+    let _filtered  = [];
+    let _focusIdx  = -1;
 
-    /* ----------------------------------------------------------
-       DOM helpers
-    ---------------------------------------------------------- */
     const $ = id => document.getElementById(id);
 
-    /* ----------------------------------------------------------
-       Render list
-    ---------------------------------------------------------- */
+    // ── Render list ──────────────────────────────────────────────────────────
     function render(query) {
         const q = (query || '').trim().toLowerCase();
         _filtered = q
@@ -190,19 +179,25 @@
             return;
         }
 
+        // FIX: use data-val attribute instead of inline onclick with string interpolation
+        // to avoid breaking on apostrophes/quotes in reference numbers
         list.innerHTML = _filtered.map((r, i) => {
             const sel = r === _selected ? ' wr-ref-selected' : '';
-            return `<div class="wr-ref-item${sel}" data-idx="${i}" onclick="wrRefSelect('${r}')">
+            const escaped = r.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            return `<div class="wr-ref-item${sel}" data-idx="${i}" data-val="${escaped}">
                         <span class="wr-ref-item-hash">#</span>${r}
                     </div>`;
         }).join('');
 
+        // Attach click via event delegation instead of inline onclick
+        list.querySelectorAll('.wr-ref-item').forEach(el => {
+            el.addEventListener('click', () => wrRefSelect(el.dataset.val));
+        });
+
         $('wrRefAddLabel').textContent = 'Enter custom reference number';
     }
 
-    /* ----------------------------------------------------------
-       Open / close
-    ---------------------------------------------------------- */
+    // ── Open / close ─────────────────────────────────────────────────────────
     window.wrRefToggle = function () {
         const dd   = $('wrRefDropdown');
         const trig = $('wrRefTrigger');
@@ -222,14 +217,11 @@
         $('wrRefTrigger').classList.remove('open');
     }
 
-    /* Close on outside click */
     document.addEventListener('click', function (e) {
-        if (!$('wrRefField').contains(e.target)) wrRefClose();
+        if ($('wrRefField') && !$('wrRefField').contains(e.target)) wrRefClose();
     });
 
-    /* ----------------------------------------------------------
-       Select an existing item
-    ---------------------------------------------------------- */
+    // ── Select existing ───────────────────────────────────────────────────────
     window.wrRefSelect = function (val) {
         _selected = val;
         _isCustom = false;
@@ -247,9 +239,7 @@
         wrRefClose();
     };
 
-    /* ----------------------------------------------------------
-       Clear selection
-    ---------------------------------------------------------- */
+    // ── Clear ─────────────────────────────────────────────────────────────────
     window.wrRefClear = function (e) {
         e.stopPropagation();
         _selected = null;
@@ -268,16 +258,12 @@
         wrRefClose();
     };
 
-    /* ----------------------------------------------------------
-       Filter as user types
-    ---------------------------------------------------------- */
+    // ── Filter ────────────────────────────────────────────────────────────────
     window.wrRefFilter = function (query) {
         render(query);
     };
 
-    /* ----------------------------------------------------------
-       Enable custom input
-    ---------------------------------------------------------- */
+    // ── Enable custom input ───────────────────────────────────────────────────
     window.wrRefEnableCustom = function () {
         const query = ($('wrRefSearchInput').value || '').trim();
         _isCustom = true;
@@ -301,17 +287,13 @@
         setTimeout(() => inp.focus(), 40);
     };
 
-    /* ----------------------------------------------------------
-       Custom input — live sync to hidden field
-    ---------------------------------------------------------- */
+    // ── Custom input live sync ────────────────────────────────────────────────
     window.wrRefOnCustomInput = function (val) {
         $('wrRefHidden').value = val;
         $('wrRefDisplay').textContent = val || 'Custom reference number';
     };
 
-    /* ----------------------------------------------------------
-       Keyboard navigation
-    ---------------------------------------------------------- */
+    // ── Keyboard navigation ───────────────────────────────────────────────────
     window.wrRefKey = function (e) {
         const items = document.querySelectorAll('#wrRefList .wr-ref-item');
 
@@ -349,27 +331,41 @@
         }
     }
 
-    /* ----------------------------------------------------------
-       Restore old() value after a validation redirect
-    ---------------------------------------------------------- */
+    // ── DOMContentLoaded: restore old() value + attach submit guard ───────────
     document.addEventListener('DOMContentLoaded', function () {
+        // 1. Restore value after validation redirect
         const oldVal = @json(old('reference_number') ?? '');
-        if (!oldVal) return;
+        if (oldVal) {
+            if (ALL_REFS.includes(oldVal)) {
+                wrRefSelect(oldVal);
+            } else {
+                // Custom value — show the custom input pre-filled
+                _isCustom = true;
+                $('wrRefHidden').value = oldVal;
 
-        if (ALL_REFS.includes(oldVal)) {
-            wrRefSelect(oldVal);
-        } else {
-            /* It's a custom value — show the custom input pre-filled */
-            _isCustom = true;
-            $('wrRefHidden').value = oldVal;
+                const disp = $('wrRefDisplay');
+                disp.textContent = oldVal;
+                disp.classList.remove('wr-ref-placeholder');
 
-            const disp = $('wrRefDisplay');
-            disp.textContent = oldVal;
-            disp.classList.remove('wr-ref-placeholder');
+                $('wrRefClearBtn').style.display = 'inline';
+                $('wrRefCustomWrap').classList.add('visible');
+                $('wrRefCustomInput').value = oldVal;
+            }
+        }
 
-            $('wrRefClearBtn').style.display = 'inline';
-            $('wrRefCustomWrap').classList.add('visible');
-            $('wrRefCustomInput').value = oldVal;
+        // 2. Submit guard — last-resort sync in case live binding missed anything
+        const form = document.getElementById('wr-form');
+        if (form) {
+            form.addEventListener('submit', function () {
+                const customWrap  = $('wrRefCustomWrap');
+                const customInput = $('wrRefCustomInput');
+                const hidden      = $('wrRefHidden');
+
+                if (customWrap && customWrap.classList.contains('visible')
+                    && customInput && customInput.value.trim()) {
+                    hidden.value = customInput.value.trim();
+                }
+            });
         }
     });
 
