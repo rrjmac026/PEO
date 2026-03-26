@@ -41,7 +41,8 @@ class WorkRequestController extends Controller
         // Count for quick-stats banner
         $pendingAssignment = WorkRequest::where('status', WorkRequest::STATUS_SUBMITTED)->count();
         $inReview          = WorkRequest::whereIn('status', [WorkRequest::STATUS_ASSIGNED, WorkRequest::STATUS_IN_REVIEW])->count();
-        $awaitingDecision  = WorkRequest::where('current_review_step', 'admin_final')->count();
+        // NOTE: awaitingDecision now means "waiting for Provincial Engineer" not admin
+        $awaitingDecision  = WorkRequest::where('current_review_step', 'provincial_engineer')->count();
 
         return view('admin.work-requests.index', compact(
             'workRequests',
@@ -94,7 +95,6 @@ class WorkRequestController extends Controller
             'assignedEngineerIii',
             'assignedProvincialEngineer',
             'assignedByAdmin',
-            'adminDecisionBy',
             'logs',
         ]);
 
@@ -103,6 +103,7 @@ class WorkRequestController extends Controller
 
     /**
      * Show the assign-engineers form.
+     * Admin ONLY assigns reviewers — no final decision role for admin.
      */
     public function assignForm(WorkRequest $workRequest)
     {
@@ -148,7 +149,6 @@ class WorkRequestController extends Controller
             'assigned_provincial_engineer_id'  => 'nullable|exists:users,id',
         ]);
 
-        // Normalize empty strings to null so advanceReviewStep() works correctly
         $assignments = [
             'assigned_site_inspector_id'      => $request->assigned_site_inspector_id      ?: null,
             'assigned_surveyor_id'             => $request->assigned_surveyor_id             ?: null,
@@ -161,7 +161,7 @@ class WorkRequestController extends Controller
 
         // At least one assignment required
         if (collect($assignments)->filter()->isEmpty()) {
-            return back()->with('error', 'Please assign at least one engineer before proceeding.');
+            return back()->with('error', 'Please assign at least one reviewer before proceeding.');
         }
 
         // Determine the first step that has someone assigned (in pipeline order)
@@ -191,7 +191,7 @@ class WorkRequestController extends Controller
         ]));
 
         $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, [
-            'description' => 'Engineers assigned by admin. First step: ' . $firstStep,
+            'description' => 'Reviewers assigned by admin. First step: ' . $firstStep,
             'user_id'     => Auth::id(),
         ]);
 
@@ -199,68 +199,13 @@ class WorkRequestController extends Controller
 
         return redirect()
             ->route('admin.work-requests.show', $workRequest)
-            ->with('success', 'Engineers assigned successfully! The first reviewer has been notified.');
+            ->with('success', 'Reviewers assigned successfully! The first reviewer has been notified.');
     }
 
-    /**
-     * Show the final admin decision form (approve / reject).
-     * Only available when current_review_step = 'admin_final'.
-     */
-    public function decisionForm(WorkRequest $workRequest)
-    {
-        if ($workRequest->current_review_step !== 'admin_final') {
-            return redirect()
-                ->route('admin.work-requests.show', $workRequest)
-                ->with('error', 'This request is not yet ready for a final decision.');
-        }
-
-        return view('admin.work-requests.decision', compact('workRequest'));
-    }
-
-    /**
-     * Store admin final decision (approve or reject).
-     */
-    public function storeDecision(Request $request, WorkRequest $workRequest)
-    {
-        $request->validate([
-            'decision'         => 'required|in:approved,rejected',
-            'decision_remarks' => 'nullable|string|max:2000',
-        ]);
-
-        if ($workRequest->current_review_step !== 'admin_final') {
-            return back()->with('error', 'This request is not ready for a final decision yet.');
-        }
-
-        $newStatus = $request->decision === 'approved'
-            ? WorkRequest::STATUS_APPROVED
-            : WorkRequest::STATUS_REJECTED;
-
-        $workRequest->update([
-            'admin_decision'         => $request->decision,
-            'admin_decision_remarks' => $request->decision_remarks,
-            'admin_decision_by'      => Auth::id(),
-            'admin_decision_at'      => now(),
-            'status'                 => $newStatus,
-            'current_review_step'    => null,   // done
-        ]);
-
-        $event = $request->decision === 'approved'
-            ? WorkRequestLog::EVENT_APPROVED
-            : WorkRequestLog::EVENT_REJECTED;
-
-        $workRequest->addLog($event, [
-            'description' => 'Admin final decision: ' . $request->decision,
-            'user_id'     => Auth::id(),
-            'status_from' => WorkRequest::STATUS_REVIEWED,
-            'status_to'   => $newStatus,
-        ]);
-
-        \App\Services\NotificationService::workRequestDecisionMade($workRequest);
-
-        return redirect()
-            ->route('admin.work-requests.show', $workRequest)
-            ->with('success', 'Decision recorded. Work request has been ' . $request->decision . '.');
-    }
+    // ── NOTE: decisionForm() and storeDecision() have been REMOVED ────────────
+    // The Provincial Engineer now makes the final approve/reject decision
+    // via ReviewerWorkRequestController::storeProvincialDecision()
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Edit work request.

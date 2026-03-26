@@ -18,7 +18,6 @@ class ReviewerWorkRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Base query: only requests currently waiting for this specific user
         $query = WorkRequest::assignedToUser($user->id);
 
         if ($request->filled('search')) {
@@ -35,7 +34,6 @@ class ReviewerWorkRequestController extends Controller
 
         $workRequests = $query->latest()->paginate(15)->withQueryString();
 
-        // Also load "completed" items this reviewer already handled (read-only)
         $completedQuery = $this->completedByUser($user)->latest()->limit(10)->get();
 
         return view('reviewer.work-requests.index', compact('workRequests', 'completedQuery'));
@@ -45,20 +43,19 @@ class ReviewerWorkRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Reviewer can see the request if they are assigned to ANY step
-        // (so they can view their completed work), but can only act if it's their turn.
         $isAssignedAnywhere = $this->userIsAssignedAnywhere($workRequest, $user);
 
-        if (!$isAssignedAnywhere) {
+        // MTQA can also view approved requests for printing
+        $isMtqaViewer = ($user->role === 'mtqa' && $workRequest->status === WorkRequest::STATUS_APPROVED);
+
+        if (! $isAssignedAnywhere && ! $isMtqaViewer) {
             abort(403, 'You are not assigned to this work request.');
         }
 
-        $isMyTurn = $workRequest->isCurrentReviewer($user);
-
         return view('reviewer.work-requests.show', [
             'workRequest' => $workRequest,
-            'role'        => Auth::user()->role,
-            'isMyTurn'    => $workRequest->isCurrentReviewer(Auth::user()),
+            'role'        => $user->role,
+            'isMyTurn'    => $workRequest->isCurrentReviewer($user),
         ]);
     }
 
@@ -247,47 +244,97 @@ class ReviewerWorkRequestController extends Controller
         $workRequest->advanceReviewStep();
         $this->notifyNextReviewer($workRequest, 'engineer_iii');
 
-        return back()->with('success', 'Recommending approval submitted. Request forwarded to next reviewer.');
+        return back()->with('success', 'Recommending approval submitted. Request forwarded to Provincial Engineer.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Provincial Engineer
+    // Provincial Engineer — FINAL DECISION (approve or reject)
     // ─────────────────────────────────────────────────────────────────────────
 
-    public function storeProvincialNote(Request $request, WorkRequest $workRequest)
+    public function storeProvincialDecision(Request $request, WorkRequest $workRequest)
     {
         $this->authorizeStep($workRequest, 'provincial_engineer');
 
         $request->validate([
-            'approved_recommendation_action' => 'required|string',
+            'decision'                       => 'required|in:approved,rejected',
+            'approved_recommendation_action' => 'required|string|max:2000',
             'approved_signature'             => 'nullable|string',
         ]);
+
+        $newStatus = $request->decision === 'approved'
+            ? WorkRequest::STATUS_APPROVED
+            : WorkRequest::STATUS_REJECTED;
 
         $workRequest->update([
             'approved_by'                    => Auth::user()->name,
             'approved_recommendation_action' => $request->approved_recommendation_action,
             'approved_signature'             => $this->resolveSignatureValue($request->input('approved_signature')),
+            'status'                         => $newStatus,
+            'current_review_step'            => null, // pipeline complete
         ]);
 
-        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Provincial engineer note submitted by ' . Auth::user()->name,
+        $event = $request->decision === 'approved'
+            ? WorkRequestLog::EVENT_APPROVED
+            : WorkRequestLog::EVENT_REJECTED;
+
+        $workRequest->addLog($event, [
+            'description' => 'Provincial Engineer final decision: ' . $request->decision . ' by ' . Auth::user()->name,
             'user_id'     => Auth::id(),
+            'status_to'   => $newStatus,
         ]);
 
-        // Advance to admin_final
-        $workRequest->advanceReviewStep();
-        $this->notifyNextReviewer($workRequest, 'provincial_engineer');
+        // Notify MTQA that the request is approved and ready to print
+        \App\Services\NotificationService::workRequestDecisionMade($workRequest);
 
-        return back()->with('success', 'Note submitted. Request forwarded to admin for final decision.');
+        $message = $request->decision === 'approved'
+            ? 'Work request approved successfully. MTQA has been notified and can now print.'
+            : 'Work request rejected.';
+
+        return back()->with('success', $message);
+    }
+
+    public function printApproved(WorkRequest $workRequest)
+    {
+        // Only MTQA assigned to this request (or any MTQA) can print once approved
+        if (Auth::user()->role !== 'mtqa') {
+            abort(403, 'Only MTQA can print approved work requests.');
+        }
+    
+        if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
+            abort(403, 'This work request has not been approved yet.');
+        }
+    
+        $pdf = new \App\Services\WorkRequestPdf($workRequest);
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="work-request-' . $workRequest->id . '.pdf"',
+        ]);
+    }
+    
+    /**
+     * Download approved work request PDF — MTQA role only.
+     */
+    public function downloadApproved(WorkRequest $workRequest)
+    {
+        if (Auth::user()->role !== 'mtqa') {
+            abort(403, 'Only MTQA can download approved work requests.');
+        }
+    
+        if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
+            abort(403, 'This work request has not been approved yet.');
+        }
+    
+        $pdf = new \App\Services\WorkRequestPdf($workRequest);
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="work-request-' . $workRequest->id . '.pdf"',
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Abort with 403 if it is not the current user's turn for the given step.
-     */
     private function authorizeStep(WorkRequest $workRequest, string $step): void
     {
         $user = Auth::user();
@@ -303,9 +350,6 @@ class ReviewerWorkRequestController extends Controller
         }
     }
 
-    /**
-     * Check if a user is assigned to ANY step of the given work request.
-     */
     private function userIsAssignedAnywhere(WorkRequest $workRequest, $user): bool
     {
         $cols = [
@@ -327,9 +371,6 @@ class ReviewerWorkRequestController extends Controller
         return false;
     }
 
-    /**
-     * Query work requests this user has already reviewed (any completed step).
-     */
     private function completedByUser($user)
     {
         return WorkRequest::where(function ($q) use ($user) {
@@ -356,9 +397,6 @@ class ReviewerWorkRequestController extends Controller
         });
     }
 
-    /**
-     * Normalise the signature hidden-input value before storing.
-     */
     private function resolveSignatureValue(?string $value): ?string
     {
         if (empty($value)) {

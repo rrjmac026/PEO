@@ -123,14 +123,34 @@ class WorkRequest extends Model
     // ─── Review step order ───────────────────────────────────────────────────
     // Maps step key → assigned_*_id column → role string
     const REVIEW_STEPS = [
-        'site_inspector'       => ['assigned_col' => 'assigned_site_inspector_id',       'role' => 'site_inspector'],
-        'surveyor'             => ['assigned_col' => 'assigned_surveyor_id',              'role' => 'surveyor'],
-        'resident_engineer'    => ['assigned_col' => 'assigned_resident_engineer_id',     'role' => 'resident_engineer'],
-        'mtqa'                 => ['assigned_col' => 'assigned_mtqa_id',                  'role' => 'mtqa'],
-        'engineer_iv'          => ['assigned_col' => 'assigned_engineer_iv_id',           'role' => 'engineeriv'],
-        'engineer_iii'         => ['assigned_col' => 'assigned_engineer_iii_id',          'role' => 'engineeriii'],
-        'provincial_engineer'  => ['assigned_col' => 'assigned_provincial_engineer_id',   'role' => 'provincial_engineer'],
-        'admin_final'          => ['assigned_col' => null,                                'role' => 'admin'],
+        'site_inspector' => [
+            'assigned_col' => 'assigned_site_inspector_id',
+            'next'         => 'surveyor',
+        ],
+        'surveyor' => [
+            'assigned_col' => 'assigned_surveyor_id',
+            'next'         => 'resident_engineer',
+        ],
+        'resident_engineer' => [
+            'assigned_col' => 'assigned_resident_engineer_id',
+            'next'         => 'mtqa',
+        ],
+        'mtqa' => [
+            'assigned_col' => 'assigned_mtqa_id',
+            'next'         => 'engineer_iv',
+        ],
+        'engineer_iv' => [
+            'assigned_col' => 'assigned_engineer_iv_id',
+            'next'         => 'engineer_iii',
+        ],
+        'engineer_iii' => [
+            'assigned_col' => 'assigned_engineer_iii_id',
+            'next'         => 'provincial_engineer',
+        ],
+        'provincial_engineer' => [
+            'assigned_col' => 'assigned_provincial_engineer_id',
+            'next'         => null,   // <-- FINAL step, no next
+        ],
     ];
 
     // ─── Status constants ────────────────────────────────────────────────────
@@ -302,35 +322,35 @@ class WorkRequest extends Model
      * Skips steps where no engineer was assigned.
      * Returns true if advanced, false if we've reached admin_final.
      */
-    public function advanceReviewStep(): bool
+    public function advanceReviewStep(): void
     {
-        // Refresh from DB to ensure assigned_*_id values are current
-        $this->refresh();
-
-        $steps   = array_keys(self::REVIEW_STEPS);
-        $current = $this->current_review_step;
-        $idx     = array_search($current, $steps);
-
-        if ($idx === false) {
-            return false;
+        $currentStep = $this->current_review_step;
+    
+        if (! $currentStep || ! isset(self::REVIEW_STEPS[$currentStep])) {
+            return;
         }
-
-        for ($i = $idx + 1; $i < count($steps); $i++) {
-            $nextStep = $steps[$i];
-            $col      = self::REVIEW_STEPS[$nextStep]['assigned_col'];
-
-            // admin_final always runs; for other steps, only if a user is assigned (not null, not "")
-            if ($nextStep === 'admin_final' || ($col && !empty($this->$col))) {
-                $this->current_review_step = $nextStep;
-                $this->status = ($nextStep === 'admin_final')
-                    ? self::STATUS_REVIEWED
-                    : self::STATUS_IN_REVIEW;
-                $this->save();
-                return true;
+    
+        $next = self::REVIEW_STEPS[$currentStep]['next'];
+    
+        // Walk forward, skipping unassigned steps
+        while ($next !== null) {
+            $col = self::REVIEW_STEPS[$next]['assigned_col'] ?? null;
+            if ($col && ! is_null($this->$col)) {
+                break; // found an assigned step
             }
+            $next = self::REVIEW_STEPS[$next]['next'] ?? null;
         }
-
-        return false;
+    
+        if ($next === null) {
+            // All steps done — provincial engineer was last, status already set by storeProvincialDecision
+            // Just clear the current_review_step
+            $this->update(['current_review_step' => null]);
+        } else {
+            $this->update([
+                'current_review_step' => $next,
+                'status'              => self::STATUS_IN_REVIEW,
+            ]);
+        }
     }
 
     /**
@@ -345,9 +365,9 @@ class WorkRequest extends Model
             'mtqa'                => 'MTQA',
             'engineer_iv'         => 'Engineer IV',
             'engineer_iii'        => 'Engineer III',
-            'provincial_engineer' => 'Provincial Engineer',
-            'admin_final'         => 'Admin Final Decision',
-            default               => 'Pending Assignment',
+            'provincial_engineer' => 'Provincial Engineer (Final Decision)',
+            null                  => 'Complete',
+            default               => ucfirst(str_replace('_', ' ', $this->current_review_step)),
         };
     }
 
