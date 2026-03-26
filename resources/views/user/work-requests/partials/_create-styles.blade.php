@@ -303,4 +303,190 @@
     .wr-float-save.show { opacity: 1; transform: translateY(0); }
     .wr-float-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--wr-accent2); animation: wrBlink 1.5s ease infinite; }
     @keyframes wrBlink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    /* Combobox wrapper */
+    .wr-ref-combobox {
+        position: relative;
+    }
+
+    /* Trigger row — reuses .wr-input-wrap appearance */
+    .wr-ref-trigger {
+        cursor: pointer;
+        user-select: none;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+    }
+    .wr-ref-trigger:focus-within,
+    .wr-ref-trigger.open {
+        border-color: var(--wr-accent);
+        background: var(--wr-focus-bg);
+        box-shadow: 0 0 0 3px rgba(79,141,255,0.12);
+        border-radius: var(--wr-radius-sm) var(--wr-radius-sm) 0 0;
+    }
+    html:not(.dark) .wr-ref-trigger.open {
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+    }
+
+    /* Display text inside trigger */
+    .wr-ref-display {
+        flex: 1;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--wr-text);
+    }
+    .wr-ref-placeholder {
+        color: var(--wr-muted);
+    }
+
+    /* Clear (✕) button */
+    .wr-ref-clear-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--wr-muted);
+        font-size: 14px;
+        line-height: 1;
+        padding: 0 2px;
+        flex-shrink: 0;
+        transition: color 0.15s;
+    }
+    .wr-ref-clear-btn:hover {
+        color: var(--wr-text);
+    }
+
+    /* Chevron arrow */
+    .wr-ref-chevron {
+        font-size: 10px;
+        color: var(--wr-muted);
+        flex-shrink: 0;
+        transition: transform 0.15s;
+        margin-left: 4px;
+    }
+    .wr-ref-trigger.open .wr-ref-chevron {
+        transform: rotate(180deg);
+    }
+
+    /* Dropdown panel */
+    .wr-ref-dropdown {
+        display: none;
+        position: absolute;
+        z-index: 300;
+        width: 100%;
+        top: 100%;
+        background: var(--wr-surface2);
+        border: 1.5px solid var(--wr-accent);
+        border-top: none;
+        border-radius: 0 0 var(--wr-radius-sm) var(--wr-radius-sm);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+        overflow: hidden;
+    }
+    .wr-ref-dropdown.open {
+        display: block;
+    }
+
+    /* Search row */
+    .wr-ref-search-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--wr-border);
+        background: var(--wr-surface2);
+    }
+    .wr-ref-search-icon {
+        font-size: 15px;
+        color: var(--wr-muted);
+        flex-shrink: 0;
+    }
+    .wr-ref-search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 13px;
+        color: var(--wr-text);
+        font-family: 'Inter', sans-serif;
+    }
+    .wr-ref-search-input::placeholder {
+        color: var(--wr-muted);
+    }
+
+    /* Scrollable list */
+    .wr-ref-list {
+        max-height: 210px;
+        overflow-y: auto;
+    }
+    .wr-ref-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 14px;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--wr-text);
+        transition: background 0.1s;
+    }
+    .wr-ref-item:hover,
+    .wr-ref-item.wr-ref-focused {
+        background: rgba(79,141,255,0.08);
+    }
+    html:not(.dark) .wr-ref-item:hover,
+    html:not(.dark) .wr-ref-item.wr-ref-focused {
+        background: rgba(37,99,235,0.07);
+    }
+    .wr-ref-item.wr-ref-selected {
+        background: rgba(79,141,255,0.14);
+        color: var(--wr-accent);
+        font-weight: 500;
+    }
+    .wr-ref-item-hash {
+        font-size: 12px;
+        color: var(--wr-muted);
+        flex-shrink: 0;
+    }
+    .wr-ref-item.wr-ref-selected .wr-ref-item-hash {
+        color: var(--wr-accent);
+    }
+    .wr-ref-empty {
+        padding: 14px;
+        font-size: 13px;
+        color: var(--wr-muted);
+        text-align: center;
+    }
+
+    /* Divider */
+    .wr-ref-divider {
+        height: 1px;
+        background: var(--wr-border);
+    }
+
+    /* "Enter custom" row */
+    .wr-ref-add-custom {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--wr-accent);
+        transition: background 0.1s;
+    }
+    .wr-ref-add-custom:hover {
+        background: rgba(79,141,255,0.08);
+    }
+    .wr-ref-add-icon {
+        font-size: 17px;
+        line-height: 1;
+    }
+
+    /* Custom input row (shown below trigger) */
+    .wr-ref-custom-wrap {
+        display: none;
+        margin-top: 8px;
+    }
+    .wr-ref-custom-wrap.visible {
+        display: block;
+    }
 </style>

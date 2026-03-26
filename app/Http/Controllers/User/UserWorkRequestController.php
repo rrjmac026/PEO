@@ -58,7 +58,14 @@ class UserWorkRequestController extends Controller
      */
     public function create()
     {
-        return view('user.work-requests.create');
+        $referenceNumbers = WorkRequest::whereNotNull('reference_number')
+            ->where('reference_number', '!=', '')
+            ->distinct()
+            ->pluck('reference_number')
+            ->sort()
+            ->values();
+
+        return view('user.work-requests.create', compact('referenceNumbers'));
     }
 
     /**

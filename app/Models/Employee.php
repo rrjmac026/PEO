@@ -34,7 +34,7 @@ class Employee extends Model
     public function scopeSearch($query, $term)
     {
         return $query->where(function($q) use ($term) {
-            $q->where('employee_id', 'LIKE', "%{$term}%")
+            $q->where('employee_number', 'LIKE', "%{$term}%")
             ->orWhere('department', 'LIKE', "%{$term}%")
             ->orWhere('position', 'LIKE', "%{$term}%")
             ->orWhereHas('user', function ($q2) use ($term) {
