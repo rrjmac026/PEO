@@ -4,21 +4,19 @@ namespace App\Http\Controllers\Reviewer;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
-use App\Models\Notification;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ReviewerConcretePouringController extends Controller
 {
-
     const REVIEW_STEPS = [
         'mtqa'                => 'me_mtqa_user_id',
         'resident_engineer'   => 'resident_engineer_user_id',
         'provincial_engineer' => 'noted_by_user_id',
     ];
 
-    // ── Human-readable labels for each step ───────────────────────────────
     const REVIEW_STEP_LABELS = [
         'mtqa'                => 'ME/MTQA',
         'resident_engineer'   => 'Resident Engineer',
@@ -83,8 +81,7 @@ class ReviewerConcretePouringController extends Controller
             'me_mtqa_signature' => $this->resolveSignatureValue($request->me_mtqa_signature),
         ]);
 
-        // ── Notify admin + all other assigned reviewers that ME/MTQA signed ──
-        $this->notifySignatureSubmitted($concretePouring, 'ME/MTQA', Auth::user());
+        NotificationService::concretePouringSignatureSubmitted($concretePouring, 'ME/MTQA', Auth::id());
 
         $this->advanceStep($concretePouring, 'mtqa');
 
@@ -106,8 +103,7 @@ class ReviewerConcretePouringController extends Controller
             're_signature' => $this->resolveSignatureValue($request->re_signature),
         ]);
 
-        // ── Notify admin + all other assigned reviewers that RE signed ──────
-        $this->notifySignatureSubmitted($concretePouring, 'Resident Engineer', Auth::user());
+        NotificationService::concretePouringSignatureSubmitted($concretePouring, 'Resident Engineer', Auth::id());
 
         $this->advanceStep($concretePouring, 'resident_engineer');
 
@@ -119,8 +115,8 @@ class ReviewerConcretePouringController extends Controller
         $this->authorizeStep($concretePouring, 'provincial_engineer');
 
         $request->validate([
-            'provincial_remarks'   => 'nullable|string|max:2000',
-            'noted_by_signature'   => 'nullable|string',
+            'provincial_remarks' => 'nullable|string|max:2000',
+            'noted_by_signature' => 'nullable|string',
         ]);
 
         $concretePouring->update([
@@ -129,10 +125,11 @@ class ReviewerConcretePouringController extends Controller
             'noted_by_signature' => $this->resolveSignatureValue($request->noted_by_signature),
         ]);
 
-        // ── Notify admin + all other assigned reviewers that PE signed ───────
-        $this->notifySignatureSubmitted($concretePouring, 'Provincial Engineer', Auth::user());
+        // Provincial Engineer is the last reviewer — go straight to admin_final
+        // and notify admin + MTQA only (per business rule)
+        $concretePouring->update(['current_review_step' => 'admin_final']);
 
-        $this->advanceStep($concretePouring, 'provincial_engineer');
+        NotificationService::concretePouringReadyForDecision($concretePouring);
 
         return back()->with('success', 'Note & signature submitted. Request forwarded to admin for final decision.');
     }
@@ -141,9 +138,6 @@ class ReviewerConcretePouringController extends Controller
     // PRIVATE — STEP CONTROL
     // =========================================================================
 
-    /**
-     * Abort 403 if it is not the current user's turn for $step.
-     */
     private function authorizeStep(ConcretePouring $concretePouring, string $step): void
     {
         $user = Auth::user();
@@ -169,127 +163,37 @@ class ReviewerConcretePouringController extends Controller
 
             if ($nextStep === 'admin_final') {
                 $concretePouring->update(['current_review_step' => 'admin_final']);
-
-                $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
-                if (!empty($adminIds)) {
-                    Notification::send(
-                        $adminIds,
-                        'concrete_pouring',
-                        'Concrete Pouring Ready for Final Decision',
-                        "Concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has completed all reviews and is awaiting your final decision.",
-                        route('admin.concrete-pouring.show', $concretePouring->id),
-                        $concretePouring
-                    );
-                }
-
+                NotificationService::concretePouringStepAdvanced($concretePouring, $completedStep);
                 return;
             }
 
             $col = self::REVIEW_STEPS[$nextStep];
             if (!empty($concretePouring->$col)) {
                 $concretePouring->update(['current_review_step' => $nextStep]);
-
-                $nextLabel = self::REVIEW_STEP_LABELS[$nextStep] ?? $nextStep;
-                Notification::send(
-                    $concretePouring->$col,
-                    'concrete_pouring',
-                    'Action Required — Concrete Pouring Review',
-                    "It is now your turn as {$nextLabel} to review concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}).",
-                    route('reviewer.concrete-pouring.show', $concretePouring->id),
-                    $concretePouring
-                );
-
+                NotificationService::concretePouringStepAdvanced($concretePouring, $completedStep);
                 return;
             }
         }
 
         // All reviewer steps skipped — go straight to admin_final
         $concretePouring->update(['current_review_step' => 'admin_final']);
-
-        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
-        if (!empty($adminIds)) {
-            Notification::send(
-                $adminIds,
-                'concrete_pouring',
-                'Concrete Pouring Ready for Final Decision',
-                "Concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}) has completed all reviews and is awaiting your final decision.",
-                route('admin.concrete-pouring.show', $concretePouring->id),
-                $concretePouring
-            );
-        }
-    }
-
-    // =========================================================================
-    // PRIVATE — SIGNATURE NOTIFICATIONS
-    // =========================================================================
-
-    /**
-     * Notify admins AND the other assigned reviewers that someone signed.
-     * Each party can only see their OWN signature on their respective views,
-     * but everyone is informed that a signature was placed.
-     */
-    private function notifySignatureSubmitted(
-        ConcretePouring $concretePouring,
-        string          $roleLabel,
-        \App\Models\User $signer
-    ): void {
-        $message = "{$signer->name} ({$roleLabel}) has signed and submitted their review for concrete pouring request {$concretePouring->reference_number} ({$concretePouring->project_name}).";
-
-        // ── Notify all admins ────────────────────────────────────────────────
-        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
-        if (!empty($adminIds)) {
-            Notification::send(
-                $adminIds,
-                'concrete_pouring',
-                "Signature Submitted — {$roleLabel}",
-                $message,
-                route('admin.concrete-pouring.show', $concretePouring->id),
-                $concretePouring
-            );
-        }
-
-        // ── Notify every OTHER assigned reviewer (not the signer themselves) ─
-        $reviewerCols = [
-            'me_mtqa_user_id'           => 'ME/MTQA',
-            'resident_engineer_user_id' => 'Resident Engineer',
-            'noted_by_user_id'          => 'Provincial Engineer',
-        ];
-
-        foreach ($reviewerCols as $col => $label) {
-            $reviewerId = $concretePouring->$col;
-            if ($reviewerId && $reviewerId != $signer->id) {
-                Notification::send(
-                    $reviewerId,
-                    'concrete_pouring',
-                    "Signature Submitted — {$roleLabel}",
-                    $message,
-                    route('reviewer.concrete-pouring.show', $concretePouring->id),
-                    $concretePouring
-                );
-            }
-        }
+        NotificationService::concretePouringStepAdvanced($concretePouring, $completedStep);
     }
 
     // =========================================================================
     // PRIVATE — SIGNATURE VALUE NORMALISER
     // =========================================================================
 
-    /**
-     * Normalise the signature hidden-input value before storing.
-     * Mirrors the same helper in ReviewerWorkRequestController.
-     */
     private function resolveSignatureValue(?string $value): ?string
     {
         if (empty($value)) {
             return null;
         }
 
-        // Raw base64 data URI — store as-is
         if (str_starts_with($value, 'data:image')) {
             return $value;
         }
 
-        // Full URL pointing at /storage/... — strip to relative path
         $storageUrl = url('storage') . '/';
         if (str_starts_with($value, $storageUrl)) {
             return ltrim(substr($value, strlen($storageUrl)), '/');

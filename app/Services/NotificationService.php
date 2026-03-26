@@ -29,7 +29,6 @@ class NotificationService
 
         if ($admins->isEmpty()) return;
 
-        // In-app
         Notification::send(
             $admins->pluck('id')->toArray(),
             'work_request',
@@ -39,7 +38,6 @@ class NotificationService
             $wr
         );
 
-        // Email
         foreach ($admins as $admin) {
             try {
                 Mail::to($admin->email)->send(new WorkRequestSubmittedMail($wr));
@@ -76,7 +74,6 @@ class NotificationService
 
             $isFirst = $wr->current_review_step === $info['step'];
 
-            // In-app
             if ($isFirst) {
                 Notification::send(
                     $userId,
@@ -97,7 +94,6 @@ class NotificationService
                 );
             }
 
-            // Email
             try {
                 Mail::to($reviewer->email)->send(
                     new WorkRequestAssignedMail($wr, $info['role'], $isFirst)
@@ -114,8 +110,6 @@ class NotificationService
 
     /**
      * A reviewer completed their step → notify the next reviewer.
-     * Also notify admin if it has reached admin_final.
-     *
      * Call this AFTER $wr->advanceReviewStep() has been saved.
      */
     public static function workRequestStepAdvanced(WorkRequest $wr, string $completedByName, string $completedStep): void
@@ -136,7 +130,6 @@ class NotificationService
         if ($nextStep === 'admin_final') {
             $admins = User::where('role', 'admin')->get();
 
-            // In-app
             Notification::send(
                 $admins->pluck('id')->toArray(),
                 'work_request',
@@ -146,7 +139,6 @@ class NotificationService
                 $wr
             );
 
-            // Email
             foreach ($admins as $admin) {
                 try {
                     Mail::to($admin->email)->send(new WorkRequestReadyForDecisionMail($wr));
@@ -161,17 +153,15 @@ class NotificationService
             return;
         }
 
-        // Find the assigned user for the next step
         $col = WorkRequest::REVIEW_STEPS[$nextStep]['assigned_col'] ?? null;
         if (!$col || !$wr->$col) return;
 
-        $nextReviewer = User::find($wr->$col);
+        $nextReviewer  = User::find($wr->$col);
         if (!$nextReviewer) return;
 
         $nextStepLabel = $stepLabels[$nextStep]      ?? $nextStep;
         $prevLabel     = $stepLabels[$completedStep] ?? $completedStep;
 
-        // In-app
         Notification::send(
             $wr->$col,
             'work_request',
@@ -181,7 +171,6 @@ class NotificationService
             $wr
         );
 
-        // Email
         try {
             Mail::to($nextReviewer->email)->send(
                 new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
@@ -195,7 +184,7 @@ class NotificationService
     }
 
     /**
-     * Admin made a final decision (approved/rejected) → notify contractor.
+     * Provincial Engineer made the final decision → notify contractor (and MTQA if approved).
      */
     public static function workRequestDecisionMade(WorkRequest $wr): void
     {
@@ -205,14 +194,12 @@ class NotificationService
 
         if (!$contractor) return;
 
-        // FIX: Use $wr->status (set by Provincial Engineer via storeProvincialDecision)
-        // The old code read $wr->admin_decision which is never set in this flow → always null → always "Rejected"
         $isApproved = $wr->status === WorkRequest::STATUS_APPROVED;
         $decision   = $isApproved ? 'Approved ✅' : 'Rejected ❌';
         $emoji      = $isApproved ? '🎉' : '😔';
         $statusWord = $isApproved ? 'approved' : 'rejected';
 
-        // Also notify the assigned MTQA if approved (ready to print)
+        // Notify assigned MTQA when approved — they can now print
         if ($isApproved && $wr->assigned_mtqa_id) {
             $mtqaUser = User::find($wr->assigned_mtqa_id);
             if ($mtqaUser) {
@@ -227,7 +214,7 @@ class NotificationService
             }
         }
 
-        // In-app → contractor
+        // Notify contractor of the outcome
         Notification::send(
             $contractor->id,
             'work_request',
@@ -238,7 +225,6 @@ class NotificationService
             $wr
         );
 
-        // Email
         try {
             Mail::to($contractor->email)->send(new WorkRequestDecisionMadeMail($wr));
         } catch (\Throwable $e) {
@@ -250,52 +236,326 @@ class NotificationService
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  CONCRETE POURING NOTIFICATIONS  (unchanged — not touched)
+    //  CONCRETE POURING NOTIFICATIONS
     // ══════════════════════════════════════════════════════════════
 
+    /**
+     * Contractor submitted a new Concrete Pouring request.
+     * → Notify: contractor (confirmation) + all admins (action needed).
+     */
     public static function concretePouringSubmitted(ConcretePouring $cp): void
     {
-        $admins = User::where('role', 'admin')->pluck('id')->toArray();
-        if (empty($admins)) return;
+        // Contractor confirmation
+        Notification::send(
+            $cp->requested_by_user_id,
+            'concrete_pouring',
+            '🏗️ Concrete Pouring Request Submitted',
+            "Your concrete pouring request {$cp->reference_number} for \"{$cp->project_name}\" has been submitted and is awaiting admin assignment.",
+            route('user.concrete-pouring.show', $cp->id),
+            $cp
+        );
+
+        // All admins
+        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+        if (empty($adminIds)) return;
 
         Notification::send(
-            $admins,
+            $adminIds,
             'concrete_pouring',
             '🏗️ New Concrete Pouring Request',
-            "A new concrete pouring request has been submitted for \"{$cp->project_name}\" ({$cp->contractor}).",
-            route('admin.concrete-pouring.show', $cp),
+            "A new concrete pouring request {$cp->reference_number} for \"{$cp->project_name}\" has been submitted by {$cp->contractor} and is awaiting reviewer assignment.",
+            route('admin.concrete-pouring.show', $cp->id),
             $cp
         );
     }
 
+    /**
+     * Contractor updated their Concrete Pouring request.
+     * → Notify: contractor (confirmation) only.
+     */
+    public static function concretePouringUpdated(ConcretePouring $cp): void
+    {
+        Notification::send(
+            $cp->requested_by_user_id,
+            'concrete_pouring',
+            '✏️ Concrete Pouring Request Updated',
+            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been updated successfully.",
+            route('user.concrete-pouring.show', $cp->id),
+            $cp
+        );
+    }
+
+    /**
+     * Contractor deleted their Concrete Pouring request.
+     * → Notify: contractor (confirmation) only.
+     *
+     * Pass $contractorId separately since the record will be deleted before this runs.
+     */
+    public static function concretePouringDeleted(int $contractorId, string $referenceNumber, string $projectName): void
+    {
+        Notification::send(
+            $contractorId,
+            'concrete_pouring',
+            '🗑️ Concrete Pouring Request Deleted',
+            "Your concrete pouring request {$referenceNumber} ({$projectName}) has been deleted.",
+            route('user.concrete-pouring.index'),
+            null
+        );
+    }
+
+    /**
+     * Admin assigned reviewers to a Concrete Pouring request.
+     * → Notify: contractor (under review) + each assigned reviewer (queued or active turn).
+     */
+    public static function concretePouringAssigned(ConcretePouring $cp): void
+    {
+        // Notify contractor that review has started
+        Notification::send(
+            $cp->requested_by_user_id,
+            'concrete_pouring',
+            '🔍 Concrete Pouring Request Under Review',
+            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been picked up by admin and reviewers have been assigned. The review process has begun.",
+            route('user.concrete-pouring.show', $cp->id),
+            $cp
+        );
+
+        $reviewerMeta = [
+            'mtqa'                => ['col' => 'me_mtqa_user_id',           'label' => 'ME/MTQA'],
+            'resident_engineer'   => ['col' => 'resident_engineer_user_id', 'label' => 'Resident Engineer'],
+            'provincial_engineer' => ['col' => 'noted_by_user_id',          'label' => 'Provincial Engineer'],
+        ];
+
+        foreach ($reviewerMeta as $step => $meta) {
+            $userId = $cp->{$meta['col']};
+            if (!$userId) continue;
+
+            $isFirst = $cp->current_review_step === $step;
+
+            if ($isFirst) {
+                Notification::send(
+                    $userId,
+                    'concrete_pouring',
+                    '🔔 Action Required — Concrete Pouring Review',
+                    "You have been assigned as {$meta['label']} for concrete pouring request {$cp->reference_number} ({$cp->project_name}). It is now your turn to review.",
+                    route('reviewer.concrete-pouring.show', $cp->id),
+                    $cp
+                );
+            } else {
+                Notification::send(
+                    $userId,
+                    'concrete_pouring',
+                    '📌 You Are in the Review Queue',
+                    "You have been queued as {$meta['label']} for concrete pouring request {$cp->reference_number} ({$cp->project_name}). You'll be notified when it's your turn.",
+                    route('reviewer.concrete-pouring.show', $cp->id),
+                    $cp
+                );
+            }
+        }
+    }
+
+    /**
+     * A reviewer signed and submitted their step.
+     * → Notify: all admins + every OTHER assigned reviewer (not the signer).
+     * The next reviewer will be notified separately via concretePouringStepAdvanced().
+     */
+    public static function concretePouringSignatureSubmitted(
+        ConcretePouring $cp,
+        string          $roleLabel,
+        int             $signerId
+    ): void {
+        $message = "{$roleLabel} has signed and submitted their review for concrete pouring request {$cp->reference_number} ({$cp->project_name}).";
+
+        // All admins
+        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+        if (!empty($adminIds)) {
+            Notification::send(
+                $adminIds,
+                'concrete_pouring',
+                "✍️ Signature Submitted — {$roleLabel}",
+                $message,
+                route('admin.concrete-pouring.show', $cp->id),
+                $cp
+            );
+        }
+
+        // Every OTHER assigned reviewer
+        $reviewerCols = [
+            'me_mtqa_user_id'           => 'ME/MTQA',
+            'resident_engineer_user_id' => 'Resident Engineer',
+            'noted_by_user_id'          => 'Provincial Engineer',
+        ];
+
+        foreach ($reviewerCols as $col => $label) {
+            $reviewerId = $cp->$col;
+            if ($reviewerId && $reviewerId != $signerId) {
+                Notification::send(
+                    $reviewerId,
+                    'concrete_pouring',
+                    "✍️ Signature Submitted — {$roleLabel}",
+                    $message,
+                    route('reviewer.concrete-pouring.show', $cp->id),
+                    $cp
+                );
+            }
+        }
+    }
+
+    /**
+     * Review step advanced to the next reviewer.
+     * → Notify: next reviewer (it's their turn).
+     * If the next step is admin_final, notify all admins instead.
+     */
+    public static function concretePouringStepAdvanced(ConcretePouring $cp, string $completedStep): void
+    {
+        $nextStep = $cp->current_review_step;
+
+        if ($nextStep === 'admin_final') {
+            $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+            if (!empty($adminIds)) {
+                Notification::send(
+                    $adminIds,
+                    'concrete_pouring',
+                    '✅ Concrete Pouring Ready for Final Decision',
+                    "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision.",
+                    route('admin.concrete-pouring.show', $cp->id),
+                    $cp
+                );
+            }
+            return;
+        }
+
+        $stepToCol = [
+            'mtqa'                => 'me_mtqa_user_id',
+            'resident_engineer'   => 'resident_engineer_user_id',
+            'provincial_engineer' => 'noted_by_user_id',
+        ];
+
+        $stepLabels = [
+            'mtqa'                => 'ME/MTQA',
+            'resident_engineer'   => 'Resident Engineer',
+            'provincial_engineer' => 'Provincial Engineer',
+        ];
+
+        $col = $stepToCol[$nextStep] ?? null;
+        if (!$col || !$cp->$col) return;
+
+        $nextLabel = $stepLabels[$nextStep] ?? $nextStep;
+
+        Notification::send(
+            $cp->$col,
+            'concrete_pouring',
+            '🔔 Action Required — Concrete Pouring Review',
+            "It is now your turn as {$nextLabel} to review concrete pouring request {$cp->reference_number} ({$cp->project_name}).",
+            route('reviewer.concrete-pouring.show', $cp->id),
+            $cp
+        );
+    }
+
+    /**
+     * Provincial Engineer submitted their note — pipeline goes to admin_final.
+     * → Notify: all admins + MTQA reviewer only.
+     */
+    public static function concretePouringReadyForDecision(ConcretePouring $cp): void
+    {
+        // All admins
+        $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
+        if (!empty($adminIds)) {
+            Notification::send(
+                $adminIds,
+                'concrete_pouring',
+                '✅ Concrete Pouring Ready for Final Decision',
+                "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision.",
+                route('admin.concrete-pouring.show', $cp->id),
+                $cp
+            );
+        }
+
+        // MTQA reviewer (if assigned)
+        if ($cp->me_mtqa_user_id) {
+            Notification::send(
+                $cp->me_mtqa_user_id,
+                'concrete_pouring',
+                '📋 Concrete Pouring Awaiting Final Decision',
+                "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been fully reviewed and is now awaiting admin final decision.",
+                route('reviewer.concrete-pouring.show', $cp->id),
+                $cp
+            );
+        }
+    }
+
+    /**
+     * Admin approved the Concrete Pouring request.
+     * → Notify: contractor + all assigned reviewers.
+     */
     public static function concretePouringApproved(ConcretePouring $cp): void
     {
-        $requester = $cp->requestedBy?->user;
-        if (!$requester) return;
+        $remarksNote = $cp->approval_remarks ? " Remarks: {$cp->approval_remarks}" : '';
 
+        // Contractor
         Notification::send(
-            $requester->id,
+            $cp->requested_by_user_id,
             'concrete_pouring',
             '✅ Concrete Pouring Request Approved',
-            "Your concrete pouring request for \"{$cp->project_name}\" has been approved." .
-            ($cp->approval_remarks ? " Remarks: {$cp->approval_remarks}" : ''),
-            route('user.concrete-pouring.show', $cp),
+            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been approved.{$remarksNote}",
+            route('user.concrete-pouring.show', $cp->id),
             $cp
+        );
+
+        // All assigned reviewers
+        self::notifyAllReviewers(
+            $cp,
+            '✅ Concrete Pouring Request Approved',
+            "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) that you reviewed has been approved by admin.{$remarksNote}"
         );
     }
 
+    /**
+     * Admin disapproved the Concrete Pouring request.
+     * → Notify: contractor + all assigned reviewers.
+     */
     public static function concretePouringDisapproved(ConcretePouring $cp): void
     {
-        $requester = $cp->requestedBy?->user;
-        if (!$requester) return;
+        $remarksNote = $cp->approval_remarks ? " Remarks: {$cp->approval_remarks}" : '';
 
+        // Contractor
         Notification::send(
-            $requester->id,
+            $cp->requested_by_user_id,
             'concrete_pouring',
             '❌ Concrete Pouring Request Disapproved',
-            "Your concrete pouring request for \"{$cp->project_name}\" has been disapproved." .
-            ($cp->approval_remarks ? " Reason: {$cp->approval_remarks}" : ''),
-            route('user.concrete-pouring.show', $cp),
+            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been disapproved.{$remarksNote}",
+            route('user.concrete-pouring.show', $cp->id),
+            $cp
+        );
+
+        // All assigned reviewers
+        self::notifyAllReviewers(
+            $cp,
+            '❌ Concrete Pouring Request Disapproved',
+            "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) that you reviewed has been disapproved by admin.{$remarksNote}"
+        );
+    }
+
+    // ── Private helper ────────────────────────────────────────────────────────
+
+    /**
+     * Send a notification to every assigned reviewer on a ConcretePouring.
+     */
+    private static function notifyAllReviewers(ConcretePouring $cp, string $title, string $message): void
+    {
+        $reviewerIds = collect([
+            $cp->me_mtqa_user_id,
+            $cp->resident_engineer_user_id,
+            $cp->noted_by_user_id,
+        ])->filter()->unique()->values()->toArray();
+
+        if (empty($reviewerIds)) return;
+
+        Notification::send(
+            $reviewerIds,
+            'concrete_pouring',
+            $title,
+            $message,
+            route('reviewer.concrete-pouring.show', $cp->id),
             $cp
         );
     }
