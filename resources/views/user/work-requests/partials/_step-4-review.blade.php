@@ -7,238 +7,338 @@
         {{-- Filled by JS --}}
     </div>
 
-    {{-- ── Contractor Signature ── --}}
-    <div style="margin-top: 24px; background: var(--wr-surface2); border: 1.5px solid var(--wr-border);
-                border-radius: var(--wr-radius); padding: 20px;">
-
-        <label class="wr-label" style="margin-bottom: 12px; display:block;">
-            ✍️ Contractor Signature <span class="wr-req">*</span>
-        </label>
-
-        {{-- If user has a saved signature, show it with choice radios --}}
-        @if(Auth::user()->signature_path)
-            <div style="margin-bottom:16px; padding:12px; background:var(--wr-surface);
-                        border-radius:8px; border:1px solid var(--wr-border);">
-                <p style="font-size:13px; color:var(--wr-label); margin-bottom:12px;">
-                    Use your saved signature:
-                </p>
-                <img src="{{ asset('storage/' . Auth::user()->signature_path) }}"
-                     alt="Your Signature"
-                     style="max-width:250px; margin-bottom:12px; border:1px solid var(--wr-border);
-                            border-radius:4px; background:var(--wr-surface); display:block;">
-                <div style="display:flex; gap:16px;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="radio" name="ct_signature_mode" value="saved" checked>
-                        <span style="font-size:13px; color:var(--wr-text);">Use this signature</span>
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="radio" name="ct_signature_mode" value="draw">
-                        <span style="font-size:13px; color:var(--wr-text);">Draw a new one</span>
-                    </label>
-                </div>
+    {{-- E-Signature Section --}}
+    <div class="wr-sig-section">
+        <div class="wr-sig-header">
+            <span class="wr-sig-icon">✍️</span>
+            <div>
+                <div class="wr-sig-title">Contractor Signature</div>
+                <div class="wr-sig-sub">Sign below to confirm and authorize this work request.</div>
             </div>
-        @endif
-
-        {{-- Draw pad (hidden if saved sig exists, shown by default otherwise) --}}
-        <div id="ct-signature-pad-wrap" {{ Auth::user()->signature_path ? 'style=display:none' : '' }}>
-            <p style="font-size:13px; color:var(--wr-label); margin-bottom:12px;">
-                Draw your signature below:
-            </p>
-            <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-                <div>
-                    <canvas id="ct-signature-pad" width="400" height="150"
-                        style="border:2px solid var(--wr-border); border-radius:8px;
-                               background:var(--wr-surface); cursor:crosshair; display:block;
-                               touch-action:none;">
-                    </canvas>
-                    <button type="button" id="ct-clear-signature"
-                            style="margin-top:8px; padding:6px 16px; background:#ef4444;
-                                   color:#fff; border:none; border-radius:6px;
-                                   font-size:12px; cursor:pointer;">
-                        <i class="fas fa-redo mr-1"></i> Clear
-                    </button>
-                </div>
-                <div>
-                    <p style="font-size:12px; color:var(--wr-label); margin-bottom:8px; font-weight:600;">
-                        Preview:
-                    </p>
-                    <img id="ct-signature-preview" src="" alt="Signature Preview"
-                         style="border:2px solid var(--wr-border); border-radius:8px;
-                                background:var(--wr-surface); min-width:200px; height:100px; display:none;">
-                    <div id="ct-signature-empty"
-                         style="border:2px dashed var(--wr-border); border-radius:8px;
-                                background:var(--wr-surface2); min-width:200px; height:100px;
-                                display:flex; align-items:center; justify-content:center;
-                                color:var(--wr-muted); font-size:12px;">
-                        Signature preview
-                    </div>
-                </div>
-            </div>
+            <button type="button" class="wr-sig-clear-btn" onclick="wrSigClear()" title="Clear signature">
+                ↺ Clear
+            </button>
         </div>
 
-        <p class="wr-err-msg" id="err-contractor_signature" style="margin-top:10px;">
-            ⚠ Please provide your signature before submitting.
+        <div class="wr-sig-canvas-wrap" id="wr-sig-wrap">
+            {{-- NO width/height attributes — JS sets them from actual rendered size --}}
+            <canvas id="wr-sig-canvas" style="display:block; touch-action:none; cursor:crosshair;"></canvas>
+            <div class="wr-sig-placeholder" id="wr-sig-placeholder">
+                <span>✍</span>
+                <span>Draw your signature here</span>
+            </div>
+            <div class="wr-sig-baseline"></div>
+        </div>
+
+        <div class="wr-sig-meta">
+            <span id="wr-sig-name">{{ Auth::user()->name }}</span>
+            <span>·</span>
+            <span id="wr-sig-date"></span>
+        </div>
+
+        <p class="wr-err-msg" id="err-contractor_signature">
+            ⚠ Please sign before submitting.
         </p>
     </div>
 
-    {{-- Hidden field that carries the actual signature data --}}
-    <input type="hidden"
-           name="contractor_signature"
-           id="ct-signature-output"
-           value="{{ Auth::user()->signature_path ? asset('storage/' . Auth::user()->signature_path) : '' }}">
+    <input type="hidden" name="contractor_signature" id="wr-sig-data">
 
     <div class="wr-nav">
         <button type="button" class="wr-btn wr-btn-ghost" onclick="wrPrevStep(4)">← Edit</button>
-        <button type="submit" class="wr-btn wr-btn-success" id="wr-submit-btn"
-                onclick="return wrValidateContractorSignature()">
+        <button type="submit" class="wr-btn wr-btn-success" id="wr-submit-btn" onclick="return wrValidateSignature()">
             🚀 Submit Request
         </button>
     </div>
 </div>
 
+<style>
+.wr-sig-section {
+    margin-top: 24px;
+    background: var(--wr-surface2);
+    border: 1.5px solid var(--wr-border);
+    border-radius: var(--wr-radius);
+    padding: 20px;
+    position: relative;
+}
+
+.wr-sig-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.wr-sig-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.wr-sig-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--wr-text);
+}
+
+.wr-sig-sub {
+    font-size: 12px;
+    color: var(--wr-muted);
+    margin-top: 2px;
+}
+
+.wr-sig-clear-btn {
+    margin-left: auto;
+    background: none;
+    border: 1.5px solid var(--wr-border);
+    border-radius: 6px;
+    color: var(--wr-muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+.wr-sig-clear-btn:hover {
+    border-color: var(--wr-accent3);
+    color: var(--wr-accent3);
+    background: rgba(220,38,38,0.06);
+}
+
+.wr-sig-canvas-wrap {
+    position: relative;
+    background: var(--wr-surface);
+    border: 1.5px solid var(--wr-border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: crosshair;
+    transition: border-color 0.2s;
+    height: 180px;        /* wrap drives the height */
+}
+.wr-sig-canvas-wrap.signing {
+    border-color: var(--wr-accent);
+    box-shadow: 0 0 0 3px rgba(79,141,255,0.10);
+}
+html:not(.dark) .wr-sig-canvas-wrap.signing {
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.09);
+}
+
+#wr-sig-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+}
+
+.wr-sig-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+.wr-sig-placeholder span:first-child {
+    font-size: 36px;
+    opacity: 0.13;
+}
+.wr-sig-placeholder span:last-child {
+    font-size: 13px;
+    color: var(--wr-muted);
+    opacity: 0.7;
+    font-style: italic;
+}
+.wr-sig-placeholder.hidden {
+    opacity: 0;
+}
+
+.wr-sig-baseline {
+    position: absolute;
+    bottom: 38px;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--wr-border) 0,
+        var(--wr-border) 8px,
+        transparent 8px,
+        transparent 14px
+    );
+    pointer-events: none;
+}
+
+.wr-sig-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--wr-muted);
+    font-family: 'Inter', sans-serif;
+}
+
+.wr-sig-section .wr-err-msg {
+    margin-top: 8px;
+}
+</style>
+
 <script>
 (function () {
     'use strict';
 
-    /* ── Canvas init ── */
-    function initContractorPad() {
-        const canvas   = document.getElementById('ct-signature-pad');
-        const output   = document.getElementById('ct-signature-output');
-        const clearBtn = document.getElementById('ct-clear-signature');
-        const preview  = document.getElementById('ct-signature-preview');
-        const empty    = document.getElementById('ct-signature-empty');
+    /* ── state ── */
+    var canvas, ctx;
+    var isDrawing = false;
+    var lastX = 0, lastY = 0;
+    var hasSig = false;
+    var initialized = false;
 
+    /* ── date label ── */
+    var d = document.getElementById('wr-sig-date');
+    if (d) d.textContent = new Date().toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    /* ── init ── */
+    function initCanvas() {
+        canvas = document.getElementById('wr-sig-canvas');
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        let drawing = false;
+        var wrap = document.getElementById('wr-sig-wrap');
 
-        /* ── Mouse ── */
-        canvas.addEventListener('mousedown', () => {
-            drawing = true;
-            ctx.beginPath();
-        });
+        /* Use offsetWidth/Height — works even before paint settles */
+        var w = wrap.offsetWidth  || 600;
+        var h = wrap.offsetHeight || 180;
 
-        canvas.addEventListener('mouseup', () => {
-            drawing = false;
-            syncOutput();
-        });
+        canvas.width  = w;
+        canvas.height = h;
 
-        canvas.addEventListener('mouseleave', () => {
-            drawing = false;
-        });
+        ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth   = 2;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (!drawing) return;
-            const rect = canvas.getBoundingClientRect();
-            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            ctx.lineWidth = 2;
-            ctx.lineCap  = 'round';
-            ctx.lineJoin = 'round';
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-        });
-
-        /* ── Touch ── */
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            drawing = true;
-            ctx.beginPath();
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            drawing = false;
-            syncOutput();
-        }, { passive: false });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (!drawing) return;
-            const rect  = canvas.getBoundingClientRect();
-            const touch = e.touches[0];
-            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
-            ctx.lineWidth = 2;
-            ctx.lineCap  = 'round';
-            ctx.lineJoin = 'round';
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
-        }, { passive: false });
-
-        /* ── Sync canvas → hidden input + preview ── */
-        function syncOutput() {
-            const dataUrl = canvas.toDataURL('image/png');
-            output.value = dataUrl;
-            if (preview && empty) {
-                preview.src = dataUrl;
-                preview.style.display = 'block';
-                empty.style.display   = 'none';
-            }
+        if (!initialized) {
+            initialized = true;
+            canvas.addEventListener('mousedown',  onStart);
+            canvas.addEventListener('mousemove',  onMove);
+            canvas.addEventListener('mouseup',    onEnd);
+            canvas.addEventListener('mouseleave', onEnd);
+            canvas.addEventListener('touchstart', onStart, { passive: false });
+            canvas.addEventListener('touchmove',  onMove,  { passive: false });
+            canvas.addEventListener('touchend',   onEnd,   { passive: false });
         }
-
-        /* ── Clear ── */
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                output.value = '';
-                if (preview && empty) {
-                    preview.style.display = 'none';
-                    preview.src = '';
-                    empty.style.display = 'flex';
-                }
-            });
-        }
-
-        /* ── Radio toggle (saved vs draw) ── */
-        document.querySelectorAll('input[name="ct_signature_mode"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                const padWrap = document.getElementById('ct-signature-pad-wrap');
-                if (e.target.value === 'draw') {
-                    padWrap.style.display = 'block';
-                    output.value = '';
-                    if (preview && empty) {
-                        preview.style.display = 'none';
-                        preview.src = '';
-                        empty.style.display = 'flex';
-                    }
-                } else {
-                    padWrap.style.display = 'none';
-                    output.value = '{{ Auth::user()->signature_path ? asset("storage/" . Auth::user()->signature_path) : "" }}';
-                }
-            });
-        });
     }
 
-    /* ── Validation before submit ── */
-    window.wrValidateContractorSignature = function () {
-        const output = document.getElementById('ct-signature-output');
-        const err    = document.getElementById('err-contractor_signature');
+    /* ── coordinate helper ── */
+    function getXY(e) {
+        var r   = canvas.getBoundingClientRect();
+        /* scale from CSS pixels → canvas pixels */
+        var scaleX = canvas.width  / r.width;
+        var scaleY = canvas.height / r.height;
+        var src = e.touches ? e.touches[0] : e;
+        return [
+            (src.clientX - r.left) * scaleX,
+            (src.clientY - r.top)  * scaleY
+        ];
+    }
 
-        if (!output || !output.value.trim()) {
-            if (err) err.classList.add('show');
-            const padWrap = document.getElementById('ct-signature-pad-wrap');
-            if (padWrap) padWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+    /* ── draw handlers ── */
+    function onStart(e) {
+        e.preventDefault();
+        isDrawing = true;
+        var xy = getXY(e);
+        lastX = xy[0]; lastY = xy[1];
+        document.getElementById('wr-sig-wrap').classList.add('signing');
+    }
+
+    function onMove(e) {
+        e.preventDefault();
+        if (!isDrawing) return;
+        var xy = getXY(e);
+        var x = xy[0], y = xy[1];
+
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        lastX = x; lastY = y;
+
+        if (!hasSig) {
+            hasSig = true;
+            var ph = document.getElementById('wr-sig-placeholder');
+            if (ph) ph.classList.add('hidden');
         }
 
+        document.getElementById('wr-sig-data').value = canvas.toDataURL('image/png');
+    }
+
+    function onEnd(e) {
+        if (e && e.cancelable) e.preventDefault();
+        isDrawing = false;
+    }
+
+    /* ── clear ── */
+    window.wrSigClear = function () {
+        if (!canvas) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasSig = false;
+        document.getElementById('wr-sig-data').value = '';
+        var ph = document.getElementById('wr-sig-placeholder');
+        if (ph) ph.classList.remove('hidden');
+        var wrap = document.getElementById('wr-sig-wrap');
+        if (wrap) wrap.classList.remove('signing');
+        var err = document.getElementById('err-contractor_signature');
+        if (err) err.classList.remove('show');
+    };
+
+    /* ── validate on submit ── */
+    window.wrValidateSignature = function () {
+        var err = document.getElementById('err-contractor_signature');
+        if (!hasSig) {
+            if (err) err.classList.add('show');
+            var wrap = document.getElementById('wr-sig-wrap');
+            if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
         if (err) err.classList.remove('show');
         return true;
     };
 
-    /* ── Init when step 4 becomes active ── */
-    const origShow = window.wrShowStep;
-    window.wrShowStep = function (n) {
-        origShow(n);
-        if (n === 4) requestAnimationFrame(initContractorPad);
-    };
+    /* ── hook into step navigation ── */
+    function hookStepShow() {
+        var orig = window.wrShowStep;
+        if (typeof orig !== 'function') {
+            /* wrShowStep not ready yet — wait */
+            setTimeout(hookStepShow, 50);
+            return;
+        }
+        window.wrShowStep = function (n) {
+            orig(n);
+            if (n === 4) {
+                initialized = false;  /* allow re-init on revisit */
+                hasSig = false;
+                setTimeout(initCanvas, 80);
+            }
+        };
+    }
 
-    /* ── Also init if landing on step 4 directly (after validation error) ── */
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('panel-4')?.classList.contains('active')) {
-            initContractorPad();
+    hookStepShow();
+
+    /* ── handle landing directly on step 4 (validation error redirect) ── */
+    document.addEventListener('DOMContentLoaded', function () {
+        if (document.getElementById('panel-4') &&
+            document.getElementById('panel-4').classList.contains('active')) {
+            setTimeout(initCanvas, 80);
         }
     });
+
 })();
 </script>

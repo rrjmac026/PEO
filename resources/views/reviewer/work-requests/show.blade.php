@@ -113,6 +113,36 @@
                                 {{ $workRequest->contractor_name ?? 'Not specified' }}
                             </span>
                         </div>
+                        {{-- inside the wrd-info-grid in the Project Information card --}}
+                            @if($workRequest->contractor_signature)
+                                <div class="wrd-info-item span2">
+                                    <span class="wrd-info-label">Contractor Signature</span>
+                                    <div style="
+                                        margin-top: 6px;
+                                        display: inline-block;
+                                        background: var(--wr-surface);
+                                        border: 1px solid var(--wr-border);
+                                        border-radius: 8px;
+                                        padding: 10px 16px;
+                                    ">
+                                        <img src="{{ $workRequest->contractor_signature }}"
+                                            alt="Contractor Signature"
+                                            style="display: block; max-width: 280px; max-height: 90px; object-fit: contain;">
+                                        <div style="
+                                            margin-top: 8px;
+                                            padding-top: 6px;
+                                            border-top: 1px dashed var(--wr-border);
+                                            font-size: 11px;
+                                            color: var(--wr-muted);
+                                            font-family: 'Inter', sans-serif;
+                                        ">
+                                            {{ $workRequest->contractor_name }}
+                                            &nbsp;·&nbsp;
+                                            {{ $workRequest->created_at->format('M d, Y') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         <div class="wrd-info-item">
                             <span class="wrd-info-label">Work Start Date & Time</span>
                             <span class="wrd-info-value {{ !$workRequest->requested_work_start_date ? 'empty' : '' }}">
@@ -459,69 +489,70 @@
                     @endif
 
                     {{-- Approved By --}}
-                    @if($workRequest->approved_by || $workRequest->approved_recommendation_action)
-                        <div style="padding:16px; border-left:4px solid #14b8a6; border-radius:4px; background:rgba(20,184,166,0.06); margin-bottom:16px;">
-                            <p style="font-size:12px; font-weight:700; color:#14b8a6; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">
-                                <i class="fas fa-check-circle mr-2"></i> Approved By (Provincial Engineer)
-                            </p>
-                            <div class="wrd-info-grid">
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Name</span>
-                                    <span class="wrd-info-value {{ !$workRequest->approved_by ? 'empty' : '' }}">
-                                        {{ $workRequest->approved_by ?? 'Not specified' }}
-                                    </span>
-                                </div>
-                                @if($workRequest->approved_signature)
+                        @if($workRequest->approved_by || $workRequest->approved_recommendation_action)
+                            <div style="padding:16px; border-left:4px solid #14b8a6; border-radius:4px; background:rgba(20,184,166,0.06); margin-bottom:16px;">
+                                <p style="font-size:12px; font-weight:700; color:#14b8a6; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">
+                                    <i class="fas fa-check-circle mr-2"></i> Approved By (Provincial Engineer)
+                                </p>
+                                <div class="wrd-info-grid">
                                     <div class="wrd-info-item">
-                                        <span class="wrd-info-label">Signature</span>
-                                        <img src="{{ $workRequest->approved_signature }}" alt="Approval Signature"
-                                            style="max-width:180px; border:1px solid var(--wr-border); border-radius:6px; padding:4px; background:var(--wr-surface);">
+                                        <span class="wrd-info-label">Name</span>
+                                        <span class="wrd-info-value {{ !$workRequest->approved_by ? 'empty' : '' }}">
+                                            {{ $workRequest->approved_by ?? 'Not specified' }}
+                                        </span>
                                     </div>
-                                @endif
-                                <div class="wrd-info-item span2">
-                                    <span class="wrd-info-label">Recommendation Action</span>
-                                    <span class="wrd-info-value pre {{ !$workRequest->approved_recommendation_action ? 'empty' : '' }}">
-                                        {{ $workRequest->approved_recommendation_action ?? 'No action specified' }}
-                                    </span>
+                                    @if($workRequest->approved_signature)
+                                        <div class="wrd-info-item">
+                                            <span class="wrd-info-label">Signature</span>
+                                            <img src="{{ $workRequest->approved_signature }}" alt="Approval Signature"
+                                                style="max-width:180px; border:1px solid var(--wr-border); border-radius:6px; padding:4px; background:var(--wr-surface);">
+                                        </div>
+                                    @endif
+                                    <div class="wrd-info-item span2">
+                                        <span class="wrd-info-label">Recommendation Action</span>
+                                        <span class="wrd-info-value pre {{ !$workRequest->approved_recommendation_action ? 'empty' : '' }}">
+                                            {{ $workRequest->approved_recommendation_action ?? 'No action specified' }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    @else
-                        <div style="padding:16px; border-left:4px solid #14b8a6; border-radius:4px; background:rgba(20,184,166,0.04); margin-bottom:16px;">
-                            <p style="font-size:12px; font-weight:700; color:#14b8a6; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
-                                <i class="fas fa-check-circle mr-2"></i> Approved By (Provincial Engineer)
-                            </p>
-                            <p style="font-size:13px; color:var(--wr-muted); font-style:italic;">No approval submitted yet.</p>
-                        </div>
-                    @endif
+                        @else
+                            <div style="padding:16px; border-left:4px solid #14b8a6; border-radius:4px; background:rgba(20,184,166,0.04); margin-bottom:16px;">
+                                <p style="font-size:12px; font-weight:700; color:#14b8a6; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                                    <i class="fas fa-check-circle mr-2"></i> Approved By (Provincial Engineer)
+                                </p>
+                                <p style="font-size:13px; color:var(--wr-muted); font-style:italic;">No approval submitted yet.</p>
+                            </div>
+                        @endif
+
                     {{-- Acceptance --}}
-                    @if($workRequest->accepted_by_contractor || $workRequest->accepted_date)
-                        <div style="padding:16px; border-left:4px solid #6b7280; border-radius:4px; background:rgba(107,114,128,0.06);">
-                            <p style="font-size:12px; font-weight:700; color:#6b7280; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">
-                                <i class="fas fa-handshake mr-2"></i> Acceptance
-                            </p>
-                            <div class="wrd-info-grid three">
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Accepted By</span>
-                                    <span @class(['wrd-info-value' => true, 'empty' => !$workRequest->accepted_by_contractor])>
-                                        {{ $workRequest->accepted_by_contractor ?? 'Not specified' }}
-                                    </span>
-                                </div>
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Date</span>
-                                    <span @class(['wrd-info-value' => true, 'empty' => !$workRequest->accepted_date])>
-                                        {{ $workRequest->accepted_date?->format('M d, Y') ?? 'Not set' }}
-                                    </span>
-                                </div>
-                                <div class="wrd-info-item">
-                                    <span class="wrd-info-label">Time</span>
-                                    <span class="wrd-info-value {{ !$workRequest->accepted_time ? 'empty' : '' }}">
-                                        {{ $workRequest->accepted_time ?? 'Not set' }}
-                                    </span>
+                        @if($workRequest->accepted_by_contractor || $workRequest->accepted_date)
+                            <div style="padding:16px; border-left:4px solid #6b7280; border-radius:4px; background:rgba(107,114,128,0.06);">
+                                <p style="font-size:12px; font-weight:700; color:#6b7280; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">
+                                    <i class="fas fa-handshake mr-2"></i> Acceptance
+                                </p>
+                                <div class="wrd-info-grid three">
+                                    <div class="wrd-info-item">
+                                        <span class="wrd-info-label">Accepted By</span>
+                                        <span @class(['wrd-info-value' => true, 'empty' => !$workRequest->accepted_by_contractor])>
+                                            {{ $workRequest->accepted_by_contractor ?? 'Not specified' }}
+                                        </span>
+                                    </div>
+                                    <div class="wrd-info-item">
+                                        <span class="wrd-info-label">Date</span>
+                                        <span @class(['wrd-info-value' => true, 'empty' => !$workRequest->accepted_date])>
+                                            {{ $workRequest->accepted_date?->format('M d, Y') ?? 'Not set' }}
+                                        </span>
+                                    </div>
+                                    <div class="wrd-info-item">
+                                        <span class="wrd-info-label">Time</span>
+                                        <span class="wrd-info-value {{ !$workRequest->accepted_time ? 'empty' : '' }}">
+                                            {{ $workRequest->accepted_time ?? 'Not set' }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    @endif
+                        @endif
 
                 </div>
             </div>
