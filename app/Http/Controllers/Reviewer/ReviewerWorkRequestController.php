@@ -313,17 +313,11 @@ class ReviewerWorkRequestController extends Controller
             'approved_recommendation_action' => $request->approved_recommendation_action,
             'approved_signature'             => $this->resolveSignatureValue($request->input('approved_signature')),
             'status'                         => $newStatus,
-            'current_review_step'            => null, // pipeline complete
-        ]);
+            'current_review_step'            => null,
 
-        $event = $request->decision === 'approved'
-            ? WorkRequestLog::EVENT_APPROVED
-            : WorkRequestLog::EVENT_REJECTED;
-
-        $workRequest->addLog($event, [
-            'description' => 'Provincial Engineer final decision: ' . $request->decision . ' by ' . Auth::user()->name,
-            'user_id'     => Auth::id(),
-            'status_to'   => $newStatus,
+            // ── These two lines must be present ──────────────────────────────
+            'accepted_date' => $request->decision === 'approved' ? now()->toDateString() : null,
+            'accepted_time' => $request->decision === 'approved' ? now()->format('H:i:s') : null,
         ]);
 
         // Notify MTQA that the request is approved and ready to print

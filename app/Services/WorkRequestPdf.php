@@ -564,7 +564,7 @@ class WorkRequestPdf extends \FPDF
 
         $this->lbl($rx + 57, $y + 1, 'Time:');
         $this->SetXY($rx + 57, $y + 5);
-        $this->Cell(self::CB + self::CC - 59, 4, $this->val($this->wr->accepted_time ?? ''), 'B');
+        $this->Cell(self::CB + self::CC - 59, 4, $this->fmtTime($this->wr->accepted_time ?? ''), 'B');
 
         return $y + $h;
     }
@@ -756,15 +756,26 @@ class WorkRequestPdf extends \FPDF
         return $v ?? '';
     }
 
-    private function fmtDate(?string $d, string $fmt = 'M d, Y'): string
+    private function fmtDate(mixed $d, string $fmt = 'M d, Y'): string
     {
         if (!$d) {
             return '';
         }
         try {
-            return Carbon::parse($d)->format($fmt);
+            return ($d instanceof \Carbon\Carbon ? $d : Carbon::parse($d))->format($fmt);
         } catch (\Throwable $e) {
             return '';
+        }
+    }
+    private function fmtTime(?string $t): string
+    {
+        if (!$t) {
+            return '';
+        }
+        try {
+            return Carbon::parse($t)->format('h:i A');
+        } catch (\Throwable $e) {
+            return $t;
         }
     }
 }
