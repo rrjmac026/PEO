@@ -5,13 +5,14 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class UserWorkRequestController extends Controller
 {
     /**
-     * Display a listing of user's own work requests
+     * Display a listing of user's own work requests.
      */
     public function index(Request $request)
     {
@@ -54,7 +55,8 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Show form to create new work request
+     * Show the creation form.
+     * Passes only Resident Engineers so the contractor can choose one.
      */
     public function create()
     {
@@ -65,11 +67,23 @@ class UserWorkRequestController extends Controller
             ->sort()
             ->values();
 
-        return view('user.work-requests.create', compact('referenceNumbers'));
+        // Only load resident engineers — the select is hidden when this is empty.
+        $residentEngineers = User::where('role', 'resident_engineer')
+            ->orderBy('name')
+            ->get();
+
+        return view('user.work-requests.create', compact(
+            'referenceNumbers',
+            'residentEngineers'
+        ));
     }
 
     /**
-     * Store new work request
+     * Store a new work request.
+     *
+     * If a Resident Engineer was chosen the request goes straight to the RE's
+     * review queue (current_review_step = 'resident_engineer', status = 'in_review').
+     * If none was chosen (no REs in system) it lands in the admin queue as normal.
      */
     public function store(Request $request)
     {
@@ -87,6 +101,9 @@ class UserWorkRequestController extends Controller
             'requested_work_start_date'     => 'required|date',
             'requested_work_start_time'     => 'nullable|string|max:20',
 
+            // Contractor-chosen Resident Engineer (required when engineers exist)
+            'assigned_resident_engineer_id' => 'nullable|exists:users,id',
+
             // Pay Item Details
             'item_no'                       => 'nullable|string|max:100',
             'description'                   => 'nullable|string|max:255',
@@ -98,26 +115,55 @@ class UserWorkRequestController extends Controller
 
             // Submission
             'contractor_name'               => 'nullable|string|max:255',
-            'contractor_signature' => 'nullable|string',
+            'contractor_signature'          => 'nullable|string',
         ]);
 
-        // Force contractor_name to logged-in user's name
+        // If there ARE resident engineers in the system, one must be chosen.
+        $engineersExist = User::where('role', 'resident_engineer')->exists();
+
+        if ($engineersExist && empty($validated['assigned_resident_engineer_id'])) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'assigned_resident_engineer_id' => 'Please select a Resident Engineer.',
+                ]);
+        }
+
+        // Force locked fields
         $validated['contractor_name'] = Auth::user()->name;
+        $validated['for_office']      = 'PROVINCIAL ENGINEERS OFFICE';
 
-        // Force for_office
-        $validated['for_office'] = 'PROVINCIAL ENGINEERS OFFICE';
+        // Clean up empty RE id
+        $validated['assigned_resident_engineer_id'] = $validated['assigned_resident_engineer_id'] ?: null;
 
-        // Set initial status
-        $validated['status'] = WorkRequest::STATUS_SUBMITTED;
+        // Decide routing:
+        //   • RE chosen  → skip admin, go straight to RE review queue
+        //   • No RE      → land in admin queue for manual assignment
+        if (!empty($validated['assigned_resident_engineer_id'])) {
+            $validated['status']              = WorkRequest::STATUS_IN_REVIEW;
+            $validated['current_review_step'] = 'resident_engineer';
+        } else {
+            $validated['status']              = WorkRequest::STATUS_SUBMITTED;
+            $validated['current_review_step'] = null;
+        }
 
         $workRequest = WorkRequest::create($validated);
 
+        $logDescription = !empty($validated['assigned_resident_engineer_id'])
+            ? 'Work request submitted by contractor. Sent directly to Resident Engineer for review.'
+            : 'Work request submitted by contractor. Awaiting admin assignment (no RE available).';
+
         $workRequest->addLog(WorkRequestLog::EVENT_SUBMITTED, [
-            'description' => 'Work request submitted by contractor',
+            'description' => $logDescription,
             'user_id'     => Auth::id(),
         ]);
-        
+
         \App\Services\NotificationService::workRequestSubmitted($workRequest);
+
+        // Notify the RE directly if one was chosen
+        if (!empty($validated['assigned_resident_engineer_id'])) {
+            \App\Services\NotificationService::workRequestAssigned($workRequest);
+        }
 
         return redirect()
             ->route('user.work-requests.show', $workRequest)
@@ -125,7 +171,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Display specific work request
+     * Display a specific work request.
      */
     public function show(WorkRequest $workRequest)
     {
@@ -137,7 +183,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Show edit form — only allowed fields, only if status allows
+     * Show the edit form — only if status still allows editing.
      */
     public function edit(WorkRequest $workRequest)
     {
@@ -155,7 +201,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Update work request — only allowed fields
+     * Update a work request.
      */
     public function update(Request $request, WorkRequest $workRequest)
     {
@@ -170,20 +216,13 @@ class UserWorkRequestController extends Controller
         }
 
         $validated = $request->validate([
-            // Reference Number
             'reference_number'              => 'nullable|string|max:100',
-
-            // Project Information
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
             'for_office'                    => 'nullable|string|max:255',
             'from_requester'                => 'nullable|string|max:255',
-
-            // Schedule
             'requested_work_start_date'     => 'required|date',
             'requested_work_start_time'     => 'nullable|string|max:20',
-
-            // Pay Item Details
             'item_no'                       => 'nullable|string|max:100',
             'description'                   => 'nullable|string|max:255',
             'quantity'                      => 'nullable|numeric|min:0',
@@ -193,14 +232,10 @@ class UserWorkRequestController extends Controller
             'description_of_work_requested' => 'required|string',
         ]);
 
-        // Prevent contractor_name from being changed
         $validated['contractor_name'] = Auth::user()->name;
-
-        // Force for_office
-        $validated['for_office'] = 'PROVINCIAL ENGINEERS OFFICE';
+        $validated['for_office']      = 'PROVINCIAL ENGINEERS OFFICE';
 
         $changes = $workRequest->buildChanges($validated);
-
         $workRequest->update($validated);
 
         $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, [
@@ -215,7 +250,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Delete work request — only if status allows
+     * Delete a work request — only if status allows.
      */
     public function destroy(WorkRequest $workRequest)
     {
@@ -242,7 +277,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Print work request — read only view
+     * Print work request — read-only view.
      */
     public function print(WorkRequest $workRequest)
     {
@@ -254,7 +289,7 @@ class UserWorkRequestController extends Controller
     }
 
     /**
-     * Get employee details for autofill
+     * Get employee details for autofill.
      */
     public function getEmployeeDetails()
     {

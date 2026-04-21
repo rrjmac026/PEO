@@ -31,10 +31,14 @@
                     </div>
                     <div class="wr-step-item" id="step-3" onclick="wrGoToStep(3)">
                         <div class="wr-step-num">3</div>
-                        <span class="wr-step-label">Pay Items</span>
+                        <span class="wr-step-label">Reviewer</span>
                     </div>
                     <div class="wr-step-item" id="step-4" onclick="wrGoToStep(4)">
                         <div class="wr-step-num">4</div>
+                        <span class="wr-step-label">Pay Items</span>
+                    </div>
+                    <div class="wr-step-item" id="step-5" onclick="wrGoToStep(5)">
+                        <div class="wr-step-num">5</div>
                         <span class="wr-step-label">Review & Submit</span>
                     </div>
                 </div>
@@ -48,8 +52,9 @@
 
                         @include('user.work-requests.partials._step-1-project-info')
                         @include('user.work-requests.partials._step-2-request-details')
-                        @include('user.work-requests.partials._step-3-pay-items')
-                        @include('user.work-requests.partials._step-4-review')
+                        @include('user.work-requests.partials._step-3-reviewer-selection')
+                        @include('user.work-requests.partials._step-4-pay-items')
+                        @include('user.work-requests.partials._step-5-review')
 
                     </form>
                 </div>

@@ -1,16 +1,21 @@
 <script>
     let wrCurrentStep = 1;
-    const wrTotalSteps = 4;
+    const wrTotalSteps = 5;
+
+    // Track whether the RE select exists on this page load
+    // (it's absent when no resident engineers are in the system)
+    const wrHasReSelect = !!document.getElementById('assigned_resident_engineer_id');
 
     @if($errors->any())
         document.addEventListener('DOMContentLoaded', () => {
             const errFields = {
                 1: ['name_of_project', 'project_location'],
                 2: ['requested_work_start_date', 'description_of_work_requested'],
-                3: [],
+                3: ['assigned_resident_engineer_id'],
+                4: [],
             };
             const errorKeys = @json($errors->keys());
-            for (let step = 1; step <= 3; step++) {
+            for (let step = 1; step <= 4; step++) {
                 if (errFields[step].some(f => errorKeys.includes(f))) {
                     wrShowStep(step);
                     break;
@@ -55,29 +60,71 @@
     }
 
     function wrValidateStep(step) {
-        const required = {
-            1: ['name_of_project', 'project_location'],
-            2: ['requested_work_start_date', 'description_of_work_requested'],
-            3: [],
-        };
-        if (!required[step]) return true;
-        let ok = true;
-        required[step].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.remove('wr-error');
-            const err = document.getElementById(`err-${id}`);
-            if (err) err.classList.remove('show');
-        });
-        required[step].forEach(id => {
-            const el = document.getElementById(id);
-            if (!el || !el.value.trim()) {
-                if (el) el.classList.add('wr-error');
+        // Step 1 — required project fields
+        if (step === 1) {
+            const required = ['name_of_project', 'project_location'];
+            let ok = true;
+            required.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('wr-error');
                 const err = document.getElementById(`err-${id}`);
+                if (err) err.classList.remove('show');
+            });
+            required.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el || !el.value.trim()) {
+                    if (el) el.classList.add('wr-error');
+                    const err = document.getElementById(`err-${id}`);
+                    if (err) err.classList.add('show');
+                    ok = false;
+                }
+            });
+            return ok;
+        }
+
+        // Step 2 — required request detail fields
+        if (step === 2) {
+            const required = ['requested_work_start_date', 'description_of_work_requested'];
+            let ok = true;
+            required.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('wr-error');
+                const err = document.getElementById(`err-${id}`);
+                if (err) err.classList.remove('show');
+            });
+            required.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el || !el.value.trim()) {
+                    if (el) el.classList.add('wr-error');
+                    const err = document.getElementById(`err-${id}`);
+                    if (err) err.classList.add('show');
+                    ok = false;
+                }
+            });
+            return ok;
+        }
+
+        // Step 3 — RE required only when the select element exists
+        // (when no engineers are registered the select is absent and the step is skippable)
+        if (step === 3) {
+            if (!wrHasReSelect) return true;   // no engineers in system — pass through
+
+            const sel = document.getElementById('assigned_resident_engineer_id');
+            const err = document.getElementById('err-assigned_resident_engineer_id');
+
+            if (!sel || !sel.value) {
+                if (sel) sel.classList.add('wr-error');
                 if (err) err.classList.add('show');
-                ok = false;
+                return false;
             }
-        });
-        return ok;
+
+            if (sel) sel.classList.remove('wr-error');
+            if (err) err.classList.remove('show');
+            return true;
+        }
+
+        // Steps 4+ — no mandatory fields
+        return true;
     }
 
     function wrGetVal(id) {
@@ -85,34 +132,50 @@
         return el ? el.value.trim() : '';
     }
 
+    function wrGetSelectLabel(id) {
+        const el = document.getElementById(id);
+        if (!el || !el.value) return '—';
+        return el.options[el.selectedIndex]?.text ?? '—';
+    }
+
     function wrBuildSummary() {
+        const reLabel = wrHasReSelect
+            ? wrGetSelectLabel('assigned_resident_engineer_id')
+            : 'To be assigned by Admin';
+
         const sections = [
             {
                 icon: '📁', title: 'Project Information',
                 rows: [
-                    { k: 'Project Name',    v: wrGetVal('name_of_project') },
-                    { k: 'Location',        v: wrGetVal('project_location') },
-                    { k: 'For Office',      v: wrGetVal('for_office') || '—' },
-                    { k: 'From Requester',  v: wrGetVal('from_requester') || '—' },
+                    { k: 'Project Name',   v: wrGetVal('name_of_project') },
+                    { k: 'Location',       v: wrGetVal('project_location') },
+                    { k: 'For Office',     v: wrGetVal('for_office') || '—' },
+                    { k: 'From Requester', v: wrGetVal('from_requester') || '—' },
                 ]
             },
             {
                 icon: '📋', title: 'Request Details',
                 rows: [
-                    { k: 'Requested By',  v: wrGetVal('contractor_name_display') },
-                    { k: 'Start Date',    v: wrGetVal('requested_work_start_date') || '—' },
-                    { k: 'Start Time',    v: wrGetVal('requested_work_start_time') || '—' },
-                    { k: 'Description',   v: wrGetVal('description_of_work_requested') },
+                    { k: 'Requested By', v: wrGetVal('contractor_name_display') },
+                    { k: 'Start Date',   v: wrGetVal('requested_work_start_date') || '—' },
+                    { k: 'Start Time',   v: wrGetVal('requested_work_start_time') || '—' },
+                    { k: 'Description',  v: wrGetVal('description_of_work_requested') },
+                ]
+            },
+            {
+                icon: '👷', title: 'Reviewer',
+                rows: [
+                    { k: 'Resident Engineer', v: reLabel },
                 ]
             },
             {
                 icon: '⚙️', title: 'Pay Item & Submission',
                 rows: [
-                    { k: 'Item No.',      v: wrGetVal('item_no') || '—' },
-                    { k: 'Description',   v: wrGetVal('description') || '—' },
-                    { k: 'Equipment',     v: wrGetVal('equipment_to_be_used') || '—' },
-                    { k: 'Quantity',      v: wrGetVal('estimated_quantity') ? `${wrGetVal('estimated_quantity')} ${wrGetVal('unit')}` : '—' },
-                    { k: 'Notes',         v: wrGetVal('notes') || '—' },
+                    { k: 'Item No.',    v: wrGetVal('item_no') || '—' },
+                    { k: 'Description', v: wrGetVal('description') || '—' },
+                    { k: 'Equipment',   v: wrGetVal('equipment_to_be_used') || '—' },
+                    { k: 'Quantity',    v: wrGetVal('estimated_quantity') ? `${wrGetVal('estimated_quantity')} ${wrGetVal('unit')}` : '—' },
+                    { k: 'Notes',       v: wrGetVal('notes') || '—' },
                 ]
             }
         ];
