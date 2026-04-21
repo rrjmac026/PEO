@@ -326,13 +326,13 @@ class WorkRequest extends Model
     public function advanceReviewStep(): void
     {
         $currentStep = $this->current_review_step;
-    
+
         if (! $currentStep || ! isset(self::REVIEW_STEPS[$currentStep])) {
             return;
         }
-    
+
         $next = self::REVIEW_STEPS[$currentStep]['next'];
-    
+
         // Walk forward, skipping unassigned steps
         while ($next !== null) {
             $col = self::REVIEW_STEPS[$next]['assigned_col'] ?? null;
@@ -341,11 +341,23 @@ class WorkRequest extends Model
             }
             $next = self::REVIEW_STEPS[$next]['next'] ?? null;
         }
-    
+
         if ($next === null) {
-            // All steps done — provincial engineer was last, status already set by storeProvincialDecision
-            // Just clear the current_review_step
-            $this->update(['current_review_step' => null]);
+            // No more assigned reviewer steps found after current step.
+            // Check if provincial engineer is assigned — if yes, route there.
+            // If not, route back to admin for further assignment (status = assigned).
+            if (! is_null($this->assigned_provincial_engineer_id)) {
+                $this->update([
+                    'current_review_step' => 'provincial_engineer',
+                    'status'              => self::STATUS_IN_REVIEW,
+                ]);
+            } else {
+                // Return to admin queue so they can assign remaining reviewers
+                $this->update([
+                    'current_review_step' => null,
+                    'status'              => self::STATUS_ASSIGNED,
+                ]);
+            }
         } else {
             $this->update([
                 'current_review_step' => $next,

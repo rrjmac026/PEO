@@ -139,13 +139,8 @@ class UserWorkRequestController extends Controller
         // Decide routing:
         //   • RE chosen  → skip admin, go straight to RE review queue
         //   • No RE      → land in admin queue for manual assignment
-        if (!empty($validated['assigned_resident_engineer_id'])) {
-            $validated['status']              = WorkRequest::STATUS_IN_REVIEW;
-            $validated['current_review_step'] = 'resident_engineer';
-        } else {
-            $validated['status']              = WorkRequest::STATUS_SUBMITTED;
-            $validated['current_review_step'] = null;
-        }
+        $validated['status']              = WorkRequest::STATUS_SUBMITTED;
+        $validated['current_review_step'] = null;
 
         $workRequest = WorkRequest::create($validated);
 
@@ -154,7 +149,7 @@ class UserWorkRequestController extends Controller
             : 'Work request submitted by contractor. Awaiting admin assignment (no RE available).';
 
         $workRequest->addLog(WorkRequestLog::EVENT_SUBMITTED, [
-            'description' => $logDescription,
+            'description' => 'Work request submitted by contractor. Awaiting admin assignment.',
             'user_id'     => Auth::id(),
         ]);
 
