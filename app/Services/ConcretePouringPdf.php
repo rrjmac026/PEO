@@ -50,12 +50,12 @@ class ConcretePouringPdf extends Fpdi
 
     private const PROJECT_INFO_ROWS = [
         'project_name'           => 39.0,
-        'location'               => 45.0,
-        'contractor'             => 51.0,
-        'part_of_structure'      => 57.0,
-        'estimated_volume'       => 63.0,
-        'station_limits_section' => 69.0,
-        'pouring_datetime'       => 75.0,
+        'location'               => 44.5,
+        'contractor'             => 50.0,
+        'part_of_structure'      => 54.9,
+        'estimated_volume'       => 59.8,
+        'station_limits_section' => 64.8,
+        'pouring_datetime'       => 69.5,
     ];
 
     // =========================================================================
@@ -66,10 +66,10 @@ class ConcretePouringPdf extends Fpdi
     //   Left col checkbox X ≈ 15mm
     //   Right col checkbox X ≈ 106mm
     // =========================================================================
-    private const CHECKLIST_START_Y = 99.0;
+    private const CHECKLIST_START_Y = 97.8;
     private const CHECKLIST_ROW_H   = 6.5;
-    private const CHECKLIST_LEFT_X  = 15.0;
-    private const CHECKLIST_RIGHT_X = 106.0;
+    private const CHECKLIST_LEFT_X  = 29.0;
+    private const CHECKLIST_RIGHT_X = 107.0;
 
     private const CHECKLIST_MAP = [
         'concrete_vibrator'               => ['L', 0],
@@ -254,10 +254,13 @@ class ConcretePouringPdf extends Fpdi
     // CHECKLIST
     // =========================================================================
 
+    // =========================================================================
+// CHECKLIST — draw a proper ✓ checkmark using two diagonal lines
+// =========================================================================
     private function stampChecklist(): void
     {
-        // Use a filled black square as the checkmark — works reliably across all PDF viewers
-        $this->SetFillColor(0, 0, 0);
+        $this->SetDrawColor(0, 0, 0);
+        $this->SetLineWidth(0.5);
 
         foreach (self::CHECKLIST_MAP as $field => [$col, $rowIdx]) {
             if (!$this->cp->{$field}) continue;
@@ -265,11 +268,36 @@ class ConcretePouringPdf extends Fpdi
             $x = ($col === 'L') ? self::CHECKLIST_LEFT_X : self::CHECKLIST_RIGHT_X;
             $y = self::CHECKLIST_START_Y + ($rowIdx * self::CHECKLIST_ROW_H);
 
-            // Filled square inside the checkbox cell
-            $this->Rect($x + 0.6, $y + 1.3, 3.2, 3.2, 'F');
+            // Centre the checkmark inside the checkbox square (≈3.5×3.5mm box)
+            // Box is at ($x+0.5, $y+1.3) size 3.2×3.2
+            $bx = $x + 0.5;   // box left
+            $by = $y + 1.3;   // box top
+            $bw = 3.2;         // box width
+            $bh = 3.2;         // box height
+
+            // ✓ shape: short left leg then long right leg
+            // Left leg:  bottom-left corner going up-right to ~40% width
+            // Right leg: from that midpoint going up-right to top-right corner
+            $midX = $bx + $bw * 0.35;
+            $midY = $by + $bh * 0.75;
+
+            $this->Line(
+                $bx + 0.3,          // start X (slightly inside left)
+                $by + $bh * 0.5,    // start Y (middle height)
+                $midX,              // mid X
+                $midY               // mid Y (bottom of tick)
+            );
+            $this->Line(
+                $midX,              // mid X
+                $midY,              // mid Y
+                $bx + $bw - 0.2,   // end X (slightly inside right)
+                $by + 0.3           // end Y (near top)
+            );
         }
 
-        $this->SetFillColor(255, 255, 255);
+        // Reset
+        $this->SetLineWidth(0.2);
+        $this->SetDrawColor(0, 0, 0);
     }
 
     // =========================================================================
@@ -405,7 +433,7 @@ class ConcretePouringPdf extends Fpdi
         // if a different user is assigned as noted_by.
         $assignedName = $this->cp->notedByEngineer?->name ?? '';
         if ($assignedName && strtoupper($assignedName) !== 'DELIA E. DAMASCO') {
-            $this->SetFont('Arial', 'BU', 8);
+            $this->SetFont('Arial', 'B', 8);
             $this->SetTextColor(0, 0, 0);
             $this->SetXY(self::PE_NAME_X, self::PE_NAME_Y);
             $this->Cell(self::PE_NAME_W, 4, $assignedName, 0, 0, 'C');
