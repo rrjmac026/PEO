@@ -90,6 +90,52 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         Route::get( '/{concretePouring}/decision', [AdminConcretePouringController::class, 'decisionForm'])  ->name('decision-form');
         Route::post('/{concretePouring}/decision', [AdminConcretePouringController::class, 'storeDecision']) ->name('store-decision');
     });
+
+    Route::get('/dev/pdf-grid', function () {
+        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4');
+        $pdf->AddPage();
+
+        $templatePath = storage_path('app/pdf-templates/concrete-pouring-template.pdf');
+        $pdf->setSourceFile($templatePath);
+        $tplId = $pdf->importPage(1);
+        $pdf->useTemplate($tplId, 0, 0, 210, 297);
+
+        // Draw a 10mm grid with labels
+        $pdf->SetFont('Arial', '', 5);
+        $pdf->SetDrawColor(200, 0, 0);
+        $pdf->SetTextColor(200, 0, 0);
+        $pdf->SetLineWidth(0.1);
+
+        for ($x = 0; $x <= 210; $x += 10) {
+            $pdf->Line($x, 0, $x, 297);
+            $pdf->SetXY($x + 0.5, 2);
+            $pdf->Cell(8, 3, (string)$x);
+        }
+        for ($y = 0; $y <= 297; $y += 10) {
+            $pdf->Line(0, $y, 210, $y);
+            $pdf->SetXY(1, $y + 0.5);
+            $pdf->Cell(8, 3, (string)$y);
+        }
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="grid.pdf"',
+        ]);
+    })->middleware('auth');
+
+    Route::get('/dev/pdf-debug', function () {
+        $path = storage_path('app/pdf-templates/concrete-pouring-template.pdf');
+        
+        return response()->json([
+            'resolved_path'  => $path,
+            'file_exists'    => file_exists($path),
+            'storage_path'   => storage_path('app'),
+            'directory_exists' => is_dir(storage_path('app/pdf-templates')),
+            'files_in_dir'   => is_dir(storage_path('app/pdf-templates')) 
+                                ? scandir(storage_path('app/pdf-templates')) 
+                                : 'directory not found',
+        ]);
+    });
 });
 
 // =============================================================================
