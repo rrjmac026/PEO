@@ -42,8 +42,8 @@
             {{-- Canvas --}}
             <div>
                 <canvas id="{{ $cp_prefix }}-cp-canvas"
-                        width="380" height="140"
-                        class="cp-sig-canvas"></canvas>
+                    class="cp-sig-canvas"
+                    style="width:480px;height:160px;"></canvas>
                 <button type="button" id="{{ $cp_prefix }}-cp-clear"
                         class="cp-sig-clear-btn">
                     <i class="fas fa-redo" style="margin-right:4px;"></i> Clear

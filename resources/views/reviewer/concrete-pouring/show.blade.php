@@ -101,11 +101,12 @@
                 margin-top: 8px;
             }
             .cp-sig-display img {
-                max-width: 160px; max-height: 60px;
+                max-width: 260px; max-height: 100px;
+                width: auto; height: auto;
                 border: 1px solid var(--cp-border);
                 border-radius: 5px;
-                background: var(--cp-surface);
-                padding: 3px;
+                background: #ffffff;
+                padding: 4px;
             }
             .cp-sig-display-label {
                 font-size: 11px; font-weight: 700;
@@ -266,8 +267,9 @@
                             $reDone   = !is_null($concretePouring->re_date);
                             $reActive = $concretePouring->current_review_step === 'resident_engineer';
                             $isMyRe   = $isMyTurn && $reActive;
-                            $reSigUrl = $concretePouring->resolveSignatureUrl($concretePouring->re_signature);
-                            $showReSig = $reSigUrl && (Auth::id() == $concretePouring->resident_engineer_user_id);
+                            $reSigRaw = $concretePouring->re_signature;
+                            $reSigUrl  = $concretePouring->re_signature ? asset('storage/' . $concretePouring->re_signature) : null;
+                            $showReSig = $reDone && $reSigUrl;
                         @endphp
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
@@ -291,13 +293,9 @@
                                 @if($showReSig)
                                     <div class="cp-sig-display">
                                         <div>
-                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Your Signature</div>
+                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Signed by {{ $concretePouring->residentEngineer?->name }}</div>
                                             <img src="{{ $reSigUrl }}" alt="Resident Engineer Signature">
                                         </div>
-                                    </div>
-                                @elseif($reDone && $reSigUrl)
-                                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#059669;font-weight:600;">
-                                        <i class="fas fa-signature"></i> Signed by {{ $concretePouring->residentEngineer?->name }}
                                     </div>
                                 @endif
 
@@ -348,8 +346,9 @@
                             $peDone     = !is_null($concretePouring->noted_date);
                             $peActive   = $concretePouring->current_review_step === 'provincial_engineer';
                             $isMyPe     = $isMyTurn && $peActive;
-                            $peSigUrl   = $concretePouring->resolveSignatureUrl($concretePouring->noted_by_signature);
-                            $showPeSig  = $peSigUrl && (Auth::id() == $concretePouring->noted_by_user_id);
+                            $peSigRaw   = $concretePouring->noted_by_signature;
+                            $peSigUrl  = $concretePouring->noted_by_signature ? asset('storage/' . $concretePouring->noted_by_signature) : null;
+                            $showPeSig = $peDone && $peSigUrl;
                         @endphp
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
@@ -373,13 +372,9 @@
                                 @if($showPeSig)
                                     <div class="cp-sig-display">
                                         <div>
-                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Your Signature</div>
+                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Signed by {{ $concretePouring->notedByEngineer?->name }}</div>
                                             <img src="{{ $peSigUrl }}" alt="Provincial Engineer Signature">
                                         </div>
-                                    </div>
-                                @elseif($peDone && $peSigUrl)
-                                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#059669;font-weight:600;">
-                                        <i class="fas fa-signature"></i> Signed by {{ $concretePouring->notedByEngineer?->name }}
                                     </div>
                                 @endif
 
@@ -430,8 +425,9 @@
                             $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
                             $mtqaActive = $concretePouring->current_review_step === 'mtqa';
                             $isMyMtqa   = $isMyTurn && $mtqaActive;
-                            $mtqaSigUrl = $concretePouring->resolveSignatureUrl($concretePouring->me_mtqa_signature);
-                            $showMtqaSig = $mtqaSigUrl && (Auth::id() == $concretePouring->me_mtqa_user_id);
+                            $mtqaSigRaw = $concretePouring->me_mtqa_signature;
+                            $mtqaSigUrl  = $concretePouring->me_mtqa_signature ? asset('storage/' . $concretePouring->me_mtqa_signature) : null;
+                            $showMtqaSig = $mtqaDone && $mtqaSigUrl;
                         @endphp
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
@@ -458,15 +454,12 @@
                                 @if($showMtqaSig)
                                     <div class="cp-sig-display">
                                         <div>
-                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Your Signature</div>
+                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Signed by {{ $concretePouring->meMtqaChecker?->name }}</div>
                                             <img src="{{ $mtqaSigUrl }}" alt="ME/MTQA Signature">
                                         </div>
                                     </div>
-                                @elseif($mtqaDone && $mtqaSigUrl)
-                                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#059669;font-weight:600;">
-                                        <i class="fas fa-signature"></i> Signed by {{ $concretePouring->meMtqaChecker?->name }}
-                                    </div>
                                 @endif
+                                
 
                                 {{-- ── MTQA FINAL DECISION FORM ── --}}
                                 @if($isMyMtqa)
@@ -582,11 +575,27 @@
 
         if (!canvas) return;
 
+        // ── HiDPI fix: scale canvas backing store to device pixel ratio ──
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = canvas.offsetWidth  || 480;
+        const cssH = canvas.offsetHeight || 160;
+        canvas.width  = cssW * dpr;
+        canvas.height = cssH * dpr;
+
         const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);  // all drawing coords stay in CSS pixels
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, cssW, cssH);
+
         let drawing = false;
 
-        const startDraw = () => { drawing = true; ctx.beginPath(); };
-        const endDraw   = () => {
+        const startDraw = (x, y) => {
+            drawing = true;
+            ctx.beginPath();
+            const rect = canvas.getBoundingClientRect();
+            ctx.moveTo(x - rect.left, y - rect.top);
+        };
+        const endDraw = () => {
             if (!drawing) return;
             drawing = false;
             const dataUrl = canvas.toDataURL('image/png');
@@ -601,30 +610,28 @@
             if (!drawing) return;
             const rect = canvas.getBoundingClientRect();
             ctx.lineTo(x - rect.left, y - rect.top);
-            ctx.lineWidth = 2;
-            ctx.lineCap   = 'round';
-            ctx.lineJoin  = 'round';
-            ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#1e293b';
+            ctx.lineWidth   = 2;
+            ctx.lineCap     = 'round';
+            ctx.lineJoin    = 'round';
+            ctx.strokeStyle = '#1e293b';
             ctx.stroke();
             ctx.beginPath();
             ctx.moveTo(x - rect.left, y - rect.top);
         };
 
-        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousedown', e => startDraw(e.clientX, e.clientY));
         canvas.addEventListener('mouseup',   endDraw);
         canvas.addEventListener('mouseleave',endDraw);
         canvas.addEventListener('mousemove', e => moveDraw(e.clientX, e.clientY));
-        canvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(); }, { passive: false });
-        canvas.addEventListener('touchend',   e => { e.preventDefault(); endDraw();   }, { passive: false });
-        canvas.addEventListener('touchmove',  e => {
-            e.preventDefault();
-            const t = e.touches[0];
-            moveDraw(t.clientX, t.clientY);
-        }, { passive: false });
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; startDraw(t.clientX, t.clientY); }, { passive: false });
+        canvas.addEventListener('touchend',   e => { e.preventDefault(); endDraw(); }, { passive: false });
+        canvas.addEventListener('touchmove',  e => { e.preventDefault(); const t = e.touches[0]; moveDraw(t.clientX, t.clientY); }, { passive: false });
 
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, cssW, cssH);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, cssW, cssH);
                 output.value = '';
                 if (preview && previewEmpty) {
                     preview.style.display = 'none';
