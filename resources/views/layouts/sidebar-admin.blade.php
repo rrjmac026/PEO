@@ -163,10 +163,19 @@
         Concrete Pouring
     </a>
 
+    <div class="sb-divider"></div>
+    <span class="sb-section-label">Logs</span>
+
     <a href="{{ route('admin.work-request-logs.index') }}"
        class="sb-link {{ request()->routeIs('admin.work-request-logs*') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-history"></i></span>
         Work Request Logs
+    </a>
+
+    <a href="{{ route('admin.concrete-pouring.logs') }}"
+       class="sb-link {{ request()->routeIs('admin.concrete-pouring.logs*') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-clipboard-list"></i></span>
+        Concrete Pouring Logs
     </a>
 
     <div class="sb-divider"></div>

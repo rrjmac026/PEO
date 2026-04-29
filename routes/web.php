@@ -71,6 +71,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     // ── Concrete Pouring ──────────────────────────────────────────────────────
     Route::prefix('concrete-pouring')->name('concrete-pouring.')->group(function () {
+        Route::get('/logs',                  [AdminConcretePouringController::class, 'logsIndex']) ->name('logs');
+        Route::get('/{concretePouring}/logs',[AdminConcretePouringController::class, 'logsShow'])  ->name('logs.show');
 
         Route::get('/',             [AdminConcretePouringController::class, 'index'])       ->name('index');
         Route::get('/reports',      [AdminConcretePouringController::class, 'reports'])     ->name('reports');
@@ -89,6 +91,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
         Route::get( '/{concretePouring}/decision', [AdminConcretePouringController::class, 'decisionForm'])  ->name('decision-form');
         Route::post('/{concretePouring}/decision', [AdminConcretePouringController::class, 'storeDecision']) ->name('store-decision');
+
+        
     });
 
     Route::get('/dev/pdf-grid', function () {

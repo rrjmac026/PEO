@@ -356,4 +356,71 @@ class AdminConcretePouringController extends Controller
             ->route('admin.concrete-pouring.index')
             ->with('success', 'Concrete pouring request deleted successfully!');
     }
+
+    public function logsIndex(Request $request)
+    {
+        $query = ConcretePouringLog::with(['concretePouring', 'user'])
+            ->latest();
+
+        // Search by reference number, project name, or actor name
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->whereHas('concretePouring', function ($q2) use ($term) {
+                    $q2->where('reference_number', 'LIKE', "%{$term}%")
+                    ->orWhere('project_name',    'LIKE', "%{$term}%")
+                    ->orWhere('contractor',       'LIKE', "%{$term}%");
+                })->orWhereHas('user', function ($q2) use ($term) {
+                    $q2->where('name', 'LIKE', "%{$term}%");
+                })->orWhere('description', 'LIKE', "%{$term}%");
+            });
+        }
+
+        // Filter by event type
+        if ($request->filled('event')) {
+            $query->where('event', $request->event);
+        }
+
+        // Filter by actor role
+        if ($request->filled('role')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('role', $request->role);
+            });
+        }
+
+        // Filter by date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $logs = $query->paginate(30)->withQueryString();
+
+        // Summary counts for the stat cards
+        $todayCount      = ConcretePouringLog::whereDate('created_at', today())->count();
+        $approvedCount   = ConcretePouringLog::where('event', ConcretePouringLog::EVENT_APPROVED)->count();
+        $disapprovedCount = ConcretePouringLog::where('event', ConcretePouringLog::EVENT_DISAPPROVED)->count();
+
+        return view('admin.concrete-pouring.logs.index', compact(
+            'logs', 'todayCount', 'approvedCount', 'disapprovedCount'
+        ));
+    }
+
+    public function logsShow(ConcretePouring $concretePouring)
+    {
+        $concretePouring->load([
+            'workRequest',
+            'requestedBy',
+            'meMtqaChecker',
+            'residentEngineer',
+            'notedByEngineer',
+            'approver',
+            'disapprover',
+            'logs.user',   // eager-load all log entries with their actor
+        ]);
+
+        return view('admin.concrete-pouring.logs.show', compact('concretePouring'));
+    }
 }
