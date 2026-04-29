@@ -19,6 +19,20 @@
                 font-size: 13px; color: var(--cp-muted);
             }
 
+            /* MTQA final decision form */
+            .rv-decision-box {
+                background: var(--cp-surface2);
+                border: 1.5px solid rgba(16,185,129,0.4);
+                border-radius: 10px; padding: 20px;
+                margin-top: 20px;
+            }
+            .dark .rv-decision-box { border-color: rgba(52,211,153,0.3); background: rgba(16,185,129,0.06); }
+            .rv-decision-title { font-size: 14px; font-weight: 700; color: var(--cp-text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+            .rv-decision-radios { display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
+            .rv-decision-radio { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+            .rv-decision-approve  { font-size: 14px; font-weight: 600; color: #16a34a; }
+            .rv-decision-disapprove { font-size: 14px; font-weight: 600; color: #dc2626; }
+
             /* ── E-Signature Styles ─────────────────────────────────────────── */
             .cp-sig-wrap { margin-top: 16px; }
             .cp-sig-option-box {
@@ -246,93 +260,7 @@
                     <div class="cp-timeline">
 
                         {{-- ════════════════════════════════════════
-                            STEP 1 — ME / MTQA
-                        ════════════════════════════════════════ --}}
-                        @php
-                            $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
-                            $mtqaActive = $concretePouring->current_review_step === 'mtqa';
-                            $isMyMtqa   = $isMyTurn && $mtqaActive;
-                            $mtqaSigUrl = $concretePouring->resolveSignatureUrl($concretePouring->me_mtqa_signature);
-                            // Reviewer sees OWN signature only
-                            $showMtqaSig = $mtqaSigUrl && (Auth::id() == $concretePouring->me_mtqa_user_id);
-                        @endphp
-                        <div class="cp-timeline-item">
-                            <div class="cp-tl-icon-wrap">
-                                <div class="cp-tl-icon {{ $mtqaDone ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
-                                    @if($mtqaDone)<i class="fas fa-check"></i>
-                                    @elseif($mtqaActive)<i class="fas fa-clock"></i>
-                                    @else<i class="fas fa-circle"></i>@endif
-                                </div>
-                            </div>
-                            <div style="flex:1">
-                                <div class="cp-tl-label">Step 1 — ME / MTQA Review</div>
-                                <div class="cp-tl-name">{{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}</div>
-                                @if($concretePouring->me_mtqa_date)
-                                    <div class="cp-tl-date">Reviewed: {{ $concretePouring->me_mtqa_date->format('M d, Y') }}</div>
-                                @endif
-                                @if($concretePouring->me_mtqa_remarks)
-                                    <div class="cp-tl-remark">"{{ $concretePouring->me_mtqa_remarks }}"</div>
-                                @endif
-
-                                {{-- Signature — shown only to the ME/MTQA themselves --}}
-                                @if($showMtqaSig)
-                                    <div class="cp-sig-display">
-                                        <div>
-                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Your Signature</div>
-                                            <img src="{{ $mtqaSigUrl }}" alt="ME/MTQA Signature">
-                                        </div>
-                                    </div>
-                                @elseif($mtqaDone && $mtqaSigUrl)
-                                    {{-- Other reviewers & admin see a "signed" indicator, not the image --}}
-                                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#059669;font-weight:600;">
-                                        <i class="fas fa-signature"></i> Signed by {{ $concretePouring->meMtqaChecker?->name }}
-                                    </div>
-                                @endif
-
-                                {{-- ── MTQA submission form ── --}}
-                                @if($isMyMtqa)
-                                    <div class="rv-form-box">
-                                        <div class="rv-form-title">
-                                            <i class="fas fa-pen text-cyan-500"></i>
-                                            Submit Your ME/MTQA Review & Signature
-                                        </div>
-                                        <form action="{{ route('reviewer.concrete-pouring.store-mtqa-review', $concretePouring) }}"
-                                              method="POST" id="mtqa-review-form">
-                                            @csrf
-                                            <div class="mb-3">
-                                                <label class="cp-label">Remarks <span style="color:var(--cp-muted)">(optional)</span></label>
-                                                <textarea name="me_mtqa_remarks" rows="3" class="cp-textarea"
-                                                          placeholder="Enter your review remarks, observations, or notes…">{{ old('me_mtqa_remarks') }}</textarea>
-                                            </div>
-
-                                            {{-- E-Signature pad --}}
-                                            @include('reviewer.concrete-pouring.partials._signature-pad', [
-                                                'cp_prefix'     => 'mtqa',
-                                                'cp_radioName'  => 'mtqa_sig_mode',
-                                                'cp_hiddenName' => 'me_mtqa_signature',
-                                            ])
-
-                                            <div style="margin-top:16px;">
-                                                <button type="submit"
-                                                        class="px-6 py-2.5 bg-cyan-600 text-white text-sm font-semibold rounded-lg hover:bg-cyan-700 transition inline-flex items-center gap-2">
-                                                    <i class="fas fa-check-circle"></i> Submit ME/MTQA Review
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                @elseif(!$mtqaDone && !$mtqaActive)
-                                    <div class="rv-readonly-box">Waiting for ME/MTQA step to become active.</div>
-                                @endif
-                            </div>
-                            <div>
-                                @if($mtqaDone)<span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Done</span>
-                                @elseif($mtqaActive)<span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
-                                @else<span style="font-size:11px;color:var(--cp-muted)">Waiting</span>@endif
-                            </div>
-                        </div>
-
-                        {{-- ════════════════════════════════════════
-                            STEP 2 — Resident Engineer
+                            STEP 1 — Resident Engineer
                         ════════════════════════════════════════ --}}
                         @php
                             $reDone   = !is_null($concretePouring->re_date);
@@ -350,7 +278,7 @@
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 2 — Resident Engineer Review</div>
+                                <div class="cp-tl-label">Step 1 — Resident Engineer Review</div>
                                 <div class="cp-tl-name">{{ $concretePouring->residentEngineer?->name ?? 'Not assigned' }}</div>
                                 @if($concretePouring->re_date)
                                     <div class="cp-tl-date">Reviewed: {{ $concretePouring->re_date->format('M d, Y') }}</div>
@@ -414,7 +342,7 @@
                         </div>
 
                         {{-- ════════════════════════════════════════
-                            STEP 3 — Provincial Engineer
+                            STEP 2 — Provincial Engineer
                         ════════════════════════════════════════ --}}
                         @php
                             $peDone     = !is_null($concretePouring->noted_date);
@@ -432,7 +360,7 @@
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 3 — Noted by Provincial Engineer</div>
+                                <div class="cp-tl-label">Step 2 — Noted by Provincial Engineer</div>
                                 <div class="cp-tl-name">{{ $concretePouring->notedByEngineer?->name ?? 'Not assigned' }}</div>
                                 @if($concretePouring->noted_date)
                                     <div class="cp-tl-date">Noted: {{ $concretePouring->noted_date->format('M d, Y') }}</div>
@@ -496,38 +424,119 @@
                         </div>
 
                         {{-- ════════════════════════════════════════
-                            STEP 4 — Admin Final Decision
+                            STEP 3 — ME/MTQA (FINAL DECISION)
                         ════════════════════════════════════════ --}}
-                        @php $adminActive = $concretePouring->current_review_step === 'admin_final'; @endphp
+                        @php
+                            $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
+                            $mtqaActive = $concretePouring->current_review_step === 'mtqa';
+                            $isMyMtqa   = $isMyTurn && $mtqaActive;
+                            $mtqaSigUrl = $concretePouring->resolveSignatureUrl($concretePouring->me_mtqa_signature);
+                            $showMtqaSig = $mtqaSigUrl && (Auth::id() == $concretePouring->me_mtqa_user_id);
+                        @endphp
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
-                                <div class="cp-tl-icon {{ in_array($concretePouring->status,['approved','disapproved']) ? 'done' : ($adminActive ? 'active' : 'waiting') }}">
-                                    @if(in_array($concretePouring->status,['approved','disapproved']))<i class="fas fa-check"></i>
-                                    @elseif($adminActive)<i class="fas fa-clock"></i>
+                                <div class="cp-tl-icon {{ in_array($concretePouring->status, ['approved','disapproved']) ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
+                                    @if(in_array($concretePouring->status, ['approved','disapproved']))<i class="fas fa-check"></i>
+                                    @elseif($mtqaActive)<i class="fas fa-clock"></i>
                                     @else<i class="fas fa-circle"></i>@endif
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 4 — Admin Final Decision</div>
-                                <div class="cp-tl-name">
-                                    @if($concretePouring->status === 'approved')
-                                        Approved by {{ $concretePouring->approver?->name ?? '—' }}
-                                        @if($concretePouring->approved_date)
-                                            <span class="cp-tl-date">on {{ $concretePouring->approved_date->format('M d, Y') }}</span>
-                                        @endif
-                                    @elseif($concretePouring->status === 'disapproved')
-                                        Disapproved by {{ $concretePouring->disapprover?->name ?? '—' }}
-                                        @if($concretePouring->disapproved_date)
-                                            <span class="cp-tl-date">on {{ $concretePouring->disapproved_date->format('M d, Y') }}</span>
-                                        @endif
-                                    @elseif($adminActive)
-                                        Forwarded to admin for final decision
-                                    @else
-                                        Awaiting reviewer completion
-                                    @endif
+                                <div class="cp-tl-label" style="display:flex;align-items:center;gap:8px;">
+                                    Step 3 — ME/MTQA Final Decision
+                                    <span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:1px 8px;font-weight:700;letter-spacing:0.3px;">FINAL</span>
                                 </div>
-                                @if($concretePouring->approval_remarks && in_array($concretePouring->status,['approved','disapproved']))
-                                    <div class="cp-tl-remark">"{{ $concretePouring->approval_remarks }}"</div>
+                                <div class="cp-tl-name">{{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}</div>
+                                @if($concretePouring->me_mtqa_date)
+                                    <div class="cp-tl-date">Decision: {{ $concretePouring->me_mtqa_date->format('M d, Y') }}</div>
+                                @endif
+                                @if($concretePouring->me_mtqa_remarks)
+                                    <div class="cp-tl-remark">"{{ $concretePouring->me_mtqa_remarks }}"</div>
+                                @endif
+
+                                {{-- Signature — shown only to the MTQA themselves --}}
+                                @if($showMtqaSig)
+                                    <div class="cp-sig-display">
+                                        <div>
+                                            <div class="cp-sig-display-label"><i class="fas fa-pen-nib mr-1"></i> Your Signature</div>
+                                            <img src="{{ $mtqaSigUrl }}" alt="ME/MTQA Signature">
+                                        </div>
+                                    </div>
+                                @elseif($mtqaDone && $mtqaSigUrl)
+                                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#059669;font-weight:600;">
+                                        <i class="fas fa-signature"></i> Signed by {{ $concretePouring->meMtqaChecker?->name }}
+                                    </div>
+                                @endif
+
+                                {{-- ── MTQA FINAL DECISION FORM ── --}}
+                                @if($isMyMtqa)
+                                    <div class="rv-decision-box">
+                                        <div class="rv-decision-title">
+                                            <i class="fas fa-gavel text-green-600"></i>
+                                            Submit Final Decision & Signature
+                                        </div>
+
+                                        <form action="{{ route('reviewer.concrete-pouring.store-mtqa-review', $concretePouring) }}"
+                                              method="POST" id="mtqa-review-form">
+                                            @csrf
+
+                                            {{-- Decision radio --}}
+                                            <div class="mb-4">
+                                                <p style="font-size:13px;font-weight:600;color:var(--cp-text);margin-bottom:10px;">
+                                                    Decision <span style="color:#ef4444;">*</span>
+                                                </p>
+                                                <div class="rv-decision-radios">
+                                                    <label class="rv-decision-radio">
+                                                        <input type="radio" name="decision" value="approved"
+                                                               {{ old('decision') === 'approved' ? 'checked' : '' }}
+                                                               class="accent-green-600" required>
+                                                        <span class="rv-decision-approve">✓ Approve</span>
+                                                    </label>
+                                                    <label class="rv-decision-radio">
+                                                        <input type="radio" name="decision" value="disapproved"
+                                                               {{ old('decision') === 'disapproved' ? 'checked' : '' }}
+                                                               class="accent-red-600">
+                                                        <span class="rv-decision-disapprove">✗ Disapprove</span>
+                                                    </label>
+                                                </div>
+                                                @error('decision')
+                                                    <p style="color:#ef4444;font-size:12px;margin-top:4px;">{{ $message }}</p>
+                                                @enderror
+                                            </div>
+
+                                            {{-- Remarks --}}
+                                            <div class="mb-3">
+                                                <label class="cp-label">
+                                                    Remarks
+                                                    <span style="color:var(--cp-muted);font-weight:normal;font-size:12px;">(required if disapproving)</span>
+                                                </label>
+                                                <textarea name="me_mtqa_remarks" rows="3" class="cp-textarea"
+                                                          placeholder="Enter your remarks or reasons for this decision…">{{ old('me_mtqa_remarks') }}</textarea>
+                                            </div>
+
+                                            {{-- E-Signature pad --}}
+                                            @include('reviewer.concrete-pouring.partials._signature-pad', [
+                                                'cp_prefix'     => 'mtqa',
+                                                'cp_radioName'  => 'mtqa_sig_mode',
+                                                'cp_hiddenName' => 'me_mtqa_signature',
+                                            ])
+
+                                            <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+                                                <button type="submit" name="decision_submit" value="approved"
+                                                        onclick="document.querySelector('input[name=decision][value=approved]').checked=true"
+                                                        class="px-6 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition inline-flex items-center gap-2">
+                                                    <i class="fas fa-check-circle"></i> Approve
+                                                </button>
+                                                <button type="submit" name="decision_submit" value="disapproved"
+                                                        onclick="document.querySelector('input[name=decision][value=disapproved]').checked=true"
+                                                        class="px-6 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition inline-flex items-center gap-2">
+                                                    <i class="fas fa-times-circle"></i> Disapprove
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                @elseif(!$mtqaDone && !$mtqaActive)
+                                    <div class="rv-readonly-box">Waiting for previous reviewers to complete their steps.</div>
                                 @endif
                             </div>
                             <div>
@@ -535,8 +544,8 @@
                                     <span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Approved</span>
                                 @elseif($concretePouring->status === 'disapproved')
                                     <span class="cp-badge disapproved" style="font-size:11px;padding:3px 8px">Disapproved</span>
-                                @elseif($adminActive)
-                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">Pending Admin</span>
+                                @elseif($mtqaActive)
+                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">Pending Decision</span>
                                 @else
                                     <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
                                 @endif
@@ -563,12 +572,6 @@
     {{-- ── E-Signature JavaScript ────────────────────────────────────────────── --}}
     @push('scripts')
     <script>
-    /**
-     * Initialise a single signature canvas.
-     *
-     * @param {string} prefix       — e.g. 'mtqa', 're', 'pe'
-     * @param {string} radioName    — name attribute of the mode radio buttons
-     */
     function initCpSignaturePad(prefix, radioName) {
         const canvas      = document.getElementById(`${prefix}-cp-canvas`);
         const output      = document.getElementById(`${prefix}-cp-output`);
@@ -577,12 +580,11 @@
         const previewEmpty= document.getElementById(`${prefix}-cp-preview-empty`);
         const padWrap     = document.getElementById(`${prefix}-cp-pad-wrap`);
 
-        if (!canvas) return; // pad not rendered (not this reviewer's step)
+        if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
         let drawing = false;
 
-        // ── drawing helpers ──────────────────────────────────────────────────
         const startDraw = () => { drawing = true; ctx.beginPath(); };
         const endDraw   = () => {
             if (!drawing) return;
@@ -608,13 +610,10 @@
             ctx.moveTo(x - rect.left, y - rect.top);
         };
 
-        // Mouse
         canvas.addEventListener('mousedown', startDraw);
         canvas.addEventListener('mouseup',   endDraw);
         canvas.addEventListener('mouseleave',endDraw);
         canvas.addEventListener('mousemove', e => moveDraw(e.clientX, e.clientY));
-
-        // Touch
         canvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(); }, { passive: false });
         canvas.addEventListener('touchend',   e => { e.preventDefault(); endDraw();   }, { passive: false });
         canvas.addEventListener('touchmove',  e => {
@@ -623,7 +622,6 @@
             moveDraw(t.clientX, t.clientY);
         }, { passive: false });
 
-        // Clear button
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -636,7 +634,6 @@
             });
         }
 
-        // Radio toggle: saved ↔ draw
         document.querySelectorAll(`input[name="${radioName}"]`).forEach(radio => {
             radio.addEventListener('change', e => {
                 if (e.target.value === 'draw') {
@@ -648,7 +645,6 @@
                         previewEmpty.style.display = 'flex';
                     }
                 } else {
-                    // "saved" — restore the pre-filled saved-signature URL
                     padWrap.style.display = 'none';
                     const savedUrl = "{{ Auth::user()->signature_path ? asset('storage/' . Auth::user()->signature_path) : '' }}";
                     output.value = savedUrl;
@@ -657,10 +653,9 @@
         });
     }
 
-    // Initialise all three pads (only the one whose canvas exists in DOM will do anything)
-    initCpSignaturePad('mtqa', 'mtqa_sig_mode');
     initCpSignaturePad('re',   're_sig_mode');
     initCpSignaturePad('pe',   'pe_sig_mode');
+    initCpSignaturePad('mtqa', 'mtqa_sig_mode');
     </script>
     @endpush
 

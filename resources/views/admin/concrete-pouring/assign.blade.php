@@ -63,7 +63,7 @@
             <div>
                 <strong>How this works:</strong> Reviewers are notified <em>in order</em>.
                 Leave a slot blank to skip that step. The pipeline is:
-                <strong>MTQA → Resident Engineer → Provincial Engineer → Admin final decision</strong>.
+                <strong>Resident Engineer → Provincial Engineer → ME/MTQA (Final Decision)</strong>.
             </div>
         </div>
 
@@ -84,39 +84,49 @@
             @csrf
 
             @php
+                // New order: RE (1) → PE (2) → MTQA final decision (3)
                 $slots = [
                     [
-                        'label' => 'ME/MTQA',
-                        'name'  => 'me_mtqa_user_id',
-                        'users' => $mtqas,
-                        'step'  => 1,
-                        'current' => $concretePouring->me_mtqa_user_id,
-                    ],
-                    [
-                        'label' => 'Resident Engineer',
-                        'name'  => 'resident_engineer_user_id',
-                        'users' => $residentEngineers,
-                        'step'  => 2,
+                        'label'   => 'Resident Engineer',
+                        'name'    => 'resident_engineer_user_id',
+                        'users'   => $residentEngineers,
+                        'step'    => 1,
                         'current' => $concretePouring->resident_engineer_user_id,
+                        'color'   => '#dbeafe',   // blue tint
+                        'text'    => '#2563eb',
                     ],
                     [
-                        'label' => 'Provincial Engineer',
-                        'name'  => 'noted_by_user_id',
-                        'users' => $provincialEngineers,
-                        'step'  => 3,
+                        'label'   => 'Provincial Engineer',
+                        'name'    => 'noted_by_user_id',
+                        'users'   => $provincialEngineers,
+                        'step'    => 2,
                         'current' => $concretePouring->noted_by_user_id,
+                        'color'   => '#fef3c7',   // amber tint
+                        'text'    => '#d97706',
+                    ],
+                    [
+                        'label'   => 'ME/MTQA (Final Decision)',
+                        'name'    => 'me_mtqa_user_id',
+                        'users'   => $mtqas,
+                        'step'    => 3,
+                        'current' => $concretePouring->me_mtqa_user_id,
+                        'color'   => '#dcfce7',   // green tint — marks it as the decision step
+                        'text'    => '#16a34a',
                     ],
                 ];
             @endphp
 
             @foreach($slots as $slot)
                 <div class="flex items-center gap-4 px-6 py-4 {{ !$loop->last ? 'border-b' : '' }}" style="border-color: var(--cp-border);">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #ede9fe; color: #7c3aed; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: {{ $slot['color'] }}; color: {{ $slot['text'] }}; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                         {{ $slot['step'] }}
                     </div>
-                    <div style="width: 192px; flex-shrink: 0;">
+                    <div style="width: 220px; flex-shrink: 0;">
                         <label for="{{ $slot['name'] }}" style="display: block; font-size: 14px; font-weight: 500; color: var(--cp-text);">
                             {{ $slot['label'] }}
+                            @if($loop->last)
+                                <span style="font-size: 11px; background: #dcfce7; color: #16a34a; border-radius: 20px; padding: 1px 8px; margin-left: 4px; font-weight: 600;">FINAL</span>
+                            @endif
                         </label>
                         <span style="font-size: 12px; color: var(--cp-muted);">Leave blank to skip</span>
                     </div>
@@ -138,18 +148,13 @@
                 </div>
             @endforeach
 
-            {{-- Step 4: Admin final (automatic) --}}
-            <div class="flex items-center gap-4 px-6 py-4" style="background: var(--cp-surface2); border-radius: 0 0 12px 12px;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: #dbeafe; color: #2563eb; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    4
-                </div>
-                <div style="width: 192px; flex-shrink: 0;">
-                    <p style="font-size: 14px; font-weight: 500; color: var(--cp-text); margin: 0;">Admin Final Decision</p>
-                    <span style="font-size: 12px; color: var(--cp-muted);">Always last</span>
-                </div>
-                <div style="flex: 1; font-size: 14px; color: var(--cp-muted); font-style: italic;">
-                    Automatically triggered after all reviewers complete their steps
-                </div>
+            {{-- Note explaining the new flow --}}
+            <div class="flex items-start gap-3 px-6 py-4" style="background: #f0fdf4; border-top: 1px solid #bbf7d0;">
+                <i class="fas fa-info-circle text-green-600 mt-0.5"></i>
+                <p style="font-size: 13px; color: #166534; margin: 0;">
+                    The <strong>ME/MTQA</strong> reviewer will be the last step and will have the authority to
+                    <strong>Approve</strong> or <strong>Disapprove</strong> this concrete pouring request.
+                </p>
             </div>
 
             <div class="px-6 py-4 flex justify-end gap-3" style="border-top: 1px solid var(--cp-border);">

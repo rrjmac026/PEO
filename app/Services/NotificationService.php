@@ -405,35 +405,25 @@ class NotificationService
      * → Notify: next reviewer (it's their turn).
      * If the next step is admin_final, notify all admins instead.
      */
-    public static function concretePouringStepAdvanced(ConcretePouring $cp, string $completedStep): void
+    public static function concretePouringStepAdvanced(ConcretePouring $cp, string $completedStep = ''): void
     {
         $nextStep = $cp->current_review_step;
 
-        if ($nextStep === 'admin_final') {
-            $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
-            if (!empty($adminIds)) {
-                Notification::send(
-                    $adminIds,
-                    'concrete_pouring',
-                    '✅ Concrete Pouring Ready for Final Decision',
-                    "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision.",
-                    route('admin.concrete-pouring.show', $cp->id),
-                    $cp
-                );
-            }
+        // No next step — workflow is complete (MTQA has made the final decision)
+        if (is_null($nextStep)) {
             return;
         }
 
         $stepToCol = [
-            'mtqa'                => 'me_mtqa_user_id',
             'resident_engineer'   => 'resident_engineer_user_id',
             'provincial_engineer' => 'noted_by_user_id',
+            'mtqa'                => 'me_mtqa_user_id',
         ];
 
         $stepLabels = [
-            'mtqa'                => 'ME/MTQA',
             'resident_engineer'   => 'Resident Engineer',
             'provincial_engineer' => 'Provincial Engineer',
+            'mtqa'                => 'ME/MTQA (Final Decision)',
         ];
 
         $col = $stepToCol[$nextStep] ?? null;
@@ -441,11 +431,19 @@ class NotificationService
 
         $nextLabel = $stepLabels[$nextStep] ?? $nextStep;
 
+        $isFinal = $nextStep === 'mtqa';
+        $title   = $isFinal
+            ? '✅ Concrete Pouring Ready for Final Decision'
+            : '🔔 Action Required — Concrete Pouring Review';
+        $body    = $isFinal
+            ? "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision as {$nextLabel}."
+            : "It is now your turn as {$nextLabel} to review concrete pouring request {$cp->reference_number} ({$cp->project_name}).";
+
         Notification::send(
             $cp->$col,
             'concrete_pouring',
-            '🔔 Action Required — Concrete Pouring Review',
-            "It is now your turn as {$nextLabel} to review concrete pouring request {$cp->reference_number} ({$cp->project_name}).",
+            $title,
+            $body,
             route('reviewer.concrete-pouring.show', $cp->id),
             $cp
         );

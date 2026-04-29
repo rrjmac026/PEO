@@ -14,10 +14,9 @@ use Illuminate\Support\Facades\Auth;
 class AdminConcretePouringController extends Controller
 {
     const REVIEW_STEPS = [
-        'mtqa'                => 'me_mtqa_user_id',
         'resident_engineer'   => 'resident_engineer_user_id',
         'provincial_engineer' => 'noted_by_user_id',
-        'admin_final'         => null,
+        'mtqa'                => 'me_mtqa_user_id',   // MTQA is now the final decision step
     ];
 
     // =========================================================================
@@ -71,8 +70,9 @@ class AdminConcretePouringController extends Controller
         $pendingAssignment = ConcretePouring::whereNull('current_review_step')
             ->where('status', 'requested')->count();
         $inReview          = ConcretePouring::whereNotNull('current_review_step')
-            ->whereNotIn('current_review_step', ['admin_final'])->count();
-        $awaitingDecision  = ConcretePouring::where('current_review_step', 'admin_final')->count();
+            ->whereNotIn('current_review_step', ['mtqa'])->count();
+        // "Awaiting Decision" now means it's at the MTQA step (final decision)
+        $awaitingDecision  = ConcretePouring::where('current_review_step', 'mtqa')->count();
 
         return view('admin.concrete-pouring.index', compact(
             'concretePourings',
@@ -144,10 +144,11 @@ class AdminConcretePouringController extends Controller
             return back()->with('error', 'Please assign at least one reviewer before proceeding.');
         }
 
+        // New pipeline order: Resident Engineer → Provincial Engineer → MTQA (final)
         $stepToCol = [
-            'mtqa'                => 'me_mtqa_user_id',
             'resident_engineer'   => 'resident_engineer_user_id',
             'provincial_engineer' => 'noted_by_user_id',
+            'mtqa'                => 'me_mtqa_user_id',
         ];
 
         $firstStep = null;
@@ -172,51 +173,6 @@ class AdminConcretePouringController extends Controller
     }
 
     // =========================================================================
-    // FINAL DECISION
-    // =========================================================================
-
-    public function decisionForm(ConcretePouring $concretePouring)
-    {
-        if ($concretePouring->current_review_step !== 'admin_final') {
-            return redirect()
-                ->route('admin.concrete-pouring.show', $concretePouring)
-                ->with('error', 'This request is not yet ready for a final decision.');
-        }
-
-        return view('admin.concrete-pouring.decision', compact('concretePouring'));
-    }
-
-    public function storeDecision(Request $request, ConcretePouring $concretePouring)
-    {
-        $request->validate([
-            'decision'         => 'required|in:approved,disapproved',
-            'approval_remarks' => 'nullable|string|max:2000',
-        ]);
-
-        if ($concretePouring->current_review_step !== 'admin_final') {
-            return back()->with('error', 'This request is not ready for a final decision yet.');
-        }
-
-        if ($request->decision === 'approved') {
-            $concretePouring->approve(Auth::user(), $request->approval_remarks);
-        } else {
-            $concretePouring->disapprove(Auth::user(), $request->approval_remarks);
-        }
-
-        $concretePouring->update(['current_review_step' => null]);
-
-        if ($request->decision === 'approved') {
-            NotificationService::concretePouringApproved($concretePouring);
-        } else {
-            NotificationService::concretePouringDisapproved($concretePouring);
-        }
-
-        return redirect()
-            ->route('admin.concrete-pouring.show', $concretePouring)
-            ->with('success', 'Decision recorded. Concrete pouring request has been ' . $request->decision . '.');
-    }
-
-    // =========================================================================
     // BULK ACTIONS
     // =========================================================================
 
@@ -231,12 +187,10 @@ class AdminConcretePouringController extends Controller
         $count = 0;
         foreach ($validated['selected'] as $id) {
             $cp = ConcretePouring::find($id);
-            if ($cp && $cp->current_review_step === 'admin_final') {
+            // Bulk approve is still an admin convenience — only acts on fully-reviewed items
+            if ($cp && in_array($cp->status, ['requested']) && is_null($cp->current_review_step)) {
                 $cp->approve(Auth::user(), $validated['approval_remarks'] ?? null);
-                $cp->update(['current_review_step' => null]);
-
                 NotificationService::concretePouringApproved($cp);
-
                 $count++;
             }
         }
@@ -255,12 +209,9 @@ class AdminConcretePouringController extends Controller
         $count = 0;
         foreach ($validated['selected'] as $id) {
             $cp = ConcretePouring::find($id);
-            if ($cp && $cp->current_review_step === 'admin_final') {
+            if ($cp && in_array($cp->status, ['requested']) && is_null($cp->current_review_step)) {
                 $cp->disapprove(Auth::user(), $validated['approval_remarks']);
-                $cp->update(['current_review_step' => null]);
-
                 NotificationService::concretePouringDisapproved($cp);
-
                 $count++;
             }
         }

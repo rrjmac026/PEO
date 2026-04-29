@@ -4,24 +4,34 @@ namespace App\Http\Controllers\Reviewer;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
-use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ReviewerConcretePouringController extends Controller
 {
+    /**
+     * New pipeline order:
+     *   1. resident_engineer
+     *   2. provincial_engineer
+     *   3. mtqa  ← FINAL DECISION (approve / disapprove)
+     */
     const REVIEW_STEPS = [
-        'mtqa'                => 'me_mtqa_user_id',
         'resident_engineer'   => 'resident_engineer_user_id',
         'provincial_engineer' => 'noted_by_user_id',
+        'mtqa'                => 'me_mtqa_user_id',
     ];
 
     const REVIEW_STEP_LABELS = [
-        'mtqa'                => 'ME/MTQA',
         'resident_engineer'   => 'Resident Engineer',
         'provincial_engineer' => 'Provincial Engineer',
+        'mtqa'                => 'ME/MTQA (Final Decision)',
     ];
+
+    // =========================================================================
+    // INDEX
+    // =========================================================================
 
     public function index(Request $request)
     {
@@ -43,6 +53,10 @@ class ReviewerConcretePouringController extends Controller
 
         return view('reviewer.concrete-pouring.index', compact('concretePourings', 'completed'));
     }
+
+    // =========================================================================
+    // SHOW
+    // =========================================================================
 
     public function show(ConcretePouring $concretePouring)
     {
@@ -66,29 +80,10 @@ class ReviewerConcretePouringController extends Controller
     // REVIEW SUBMISSIONS
     // =========================================================================
 
-    public function storeMtqaReview(Request $request, ConcretePouring $concretePouring)
-    {
-        $this->authorizeStep($concretePouring, 'mtqa');
-
-        $request->validate([
-            'me_mtqa_remarks'   => 'nullable|string|max:2000',
-            'me_mtqa_signature' => 'nullable|string',
-        ]);
-
-        $concretePouring->update([
-            'me_mtqa_remarks'   => $request->me_mtqa_remarks,
-            'me_mtqa_date'      => now(),
-            'me_mtqa_signature' => $this->resolveSignatureValue($request->me_mtqa_signature),
-        ]);
-
-        NotificationService::concretePouringSignatureSubmitted($concretePouring, 'ME/MTQA', Auth::id());
-
-        $this->advanceStep($concretePouring, 'mtqa');
-
-        return back()->with('success', 'ME/MTQA review & signature submitted. Request forwarded to next reviewer.');
-    }
-
-    public function storeResidentEngineerReview(Request $request, ConcretePouring $concretePouring)
+    /**
+     * Step 1 — Resident Engineer submits review then advances to PE (or MTQA if PE skipped).
+     */
+    public function storeEngineerReview(Request $request, ConcretePouring $concretePouring)
     {
         $this->authorizeStep($concretePouring, 'resident_engineer');
 
@@ -98,18 +93,30 @@ class ReviewerConcretePouringController extends Controller
         ]);
 
         $concretePouring->update([
-            're_remarks'   => $request->re_remarks,
-            're_date'      => now(),
-            're_signature' => $this->resolveSignatureValue($request->re_signature),
+            're_checked_by' => Auth::id(),
+            're_date'       => now(),
+            're_remarks'    => $request->re_remarks,
+            're_signature'  => $this->resolveSignatureValue(
+                                    $request->re_signature,
+                                    're_' . $concretePouring->id
+                                ),
         ]);
 
-        NotificationService::concretePouringSignatureSubmitted($concretePouring, 'Resident Engineer', Auth::id());
+        // Skip PE if not assigned → go straight to MTQA
+        $nextStep = $concretePouring->noted_by_user_id
+            ? 'provincial_engineer'
+            : 'mtqa';
 
-        $this->advanceStep($concretePouring, 'resident_engineer');
+        $concretePouring->update(['current_review_step' => $nextStep]);
 
-        return back()->with('success', 'Resident Engineer review & signature submitted. Request forwarded to next reviewer.');
+        NotificationService::concretePouringStepAdvanced($concretePouring);
+
+        return back()->with('success', 'Your Resident Engineer review has been submitted. Request forwarded to next reviewer.');
     }
 
+    /**
+     * Step 2 — Provincial Engineer submits note then advances to MTQA (always).
+     */
     public function storeProvincialNote(Request $request, ConcretePouring $concretePouring)
     {
         $this->authorizeStep($concretePouring, 'provincial_engineer');
@@ -120,24 +127,74 @@ class ReviewerConcretePouringController extends Controller
         ]);
 
         $concretePouring->update([
+            'noted_by'           => Auth::id(),
             'noted_date'         => now(),
             'approval_remarks'   => $request->provincial_remarks,
-            'noted_by_signature' => $this->resolveSignatureValue($request->noted_by_signature),
+            'noted_by_signature' => $this->resolveSignatureValue(
+                                        $request->noted_by_signature,
+                                        'pe_' . $concretePouring->id
+                                    ),
         ]);
 
-        // Provincial Engineer is the last reviewer — go straight to admin_final
-        // and notify admin + MTQA only (per business rule)
-        $concretePouring->update(['current_review_step' => 'admin_final']);
+        // MTQA is always the final step
+        $concretePouring->update(['current_review_step' => 'mtqa']);
 
-        NotificationService::concretePouringReadyForDecision($concretePouring);
+        NotificationService::concretePouringStepAdvanced($concretePouring);
 
-        return back()->with('success', 'Note & signature submitted. Request forwarded to admin for final decision.');
+        return back()->with('success', 'Your Provincial Engineer note has been submitted. Request forwarded to ME/MTQA for final decision.');
+    }
+
+    /**
+     * Step 3 — MTQA makes the FINAL decision (approve or disapprove).
+     */
+    public function storeMtqaReview(Request $request, ConcretePouring $concretePouring)
+    {
+        $this->authorizeStep($concretePouring, 'mtqa');
+
+        $request->validate([
+            'decision'          => 'required|in:approved,disapproved',
+            'me_mtqa_remarks'   => 'nullable|string|max:2000',
+            'me_mtqa_signature' => 'nullable|string',
+        ]);
+
+        // Stamp the MTQA review fields
+        $concretePouring->update([
+            'me_mtqa_checked_by' => Auth::id(),
+            'me_mtqa_date'       => now(),
+            'me_mtqa_remarks'    => $request->me_mtqa_remarks,
+            'me_mtqa_signature'  => $this->resolveSignatureValue(
+                                        $request->me_mtqa_signature,
+                                        'mtqa_' . $concretePouring->id
+                                    ),
+        ]);
+
+        // Apply the final decision and fire notifications
+        if ($request->decision === 'approved') {
+            $concretePouring->approve(Auth::user(), $request->me_mtqa_remarks);
+            NotificationService::concretePouringApproved($concretePouring);
+        } else {
+            $concretePouring->disapprove(Auth::user(), $request->me_mtqa_remarks);
+            NotificationService::concretePouringDisapproved($concretePouring);
+        }
+
+        // Workflow complete — clear the active step
+        $concretePouring->update(['current_review_step' => null]);
+
+        $label = $request->decision === 'approved' ? 'approved' : 'disapproved';
+
+        return redirect()
+            ->route('reviewer.concrete-pouring.index')
+            ->with('success', "Concrete pouring request has been {$label} successfully.");
     }
 
     // =========================================================================
     // PRIVATE — STEP CONTROL
     // =========================================================================
 
+    /**
+     * Abort if the current user is not the assigned reviewer for $step,
+     * or if $step is not the active pipeline step.
+     */
     private function authorizeStep(ConcretePouring $concretePouring, string $step): void
     {
         $user = Auth::user();
@@ -152,48 +209,32 @@ class ReviewerConcretePouringController extends Controller
         }
     }
 
-    private function advanceStep(ConcretePouring $concretePouring, string $completedStep): void
-    {
-        $steps    = array_keys(self::REVIEW_STEPS);
-        $allSteps = array_merge($steps, ['admin_final']);
-        $idx      = array_search($completedStep, $allSteps);
-
-        for ($i = $idx + 1; $i < count($allSteps); $i++) {
-            $nextStep = $allSteps[$i];
-
-            if ($nextStep === 'admin_final') {
-                $concretePouring->update(['current_review_step' => 'admin_final']);
-                NotificationService::concretePouringStepAdvanced($concretePouring, $completedStep);
-                return;
-            }
-
-            $col = self::REVIEW_STEPS[$nextStep];
-            if (!empty($concretePouring->$col)) {
-                $concretePouring->update(['current_review_step' => $nextStep]);
-                NotificationService::concretePouringStepAdvanced($concretePouring, $completedStep);
-                return;
-            }
-        }
-
-        // All reviewer steps skipped — go straight to admin_final
-        $concretePouring->update(['current_review_step' => 'admin_final']);
-        NotificationService::concretePouringStepAdvanced($concretePouring, $completedStep);
-    }
-
     // =========================================================================
     // PRIVATE — SIGNATURE VALUE NORMALISER
     // =========================================================================
 
-    private function resolveSignatureValue(?string $value): ?string
+    /**
+     * Accepts either a drawn canvas data-URL or a saved-profile signature URL.
+     * Returns a storage-relative path (or null).
+     *
+     * @param  string|null $value     Raw input value from the form
+     * @param  string      $prefix    Filename prefix, e.g. 're_42'
+     */
+    private function resolveSignatureValue(?string $value, string $prefix = 'sig'): ?string
     {
         if (empty($value)) {
             return null;
         }
 
+        // Drawn signature — base64 canvas data-URL
         if (str_starts_with($value, 'data:image')) {
-            return $value;
+            $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $value));
+            $filename  = 'signatures/' . $prefix . '_' . time() . '.png';
+            Storage::disk('public')->put($filename, $imageData);
+            return $filename;
         }
 
+        // Saved profile signature passed as a full URL — strip to relative path
         $storageUrl = url('storage') . '/';
         if (str_starts_with($value, $storageUrl)) {
             return ltrim(substr($value, strlen($storageUrl)), '/');
@@ -203,7 +244,8 @@ class ReviewerConcretePouringController extends Controller
             return ltrim(substr($value, strlen('/storage/')), '/');
         }
 
-        return $value;
+        // Already a relative path or the user's saved signature_path
+        return Auth::user()->signature_path ?? null;
     }
 
     // =========================================================================
@@ -236,14 +278,14 @@ class ReviewerConcretePouringController extends Controller
     {
         return ConcretePouring::where(function ($q) use ($userId) {
             $q->where(function ($q2) use ($userId) {
-                $q2->where('current_review_step', 'mtqa')
-                   ->where('me_mtqa_user_id', $userId);
-            })->orWhere(function ($q2) use ($userId) {
                 $q2->where('current_review_step', 'resident_engineer')
                    ->where('resident_engineer_user_id', $userId);
             })->orWhere(function ($q2) use ($userId) {
                 $q2->where('current_review_step', 'provincial_engineer')
                    ->where('noted_by_user_id', $userId);
+            })->orWhere(function ($q2) use ($userId) {
+                $q2->where('current_review_step', 'mtqa')
+                   ->where('me_mtqa_user_id', $userId);
             });
         });
     }
@@ -251,11 +293,11 @@ class ReviewerConcretePouringController extends Controller
     private function completedByUser($user)
     {
         return ConcretePouring::where(function ($q) use ($user) {
-            $q->where('me_mtqa_user_id', $user->id)->whereNotNull('me_mtqa_date');
-        })->orWhere(function ($q) use ($user) {
             $q->where('resident_engineer_user_id', $user->id)->whereNotNull('re_date');
         })->orWhere(function ($q) use ($user) {
             $q->where('noted_by_user_id', $user->id)->whereNotNull('noted_date');
+        })->orWhere(function ($q) use ($user) {
+            $q->where('me_mtqa_user_id', $user->id)->whereNotNull('me_mtqa_date');
         });
     }
 }
