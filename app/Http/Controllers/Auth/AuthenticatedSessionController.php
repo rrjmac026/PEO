@@ -8,7 +8,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-use App\Enums\Role;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -30,22 +29,12 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        
         return match ($user->role) {
-            Role::ADMIN => redirect()->route('admin.dashboard'),
-
-            Role::CONTRACTOR => redirect()->route('user.dashboard'),
-
-            Role::PROVINCIAL_ENGINEER,
-            Role::SITE_INSPECTOR,
-            Role::ENGINEER_IV,
-            Role::SURVEYOR,
-            Role::MTQA,
-            Role::RESIDENT_ENGINEER,
-            Role::ENGINEER_III
-                => redirect()->route('reviewer.dashboard'),
-
-            default => abort(403),
+            'admin'                                                     => redirect()->intended(route('admin.dashboard')),
+            'contractor'                                                      => redirect()->intended(route('user.dashboard')),
+            'provincial_engineer', 'site_inspector', 'engineeriv',
+            'surveyor', 'mtqa', 'resident_engineer', 'engineeriii',                             => redirect()->intended(route('reviewer.dashboard')),
+            default                                                     => redirect()->intended(route('dashboard')),
         };
     }
 

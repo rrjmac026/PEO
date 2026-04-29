@@ -347,6 +347,14 @@
     </style>
     @endpush
 
+    @if ($contractorPreselectedRe)
+        <div class="alert alert-info">
+            <strong>Contractor's preferred Resident Engineer:</strong>
+            {{ $contractorPreselectedRe->name }}
+            — you may keep or change this selection. All other reviewers below are still required.
+        </div>
+    @endif
+
     <div class="py-8 wr-wrap max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Page Header Card --}}

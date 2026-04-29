@@ -136,24 +136,28 @@ class UserWorkRequestController extends Controller
         // Clean up empty RE id
         $validated['assigned_resident_engineer_id'] = $validated['assigned_resident_engineer_id'] ?: null;
 
-        // Decide routing:
-        //   • RE chosen  → skip admin, go straight to RE review queue
-        //   • No RE      → land in admin queue for manual assignment
+        // ALWAYS land in admin queue — the contractor-chosen RE is just a pre-fill
+        // for the admin assign form. Admin must still assign ALL other reviewers
+        // (Site Inspector, Surveyor, MTQA, Engineer IV, Engineer III, Provincial Engineer)
+        // before the review pipeline can start.
         $validated['status']              = WorkRequest::STATUS_SUBMITTED;
         $validated['current_review_step'] = null;
 
         $workRequest = WorkRequest::create($validated);
 
         $logDescription = !empty($validated['assigned_resident_engineer_id'])
-            ? 'Work request submitted by contractor. Sent directly to Resident Engineer for review.'
-            : 'Work request submitted by contractor. Awaiting admin assignment (no RE available).';
+            ? 'Work request submitted by contractor with preferred Resident Engineer pre-selected. Awaiting admin to complete full reviewer assignment.'
+            : 'Work request submitted by contractor. Awaiting admin assignment.';
 
         $workRequest->addLog(WorkRequestLog::EVENT_SUBMITTED, [
-            'description' => 'Work request submitted by contractor. Awaiting admin assignment.',
+            'description' => $logDescription,
             'user_id'     => Auth::id(),
         ]);
 
         \App\Services\NotificationService::workRequestSubmitted($workRequest);
+
+        // Do NOT notify the RE yet — admin must confirm the full assignment first.
+        // Notification fires in WorkRequestController::assign() after admin saves all reviewers.
 
         // Notify the RE directly if one was chosen
         if (!empty($validated['assigned_resident_engineer_id'])) {

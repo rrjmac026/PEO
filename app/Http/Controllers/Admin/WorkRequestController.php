@@ -121,6 +121,11 @@ class WorkRequestController extends Controller
         $engineersIii        = User::where('role', 'engineeriii')->orderBy('name')->get();
         $provincialEngineers = User::where('role', 'provincial_engineer')->orderBy('name')->get();
 
+        // If the contractor pre-selected an RE, flag it so the blade can show an info banner.
+        $contractorPreselectedRe = $workRequest->assigned_resident_engineer_id
+            ? $residentEngineers->find($workRequest->assigned_resident_engineer_id)
+            : null;
+
         return view('admin.work-requests.assign', compact(
             'workRequest',
             'siteInspectors',
@@ -129,7 +134,8 @@ class WorkRequestController extends Controller
             'mtqas',
             'engineersIv',
             'engineersIii',
-            'provincialEngineers'
+            'provincialEngineers',
+            'contractorPreselectedRe'   // ← new
         ));
     }
 
