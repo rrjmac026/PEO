@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
+use App\Models\ConcretePouringLog;
 use App\Models\User;
+use App\Services\ConcretePouringNotificationService;
 use App\Services\ConcretePouringPdf;
-use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class AdminConcretePouringController extends Controller
     const REVIEW_STEPS = [
         'resident_engineer'   => 'resident_engineer_user_id',
         'provincial_engineer' => 'noted_by_user_id',
-        'mtqa'                => 'me_mtqa_user_id',   // MTQA is now the final decision step
+        'mtqa'                => 'me_mtqa_user_id',
     ];
 
     // =========================================================================
@@ -26,60 +27,31 @@ class AdminConcretePouringController extends Controller
     public function index(Request $request)
     {
         $query = ConcretePouring::with([
-            'workRequest',
-            'requestedBy',
-            'meMtqaChecker',
-            'residentEngineer',
-            'notedByEngineer',
-            'approver',
-            'disapprover',
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
         ]);
 
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('review_step')) {
-            $query->where('current_review_step', $request->review_step);
-        }
-
-        if ($request->filled('contractor')) {
-            $query->where('contractor', $request->contractor);
-        }
-
-        if ($request->filled('date_from')) {
-            $query->whereDate('pouring_datetime', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->whereDate('pouring_datetime', '<=', $request->date_to);
-        }
+        if ($request->filled('search'))     $query->search($request->search);
+        if ($request->filled('status'))     $query->where('status', $request->status);
+        if ($request->filled('review_step')) $query->where('current_review_step', $request->review_step);
+        if ($request->filled('contractor')) $query->where('contractor', $request->contractor);
+        if ($request->filled('date_from'))  $query->whereDate('pouring_datetime', '>=', $request->date_from);
+        if ($request->filled('date_to'))    $query->whereDate('pouring_datetime', '<=', $request->date_to);
 
         $sortBy    = $request->input('sort_by', 'created_at');
         $sortOrder = $request->input('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
         $concretePourings = $query->paginate(20)->withQueryString();
+        $contractors      = ConcretePouring::select('contractor')->distinct()->orderBy('contractor')->pluck('contractor');
 
-        $contractors = ConcretePouring::select('contractor')->distinct()->orderBy('contractor')->pluck('contractor');
-
-        $pendingAssignment = ConcretePouring::whereNull('current_review_step')
-            ->where('status', 'requested')->count();
-        $inReview          = ConcretePouring::whereNotNull('current_review_step')
-            ->whereNotIn('current_review_step', ['mtqa'])->count();
-        // "Awaiting Decision" now means it's at the MTQA step (final decision)
+        $pendingAssignment = ConcretePouring::whereNull('current_review_step')->where('status', 'requested')->count();
+        $inReview          = ConcretePouring::whereNotNull('current_review_step')->whereNotIn('current_review_step', ['mtqa'])->count();
         $awaitingDecision  = ConcretePouring::where('current_review_step', 'mtqa')->count();
 
         return view('admin.concrete-pouring.index', compact(
-            'concretePourings',
-            'contractors',
-            'pendingAssignment',
-            'inReview',
-            'awaitingDecision'
+            'concretePourings', 'contractors',
+            'pendingAssignment', 'inReview', 'awaitingDecision'
         ));
     }
 
@@ -90,13 +62,9 @@ class AdminConcretePouringController extends Controller
     public function show(ConcretePouring $concretePouring)
     {
         $concretePouring->load([
-            'workRequest',
-            'requestedBy',
-            'meMtqaChecker',
-            'residentEngineer',
-            'notedByEngineer',
-            'approver',
-            'disapprover',
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
+            'logs.user',   // ← eager-load logs with their actor
         ]);
 
         return view('admin.concrete-pouring.show', compact('concretePouring'));
@@ -119,10 +87,7 @@ class AdminConcretePouringController extends Controller
         $provincialEngineers = User::where('role', 'provincial_engineer')->orderBy('name')->get();
 
         return view('admin.concrete-pouring.assign', compact(
-            'concretePouring',
-            'mtqas',
-            'residentEngineers',
-            'provincialEngineers'
+            'concretePouring', 'mtqas', 'residentEngineers', 'provincialEngineers'
         ));
     }
 
@@ -144,7 +109,6 @@ class AdminConcretePouringController extends Controller
             return back()->with('error', 'Please assign at least one reviewer before proceeding.');
         }
 
-        // New pipeline order: Resident Engineer → Provincial Engineer → MTQA (final)
         $stepToCol = [
             'resident_engineer'   => 'resident_engineer_user_id',
             'provincial_engineer' => 'noted_by_user_id',
@@ -165,7 +129,27 @@ class AdminConcretePouringController extends Controller
             'assigned_at'          => now(),
         ]));
 
-        NotificationService::concretePouringAssigned($concretePouring);
+        // Build a readable description of who was assigned
+        $assignedLabels = [];
+        if ($assignments['resident_engineer_user_id']) {
+            $u = User::find($assignments['resident_engineer_user_id']);
+            if ($u) $assignedLabels[] = "Resident Engineer: {$u->name}";
+        }
+        if ($assignments['noted_by_user_id']) {
+            $u = User::find($assignments['noted_by_user_id']);
+            if ($u) $assignedLabels[] = "Provincial Engineer: {$u->name}";
+        }
+        if ($assignments['me_mtqa_user_id']) {
+            $u = User::find($assignments['me_mtqa_user_id']);
+            if ($u) $assignedLabels[] = "ME/MTQA: {$u->name}";
+        }
+
+        $concretePouring->addLog(ConcretePouringLog::EVENT_ASSIGNED, [
+            'description' => 'Reviewers assigned by admin. ' . implode(', ', $assignedLabels) . '. First step: ' . $firstStep . '.',
+            'review_step' => $firstStep,
+        ]);
+
+        ConcretePouringNotificationService::assigned($concretePouring);
 
         return redirect()
             ->route('admin.concrete-pouring.show', $concretePouring)
@@ -187,10 +171,16 @@ class AdminConcretePouringController extends Controller
         $count = 0;
         foreach ($validated['selected'] as $id) {
             $cp = ConcretePouring::find($id);
-            // Bulk approve is still an admin convenience — only acts on fully-reviewed items
             if ($cp && in_array($cp->status, ['requested']) && is_null($cp->current_review_step)) {
+                $oldStatus = $cp->status;
                 $cp->approve(Auth::user(), $validated['approval_remarks'] ?? null);
-                NotificationService::concretePouringApproved($cp);
+                $cp->addLog(ConcretePouringLog::EVENT_APPROVED, [
+                    'description' => 'Bulk approved by admin.',
+                    'status_from' => $oldStatus,
+                    'status_to'   => 'approved',
+                    'note'        => $validated['approval_remarks'] ?? null,
+                ]);
+                ConcretePouringNotificationService::approved($cp);
                 $count++;
             }
         }
@@ -210,8 +200,15 @@ class AdminConcretePouringController extends Controller
         foreach ($validated['selected'] as $id) {
             $cp = ConcretePouring::find($id);
             if ($cp && in_array($cp->status, ['requested']) && is_null($cp->current_review_step)) {
+                $oldStatus = $cp->status;
                 $cp->disapprove(Auth::user(), $validated['approval_remarks']);
-                NotificationService::concretePouringDisapproved($cp);
+                $cp->addLog(ConcretePouringLog::EVENT_DISAPPROVED, [
+                    'description' => 'Bulk disapproved by admin.',
+                    'status_from' => $oldStatus,
+                    'status_to'   => 'disapproved',
+                    'note'        => $validated['approval_remarks'],
+                ]);
+                ConcretePouringNotificationService::disapproved($cp);
                 $count++;
             }
         }
@@ -220,7 +217,7 @@ class AdminConcretePouringController extends Controller
     }
 
     // =========================================================================
-    // REPORTS
+    // REPORTS / CALENDAR / PRINT / DOWNLOAD  (unchanged — no logging needed)
     // =========================================================================
 
     public function reports(Request $request)
@@ -231,13 +228,8 @@ class AdminConcretePouringController extends Controller
         $query = ConcretePouring::with(['requestedBy', 'approver', 'disapprover'])
             ->whereBetween('created_at', [$startDate, $endDate]);
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('contractor')) {
-            $query->where('contractor', $request->contractor);
-        }
+        if ($request->filled('status'))     $query->where('status', $request->status);
+        if ($request->filled('contractor')) $query->where('contractor', $request->contractor);
 
         $concretePourings = $query->get();
 
@@ -248,9 +240,7 @@ class AdminConcretePouringController extends Controller
             'pending'                  => $concretePourings->where('status', 'requested')->count(),
             'total_volume'             => round($concretePourings->sum('estimated_volume'), 2),
             'avg_volume'               => round($concretePourings->avg('estimated_volume'), 2),
-            'avg_checklist_completion' => round(
-                $concretePourings->avg(fn ($p) => $p->checklist_progress), 2
-            ),
+            'avg_checklist_completion' => round($concretePourings->avg(fn ($p) => $p->checklist_progress), 2),
         ];
 
         $contractorBreakdown = $concretePourings->groupBy('contractor')->map(fn ($g) => [
@@ -293,10 +283,6 @@ class AdminConcretePouringController extends Controller
         ));
     }
 
-    // =========================================================================
-    // CALENDAR
-    // =========================================================================
-
     public function calendar(Request $request)
     {
         $month = $request->input('month', now()->month);
@@ -321,20 +307,11 @@ class AdminConcretePouringController extends Controller
         return view('admin.concrete-pouring.calendar', compact('calendarData', 'month', 'year'));
     }
 
-    // =========================================================================
-    // PRINT / DOWNLOAD
-    // =========================================================================
-
     public function print(ConcretePouring $concretePouring)
     {
         $concretePouring->load([
-            'workRequest',
-            'requestedBy',
-            'meMtqaChecker',
-            'residentEngineer',
-            'notedByEngineer',
-            'approver',
-            'disapprover',
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
         ]);
 
         $pdf      = new ConcretePouringPdf($concretePouring);
@@ -349,13 +326,8 @@ class AdminConcretePouringController extends Controller
     public function download(ConcretePouring $concretePouring)
     {
         $concretePouring->load([
-            'workRequest',
-            'requestedBy',
-            'meMtqaChecker',
-            'residentEngineer',
-            'notedByEngineer',
-            'approver',
-            'disapprover',
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
         ]);
 
         $pdf      = new ConcretePouringPdf($concretePouring);
@@ -373,6 +345,11 @@ class AdminConcretePouringController extends Controller
 
     public function destroy(ConcretePouring $concretePouring)
     {
+        $concretePouring->addLog(ConcretePouringLog::EVENT_DELETED, [
+            'description' => 'Concrete pouring request deleted by admin.',
+            'status_from' => $concretePouring->status,
+        ]);
+
         $concretePouring->delete();
 
         return redirect()

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class ConcretePouring extends Model
 {
@@ -78,18 +79,18 @@ class ConcretePouring extends Model
         'me_mtqa_user_id',
         'me_mtqa_remarks',
         'me_mtqa_date',
-        'me_mtqa_signature',          // ← NEW
+        'me_mtqa_signature',
 
         // ── Resident Engineer Review ─────────────────────────────────────────
         'resident_engineer_user_id',
         're_remarks',
         're_date',
-        're_signature',               // ← NEW
+        're_signature',
 
         // ── Noted by (Provincial Engineer) ──────────────────────────────────
         'noted_by_user_id',
         'noted_date',
-        'noted_by_signature',         // ← NEW
+        'noted_by_signature',
 
         // ── Final Approval ───────────────────────────────────────────────────
         'status',
@@ -174,6 +175,12 @@ class ConcretePouring extends Model
     public function disapprover()
     {
         return $this->belongsTo(User::class, 'disapproved_by_user_id');
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(ConcretePouringLog::class, 'concrete_pouring_id')
+                    ->orderBy('created_at', 'desc');
     }
 
     // =========================================================================
@@ -290,7 +297,6 @@ class ConcretePouring extends Model
 
     /**
      * Resolve a stored signature value to a display URL.
-     * Handles: base64 data URIs, full URLs, and storage-relative paths.
      */
     public function resolveSignatureUrl(?string $value): ?string
     {
@@ -303,7 +309,6 @@ class ConcretePouring extends Model
         if (str_starts_with($value, 'http')) {
             return $value;
         }
-        // Treat as storage-relative path
         return asset('storage/' . ltrim($value, '/'));
     }
 
@@ -329,6 +334,51 @@ class ConcretePouring extends Model
             'disapproved_date'       => now(),
             'approval_remarks'       => $remarks,
         ]);
+    }
+
+    // =========================================================================
+    // LOGGING
+    // =========================================================================
+
+    /**
+     * Create an activity log entry for this concrete pouring request.
+     *
+     * Usage:
+     *   $cp->addLog(ConcretePouringLog::EVENT_SUBMITTED, [
+     *       'description' => 'Submitted by contractor.',
+     *       'user_id'     => Auth::id(),
+     *   ]);
+     */
+    public function addLog(string $event, array $data = []): ConcretePouringLog
+    {
+        return $this->logs()->create([
+            'event'        => $event,
+            'user_id'      => $data['user_id']      ?? Auth::id(),
+            'description'  => $data['description']  ?? null,
+            'note'         => $data['note']          ?? null,
+            'changes'      => $data['changes']       ?? null,
+            'review_step'  => $data['review_step']   ?? $this->current_review_step,
+            'status_from'  => $data['status_from']   ?? null,
+            'status_to'    => $data['status_to']     ?? null,
+            'ip_address'   => request()->ip(),
+            'user_agent'   => request()->userAgent(),
+        ]);
+    }
+
+    /**
+     * Build a changes diff array from new data vs current model state.
+     * Use before calling ->update().
+     */
+    public function buildChanges(array $newData): array
+    {
+        $changes = [];
+        foreach ($newData as $field => $newValue) {
+            $oldValue = $this->getOriginal($field) ?? $this->$field;
+            if ((string) $oldValue !== (string) $newValue) {
+                $changes[$field] = [$oldValue, $newValue];
+            }
+        }
+        return $changes;
     }
 
     // =========================================================================

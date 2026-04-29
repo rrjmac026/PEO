@@ -4,36 +4,23 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConcretePouring;
+use App\Models\ConcretePouringLog;
 use App\Models\WorkRequest;
-use App\Services\NotificationService;
+use App\Services\ConcretePouringNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class UserConcretePouringController extends Controller
 {
-    /**
-     * List only the authenticated contractor's own concrete pouring requests.
-     */
     public function index(Request $request)
     {
         $query = ConcretePouring::with(['workRequest'])
             ->where('requested_by_user_id', Auth::id());
 
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('date_from')) {
-            $query->whereDate('pouring_datetime', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->whereDate('pouring_datetime', '<=', $request->date_to);
-        }
+        if ($request->filled('search'))    $query->search($request->search);
+        if ($request->filled('status'))    $query->where('status', $request->status);
+        if ($request->filled('date_from')) $query->whereDate('pouring_datetime', '>=', $request->date_from);
+        if ($request->filled('date_to'))   $query->whereDate('pouring_datetime', '<=', $request->date_to);
 
         $concretePourings = $query->latest()->paginate(15)->withQueryString();
 
@@ -47,10 +34,6 @@ class UserConcretePouringController extends Controller
         return view('user.concrete-pouring.index', compact('concretePourings', 'stats'));
     }
 
-    /**
-     * Show the submission form.
-     * Optionally pre-fill from an existing approved WorkRequest.
-     */
     public function create(Request $request)
     {
         $workRequest = null;
@@ -69,9 +52,6 @@ class UserConcretePouringController extends Controller
         return view('user.concrete-pouring.create', compact('workRequest', 'approvedWorkRequests'));
     }
 
-    /**
-     * Store a newly submitted concrete pouring request.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -84,39 +64,8 @@ class UserConcretePouringController extends Controller
             'estimated_volume'       => 'required|numeric|min:0|max:9999.99',
             'station_limits_section' => 'nullable|string|max:255',
             'pouring_datetime'       => 'required|date|after:now',
-
-            // Checklist
-            'concrete_vibrator'               => 'nullable|boolean',
-            'field_density_test'              => 'nullable|boolean',
-            'protective_covering_materials'   => 'nullable|boolean',
-            'beam_cylinder_molds'             => 'nullable|boolean',
-            'warning_signs_barricades'        => 'nullable|boolean',
-            'curing_materials'                => 'nullable|boolean',
-            'concrete_saw'                    => 'nullable|boolean',
-            'slump_cones'                     => 'nullable|boolean',
-            'concrete_block_spacer'           => 'nullable|boolean',
-            'plumbness'                       => 'nullable|boolean',
-            'finishing_tools_equipment'       => 'nullable|boolean',
-            'quality_of_materials'            => 'nullable|boolean',
-            'line_grade_alignment'            => 'nullable|boolean',
-            'lighting_system'                 => 'nullable|boolean',
-            'required_construction_equipment' => 'nullable|boolean',
-            'electrical_layout'               => 'nullable|boolean',
-            'rebar_sizes_spacing'             => 'nullable|boolean',
-            'plumbing_layout'                 => 'nullable|boolean',
-            'rebars_installation'             => 'nullable|boolean',
-            'falseworks_formworks'            => 'nullable|boolean',
+            ...$this->checklistRules(),
         ]);
-
-        if (!empty($validated['work_request_id'])) {
-            $wr = WorkRequest::where('id', $validated['work_request_id'])
-                ->where('contractor_name', Auth::user()->name)
-                ->first();
-
-            if (!$wr) {
-                return back()->with('error', 'Invalid work request selected.');
-            }
-        }
 
         foreach ($this->checklistFields() as $field) {
             $validated[$field] = $request->boolean($field);
@@ -127,36 +76,30 @@ class UserConcretePouringController extends Controller
 
         $concretePouring = ConcretePouring::create($validated);
 
-        NotificationService::concretePouringSubmitted($concretePouring);
+        $concretePouring->addLog(ConcretePouringLog::EVENT_SUBMITTED, [
+            'description' => 'Concrete pouring request submitted by contractor.',
+            'status_to'   => 'requested',
+        ]);
+
+        ConcretePouringNotificationService::submitted($concretePouring);
 
         return redirect()
             ->route('user.concrete-pouring.show', $concretePouring)
             ->with('success', 'Concrete pouring request submitted successfully! Awaiting admin assignment.');
     }
 
-    /**
-     * View a single request — only the owning contractor may see it.
-     */
     public function show(ConcretePouring $concretePouring)
     {
         $this->authorizeOwner($concretePouring);
 
         $concretePouring->load([
-            'workRequest',
-            'requestedBy',
-            'meMtqaChecker',
-            'residentEngineer',
-            'approver',
-            'disapprover',
-            'notedByEngineer',
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'approver', 'disapprover', 'notedByEngineer',
         ]);
 
         return view('user.concrete-pouring.show', compact('concretePouring'));
     }
 
-    /**
-     * Edit form — only while still in 'requested' status (not yet assigned).
-     */
     public function edit(ConcretePouring $concretePouring)
     {
         $this->authorizeOwner($concretePouring);
@@ -175,9 +118,6 @@ class UserConcretePouringController extends Controller
         return view('user.concrete-pouring.edit', compact('concretePouring', 'approvedWorkRequests'));
     }
 
-    /**
-     * Update — same restrictions as edit.
-     */
     public function update(Request $request, ConcretePouring $concretePouring)
     {
         $this->authorizeOwner($concretePouring);
@@ -196,46 +136,28 @@ class UserConcretePouringController extends Controller
             'estimated_volume'       => 'required|numeric|min:0|max:9999.99',
             'station_limits_section' => 'nullable|string|max:255',
             'pouring_datetime'       => 'required|date',
-
-            // Checklist
-            'concrete_vibrator'               => 'nullable|boolean',
-            'field_density_test'              => 'nullable|boolean',
-            'protective_covering_materials'   => 'nullable|boolean',
-            'beam_cylinder_molds'             => 'nullable|boolean',
-            'warning_signs_barricades'        => 'nullable|boolean',
-            'curing_materials'                => 'nullable|boolean',
-            'concrete_saw'                    => 'nullable|boolean',
-            'slump_cones'                     => 'nullable|boolean',
-            'concrete_block_spacer'           => 'nullable|boolean',
-            'plumbness'                       => 'nullable|boolean',
-            'finishing_tools_equipment'       => 'nullable|boolean',
-            'quality_of_materials'            => 'nullable|boolean',
-            'line_grade_alignment'            => 'nullable|boolean',
-            'lighting_system'                 => 'nullable|boolean',
-            'required_construction_equipment' => 'nullable|boolean',
-            'electrical_layout'               => 'nullable|boolean',
-            'rebar_sizes_spacing'             => 'nullable|boolean',
-            'plumbing_layout'                 => 'nullable|boolean',
-            'rebars_installation'             => 'nullable|boolean',
-            'falseworks_formworks'            => 'nullable|boolean',
+            ...$this->checklistRules(),
         ]);
 
         foreach ($this->checklistFields() as $field) {
             $validated[$field] = $request->boolean($field);
         }
 
+        $changes = $concretePouring->buildChanges($validated);
         $concretePouring->update($validated);
 
-        NotificationService::concretePouringUpdated($concretePouring);
+        $concretePouring->addLog(ConcretePouringLog::EVENT_UPDATED, [
+            'description' => 'Concrete pouring request updated by contractor.',
+            'changes'     => $changes,
+        ]);
+
+        ConcretePouringNotificationService::updated($concretePouring);
 
         return redirect()
             ->route('user.concrete-pouring.show', $concretePouring)
             ->with('success', 'Concrete pouring request updated successfully!');
     }
 
-    /**
-     * Delete — only while still unassigned and in 'requested' status.
-     */
     public function destroy(ConcretePouring $concretePouring)
     {
         $this->authorizeOwner($concretePouring);
@@ -244,35 +166,32 @@ class UserConcretePouringController extends Controller
             return back()->with('error', 'Cannot delete a request that has already been assigned or reviewed.');
         }
 
-        // Capture before deletion — model will be gone after delete()
         $contractorId    = Auth::id();
         $referenceNumber = $concretePouring->reference_number;
         $projectName     = $concretePouring->project_name;
 
+        // Log before delete so the FK still exists
+        $concretePouring->addLog(ConcretePouringLog::EVENT_DELETED, [
+            'description' => 'Concrete pouring request deleted by contractor.',
+            'status_from' => $concretePouring->status,
+        ]);
+
         $concretePouring->delete();
 
-        NotificationService::concretePouringDeleted($contractorId, $referenceNumber, $projectName);
+        ConcretePouringNotificationService::deleted($contractorId, $referenceNumber, $projectName);
 
         return redirect()
             ->route('user.concrete-pouring.index')
             ->with('success', 'Concrete pouring request deleted successfully!');
     }
 
-    /**
-     * Read-only print view.
-     */
     public function print(ConcretePouring $concretePouring)
     {
         $this->authorizeOwner($concretePouring);
 
         $concretePouring->load([
-            'workRequest',
-            'requestedBy',
-            'meMtqaChecker',
-            'residentEngineer',
-            'approver',
-            'disapprover',
-            'notedByEngineer',
+            'workRequest', 'requestedBy', 'meMtqaChecker',
+            'residentEngineer', 'approver', 'disapprover', 'notedByEngineer',
         ]);
 
         return view('user.concrete-pouring.print', compact('concretePouring'));
@@ -285,6 +204,13 @@ class UserConcretePouringController extends Controller
         if ($concretePouring->requested_by_user_id !== Auth::id()) {
             abort(403, 'You do not have access to this concrete pouring request.');
         }
+    }
+
+    private function checklistRules(): array
+    {
+        return collect($this->checklistFields())
+            ->mapWithKeys(fn ($f) => [$f => 'nullable|boolean'])
+            ->toArray();
     }
 
     private function checklistFields(): array

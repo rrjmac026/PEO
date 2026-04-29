@@ -237,7 +237,7 @@ Route::prefix('reviewer')->name('reviewer.')
             ->name('store-mtqa-review');
 
         Route::post('/{concretePouring}/engineer-review',
-            [ReviewerConcretePouringController::class, 'storeEngineerReview'])
+            [ReviewerConcretePouringController::class, 'storeResidentEngineerReview'])
             ->name('store-engineer-review');
 
         Route::post('/{concretePouring}/provincial-note',
