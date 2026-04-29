@@ -3,7 +3,7 @@
     Admin — Full Activity Timeline for a single Concrete Pouring request
 --}}
 
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Activity Log — ' . $concretePouring->reference_number)
 
