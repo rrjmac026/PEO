@@ -107,25 +107,52 @@
         padding: 2px 7px; border-radius: 10px; line-height: 1.4;
     }
     .dark .sb-count-green { background: #34d399; color: #0f172a; }
+
+    /* Orange count badge for pending decisions */
+    .sb-count-orange {
+        margin-left: auto; font-size: 11px; font-weight: 700;
+        background: #ea580c; color: white;
+        padding: 2px 7px; border-radius: 10px; line-height: 1.4;
+    }
+    .dark .sb-count-orange { background: #fb923c; color: #0f172a; }
 </style>
 
-@php $role = Auth::user()->role; @endphp
+@php
+    $role = Auth::user()->role;
+
+    // Queue counts for the new pipeline
+    $cpPendingRe  = \App\Models\ConcretePouring::where('current_review_step', 'resident_engineer')
+                        ->where('resident_engineer_user_id', Auth::id())->count();
+    $cpPendingPe  = \App\Models\ConcretePouring::where('current_review_step', 'provincial_engineer')
+                        ->where('noted_by_user_id', Auth::id())->count();
+    $cpPendingMtqa = \App\Models\ConcretePouring::where('current_review_step', 'mtqa')
+                        ->where('me_mtqa_user_id', Auth::id())->count();
+
+    // Which count badge to show for the current user's CP role
+    $cpMyQueueCount = match($role) {
+        'resident_engineer'   => $cpPendingRe,
+        'provincial_engineer' => $cpPendingPe,
+        'mtqa'                => $cpPendingMtqa,
+        default               => 0,
+    };
+@endphp
 
 <nav class="space-y-1 p-3">
 
     {{-- Role Badge --}}
     <div class="sb-role-badge">
-        @if($role === 'site_inspector')        <i class="fas fa-hard-hat"></i> Site Inspector
-        @elseif($role === 'surveyor')           <i class="fas fa-drafting-compass"></i> Surveyor
-        @elseif($role === 'resident_engineer')  <i class="fas fa-hard-hat"></i> Resident Engineer
-        @elseif($role === 'provincial_engineer')<i class="fas fa-user-tie"></i> Provincial Engineer
-        @elseif($role === 'mtqa')               <i class="fas fa-clipboard-check"></i> ME / MTQA
-        @elseif($role === 'engineeriii')        <i class="fas fa-drafting-compass"></i> Engineer III
-        @elseif($role === 'engineeriv')         <i class="fas fa-drafting-compass"></i> Engineer IV
+        @if($role === 'site_inspector')         <i class="fas fa-hard-hat"></i> Site Inspector
+        @elseif($role === 'surveyor')            <i class="fas fa-drafting-compass"></i> Surveyor
+        @elseif($role === 'resident_engineer')   <i class="fas fa-hard-hat"></i> Resident Engineer
+        @elseif($role === 'provincial_engineer') <i class="fas fa-user-tie"></i> Provincial Engineer
+        @elseif($role === 'mtqa')                <i class="fas fa-clipboard-check"></i> ME / MTQA
+        @elseif($role === 'engineeriii')         <i class="fas fa-drafting-compass"></i> Engineer III
+        @elseif($role === 'engineeriv')          <i class="fas fa-drafting-compass"></i> Engineer IV
         @else <i class="fas fa-user"></i> {{ ucfirst($role) }}
         @endif
     </div>
 
+    {{-- ── Main ── --}}
     <span class="sb-section-label">Main</span>
 
     <a href="{{ route('reviewer.dashboard') }}"
@@ -134,11 +161,14 @@
         Dashboard
     </a>
 
+    {{-- ══════════════════════════════════════════
+         WORK REQUESTS
+    ══════════════════════════════════════════ --}}
     <div class="sb-divider"></div>
     <span class="sb-section-label">Work Requests</span>
 
     <a href="{{ route('reviewer.work-requests.index') }}"
-       class="sb-link {{ request()->routeIs('reviewer.work-requests.index') && !request()->routeIs('reviewer.work-requests.approved') ? 'active' : '' }}">
+       class="sb-link {{ request()->routeIs('reviewer.work-requests.index') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-file-contract"></i></span>
         All Requests
     </a>
@@ -160,15 +190,11 @@
         <span class="sb-dot"></span> Rejected
     </a>
 
-    {{-- ── MTQA: Dedicated Approved Work Requests section ── --}}
+    {{-- MTQA: Approved Work Requests (print/download) --}}
     @if($role === 'mtqa')
-        @php
-            $approvedCount = \App\Models\WorkRequest::where('status', \App\Models\WorkRequest::STATUS_APPROVED)->count();
-        @endphp
-
+        @php $approvedCount = \App\Models\WorkRequest::where('status', \App\Models\WorkRequest::STATUS_APPROVED)->count(); @endphp
         <div class="sb-divider"></div>
         <span class="sb-section-label">Print / Download</span>
-
         <a href="{{ route('reviewer.work-requests.approved') }}"
            class="sb-link green-active {{ request()->routeIs('reviewer.work-requests.approved') ? 'active' : '' }}">
             <span class="sb-icon"><i class="fas fa-check-double"></i></span>
@@ -179,31 +205,62 @@
         </a>
     @endif
 
-    <div class="sb-divider"></div>
-    <span class="sb-section-label">Concrete Pouring</span>
+    {{-- ══════════════════════════════════════════
+         CONCRETE POURING
+         Pipeline: RE (1) → PE (2) → MTQA Final (3)
+         Only show the section for roles involved in
+         the concrete pouring pipeline.
+    ══════════════════════════════════════════ --}}
+    @if(in_array($role, ['resident_engineer', 'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv']))
+        <div class="sb-divider"></div>
+        <span class="sb-section-label">Concrete Pouring</span>
 
-    {{-- Main queue link --}}
-    <a href="{{ route('reviewer.concrete-pouring.index') }}"
-       class="sb-link cyan-active {{ request()->routeIs('reviewer.concrete-pouring*') && !request('status') ? 'active' : '' }}">
-        <span class="sb-icon"><i class="fas fa-fill-drip"></i></span>
-        My Review Queue
-    </a>
+        {{-- Main queue link with pending badge --}}
+        <a href="{{ route('reviewer.concrete-pouring.index') }}"
+           class="sb-link cyan-active {{ request()->routeIs('reviewer.concrete-pouring*') && !request('status') ? 'active' : '' }}">
+            <span class="sb-icon"><i class="fas fa-fill-drip"></i></span>
+            My Review Queue
+            @if($cpMyQueueCount > 0)
+                <span class="sb-count">{{ $cpMyQueueCount }}</span>
+            @endif
+        </a>
 
-    {{-- Concrete pouring status filters --}}
-    <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'requested']) }}"
-       class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'requested' ? 'active' : '' }}">
-        <span class="sb-dot"></span> Pending
-    </a>
-    <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'approved']) }}"
-       class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'approved' ? 'active' : '' }}">
-        <span class="sb-dot"></span> Approved
-    </a>
-    <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'disapproved']) }}"
-       class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'disapproved' ? 'active' : '' }}">
-        <span class="sb-dot"></span> Disapproved
-    </a>
+        {{-- Step label for this role --}}
+        @if($role === 'resident_engineer')
+            <a href="{{ route('reviewer.concrete-pouring.index') }}"
+               class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && !request('status') ? 'active' : '' }}">
+                <span class="sb-dot"></span> Step 1 — My Reviews
+            </a>
+        @elseif($role === 'provincial_engineer')
+            <a href="{{ route('reviewer.concrete-pouring.index') }}"
+               class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && !request('status') ? 'active' : '' }}">
+                <span class="sb-dot"></span> Step 2 — My Notes
+            </a>
+        @elseif($role === 'mtqa')
+            <a href="{{ route('reviewer.concrete-pouring.index') }}"
+               class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && !request('status') ? 'active' : '' }}">
+                <span class="sb-dot"></span> Step 3 — Final Decisions
+            </a>
+        @endif
 
-    {{-- ── Role-specific My Work section ── --}}
+        {{-- Status filters --}}
+        <!-- <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'requested']) }}"
+           class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'requested' ? 'active' : '' }}">
+            <span class="sb-dot"></span> Pending
+        </a>
+        <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'approved']) }}"
+           class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'approved' ? 'active' : '' }}">
+            <span class="sb-dot"></span> Approved
+        </a>
+        <a href="{{ route('reviewer.concrete-pouring.index', ['status' => 'disapproved']) }}"
+           class="sb-sub-link cyan-sub {{ request()->routeIs('reviewer.concrete-pouring.index') && request('status') === 'disapproved' ? 'active' : '' }}">
+            <span class="sb-dot"></span> Disapproved -->
+        </a>
+    @endif
+
+    {{-- ══════════════════════════════════════════
+         MY WORK — role-specific work request filters
+    ══════════════════════════════════════════ --}}
     @if($role === 'site_inspector')
         <div class="sb-divider"></div>
         <span class="sb-section-label">My Work</span>
@@ -235,11 +292,11 @@
         <span class="sb-section-label">My Work</span>
         <a href="{{ route('reviewer.work-requests.index', ['reviewed' => 'pending']) }}"
            class="sb-link {{ request('reviewed') === 'pending' ? 'active' : '' }}">
-            <span class="sb-icon"><i class="fas fa-clock"></i></span> Pending Review
+            <span class="sb-icon"><i class="fas fa-clock"></i></span> Pending WR Review
         </a>
         <a href="{{ route('reviewer.work-requests.index', ['reviewed' => 'done']) }}"
            class="sb-link {{ request('reviewed') === 'done' ? 'active' : '' }}">
-            <span class="sb-icon"><i class="fas fa-tasks"></i></span> Reviewed
+            <span class="sb-icon"><i class="fas fa-tasks"></i></span> WR Reviewed
         </a>
     @endif
 
@@ -256,15 +313,29 @@
         </a>
     @endif
 
-    @if(in_array($role, ['mtqa', 'engineeriii', 'engineeriv']))
+    {{-- engineeriii / engineeriv have no concrete pouring role in the new pipeline
+         but keep their WR-specific My Work entries --}}
+    @if($role === 'engineeriv')
         <div class="sb-divider"></div>
         <span class="sb-section-label">My Work</span>
-        <a href="{{ route('reviewer.concrete-pouring.index') }}"
-           class="sb-link cyan-active {{ request()->routeIs('reviewer.concrete-pouring.index') ? 'active' : '' }}">
-            <span class="sb-icon"><i class="fas fa-clipboard-list"></i></span> Pouring Queue
+        <a href="{{ route('reviewer.work-requests.index') }}"
+           class="sb-link {{ request()->routeIs('reviewer.work-requests.index') ? 'active' : '' }}">
+            <span class="sb-icon"><i class="fas fa-clipboard-list"></i></span> My WR Queue
         </a>
     @endif
 
+    @if($role === 'engineeriii')
+        <div class="sb-divider"></div>
+        <span class="sb-section-label">My Work</span>
+        <a href="{{ route('reviewer.work-requests.index') }}"
+           class="sb-link {{ request()->routeIs('reviewer.work-requests.index') ? 'active' : '' }}">
+            <span class="sb-icon"><i class="fas fa-thumbs-up"></i></span> My WR Queue
+        </a>
+    @endif
+
+    {{-- ══════════════════════════════════════════
+         ACCOUNT
+    ══════════════════════════════════════════ --}}
     <div class="sb-divider"></div>
     <span class="sb-section-label">Account</span>
 

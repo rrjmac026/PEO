@@ -36,9 +36,10 @@ class ReviewerConcretePouringController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-
+ 
+        // ── Tab: My Queue (it is currently MY turn) ──────────────────────────
         $query = $this->assignedToUserQuery($user->id);
-
+ 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('project_name', 'LIKE', "%{$request->search}%")
@@ -46,12 +47,53 @@ class ReviewerConcretePouringController extends Controller
                   ->orWhere('contractor', 'LIKE', "%{$request->search}%");
             });
         }
-
+ 
         $concretePourings = $query->latest()->paginate(15)->withQueryString();
-
-        $completed = $this->completedByUser($user)->latest()->limit(10)->get();
-
-        return view('reviewer.concrete-pouring.index', compact('concretePourings', 'completed'));
+ 
+        // ── Tab: All Pending (status = requested, assigned anywhere) ─────────
+        $allPending = ConcretePouring::where('status', 'requested')
+            ->whereNotNull('current_review_step')
+            ->where(function ($q) use ($user) {
+                $q->where('resident_engineer_user_id', $user->id)
+                  ->orWhere('noted_by_user_id', $user->id)
+                  ->orWhere('me_mtqa_user_id', $user->id);
+            })
+            ->with(['meMtqaChecker', 'residentEngineer', 'notedByEngineer'])
+            ->latest()
+            ->get();
+ 
+        // ── Tab: Approved ─────────────────────────────────────────────────────
+        $allApproved = ConcretePouring::where('status', 'approved')
+            ->where(function ($q) use ($user) {
+                $q->where('resident_engineer_user_id', $user->id)
+                  ->orWhere('noted_by_user_id', $user->id)
+                  ->orWhere('me_mtqa_user_id', $user->id);
+            })
+            ->with(['meMtqaChecker'])
+            ->latest()
+            ->get();
+ 
+        // ── Tab: Disapproved ──────────────────────────────────────────────────
+        $allDisapproved = ConcretePouring::where('status', 'disapproved')
+            ->where(function ($q) use ($user) {
+                $q->where('resident_engineer_user_id', $user->id)
+                  ->orWhere('noted_by_user_id', $user->id)
+                  ->orWhere('me_mtqa_user_id', $user->id);
+            })
+            ->with(['meMtqaChecker'])
+            ->latest()
+            ->get();
+ 
+        // ── Tab: My History (steps I personally completed) ───────────────────
+        $completed = $this->completedByUser($user)->latest()->get();
+ 
+        return view('reviewer.concrete-pouring.index', compact(
+            'concretePourings',
+            'allPending',
+            'allApproved',
+            'allDisapproved',
+            'completed'
+        ));
     }
 
     // =========================================================================
