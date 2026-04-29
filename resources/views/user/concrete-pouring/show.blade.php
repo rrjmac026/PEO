@@ -192,45 +192,7 @@
                 </div>
                 <div class="cp-card-body">
                     <div class="cp-timeline">
-
-                        {{-- ME/MTQA --}}
-                        @php
-                            $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
-                            $mtqaActive = $concretePouring->current_review_step === 'mtqa';
-                        @endphp
-                        <div class="cp-timeline-item">
-                            <div class="cp-tl-icon-wrap">
-                                <div class="cp-tl-icon {{ $mtqaDone ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
-                                    @if($mtqaDone) <i class="fas fa-check"></i>
-                                    @elseif($mtqaActive) <i class="fas fa-clock"></i>
-                                    @else <i class="fas fa-circle"></i>
-                                    @endif
-                                </div>
-                            </div>
-                            <div style="flex:1">
-                                <div class="cp-tl-label">Step 1 — ME / MTQA Review</div>
-                                <div class="cp-tl-name">
-                                    {{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}
-                                </div>
-                                @if($concretePouring->me_mtqa_date)
-                                    <div class="cp-tl-date">Reviewed: {{ $concretePouring->me_mtqa_date->format('M d, Y') }}</div>
-                                @endif
-                                @if($concretePouring->me_mtqa_remarks)
-                                    <div class="cp-tl-remark">"{{ $concretePouring->me_mtqa_remarks }}"</div>
-                                @endif
-                            </div>
-                            <div>
-                                @if($mtqaDone)
-                                    <span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Done</span>
-                                @elseif($mtqaActive)
-                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
-                                @else
-                                    <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Resident Engineer --}}
+                        {{-- Step 1 — Resident Engineer --}}
                         @php
                             $reDone   = !is_null($concretePouring->re_date);
                             $reActive = $concretePouring->current_review_step === 'resident_engineer';
@@ -245,7 +207,7 @@
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 2 — Resident Engineer Review</div>
+                                <div class="cp-tl-label">Step 1 — Resident Engineer Review</div>
                                 <div class="cp-tl-name">
                                     {{ $concretePouring->residentEngineer?->name ?? 'Not assigned' }}
                                 </div>
@@ -267,7 +229,7 @@
                             </div>
                         </div>
 
-                        {{-- Provincial Engineer --}}
+                        {{-- Step 2 — Provincial Engineer --}}
                         @php
                             $peDone   = !is_null($concretePouring->noted_date);
                             $peActive = $concretePouring->current_review_step === 'provincial_engineer';
@@ -282,7 +244,7 @@
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 3 — Noted by Provincial Engineer</div>
+                                <div class="cp-tl-label">Step 2 — Noted by Provincial Engineer</div>
                                 <div class="cp-tl-name">
                                     {{ $concretePouring->notedByEngineer?->name ?? 'Not assigned' }}
                                 </div>
@@ -301,33 +263,36 @@
                             </div>
                         </div>
 
-                        {{-- Admin Final --}}
-                        @php $adminActive = $concretePouring->current_review_step === 'admin_final'; @endphp
+                        {{-- Step 3 — ME/MTQA Final Decision --}}
+                        @php
+                            $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
+                            $mtqaActive = $concretePouring->current_review_step === 'mtqa';
+                        @endphp
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
-                                <div class="cp-tl-icon {{ in_array($concretePouring->status,['approved','disapproved']) ? 'done' : ($adminActive ? 'active' : 'waiting') }}">
-                                    @if(in_array($concretePouring->status,['approved','disapproved']))
-                                        <i class="fas fa-check"></i>
-                                    @elseif($adminActive)
-                                        <i class="fas fa-clock"></i>
-                                    @else
-                                        <i class="fas fa-circle"></i>
+                                <div class="cp-tl-icon {{ $mtqaDone ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
+                                    @if($mtqaDone) <i class="fas fa-check"></i>
+                                    @elseif($mtqaActive) <i class="fas fa-clock"></i>
+                                    @else <i class="fas fa-circle"></i>
                                     @endif
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 4 — Admin Final Decision</div>
+                                <div class="cp-tl-label">Step 3 — ME / MTQA Final Decision</div>
                                 <div class="cp-tl-name">
                                     @if($concretePouring->status === 'approved')
-                                        Approved by {{ $concretePouring->approver?->name ?? '—' }}
+                                        Approved by {{ $concretePouring->meMtqaChecker?->name ?? '—' }}
                                     @elseif($concretePouring->status === 'disapproved')
-                                        Disapproved by {{ $concretePouring->disapprover?->name ?? '—' }}
+                                        Disapproved by {{ $concretePouring->meMtqaChecker?->name ?? '—' }}
                                     @else
-                                        Awaiting admin decision
+                                        {{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}
                                     @endif
                                 </div>
-                                @if($concretePouring->approval_remarks)
-                                    <div class="cp-tl-remark">"{{ $concretePouring->approval_remarks }}"</div>
+                                @if($concretePouring->me_mtqa_date)
+                                    <div class="cp-tl-date">Decided: {{ $concretePouring->me_mtqa_date->format('M d, Y') }}</div>
+                                @endif
+                                @if($concretePouring->me_mtqa_remarks)
+                                    <div class="cp-tl-remark">"{{ $concretePouring->me_mtqa_remarks }}"</div>
                                 @endif
                             </div>
                             <div>
@@ -335,13 +300,14 @@
                                     <span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Approved</span>
                                 @elseif($concretePouring->status === 'disapproved')
                                     <span class="cp-badge disapproved" style="font-size:11px;padding:3px 8px">Disapproved</span>
-                                @elseif($adminActive)
-                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">Pending</span>
+                                @elseif($mtqaActive)
+                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
                                 @else
                                     <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
                                 @endif
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
