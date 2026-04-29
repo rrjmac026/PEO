@@ -211,15 +211,15 @@ class WorkRequestPdf extends \FPDF
             'Reviewed by :',
             $this->val($this->wr->reviewed_by ?? ''),
             'Engineer IV/Chief, MTQC Division',
-            $this->val($this->wr->reviewed_by_recommendation_action ?? ''),  // ← fixed
-            $this->wr->reviewer_signature ?? null                             // ← added
+            $this->val($this->wr->reviewed_by_recommendation_action ?? ''),
+            $this->wr->reviewer_signature ?? null
         );
         $y = $this->rowApproval(
             $y,
             'Recommending Approval :',
             $this->val($this->wr->recommending_approval_by ?? ''),
             'Engineer III/ OIC, Construction Division',
-            $this->val($this->wr->recommending_approval_recommendation_action ?? ''),  // ← fixed
+            $this->val($this->wr->recommending_approval_recommendation_action ?? ''),
             $this->wr->recommending_approval_signature ?? null
         );
         $y = $this->rowApproval(
@@ -227,7 +227,7 @@ class WorkRequestPdf extends \FPDF
             'Approved :',
             $this->val($this->wr->approved_by ?? ''),
             'Provincial Engineer',
-            $this->val($this->wr->approved_recommendation_action ?? ''),  // ← fixed
+            $this->val($this->wr->approved_recommendation_action ?? ''),
             $this->wr->approved_signature ?? null
         );
         $y = $this->rowAccepted($y);
@@ -267,19 +267,20 @@ class WorkRequestPdf extends \FPDF
     // ─── ROW: From ─────────────────────────────────────────────────────────────
     private function rowFrom(float $y): float
     {
-        $h  = 12;
+        // Reduced from 12 → 10 to save 2mm
+        $h  = 10;
         $xR = self::ML + self::CA;
 
         $this->box(self::ML, $y, self::CA,            $h);
         $this->box($xR,      $y, self::CB + self::CC, $h);
 
         $this->lbl(self::ML + 1, $y + 1, 'From :');
-        $this->SetXY(self::ML + 1, $y + 5);
+        $this->SetXY(self::ML + 1, $y + 4);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
         $this->Cell(self::CA - 2, 4, $this->val($this->wr->from_requester ?? ''), 0);
 
-        $this->SetXY($xR + 1, $y + 2);
+        $this->SetXY($xR + 1, $y + 1.5);
         $this->SetFont('Arial', 'I', 11);
         $this->SetTextColor(...self::DGRAY);
         $this->MultiCell(self::CB + self::CC - 2, 3.5, 'Note: has to submit request in triplicate and with a minimum of 72 hours in advance of scheduled start', 0);
@@ -364,10 +365,11 @@ class WorkRequestPdf extends \FPDF
     // ─── ROW: Description of Work Requested ────────────────────────────────────
     private function rowWorkDesc(float $y): float
     {
-        $h = 16;
+        // Reduced from 16 → 14 to save 2mm
+        $h = 14;
         $this->box(self::ML, $y, self::BW, $h);
         $this->lbl(self::ML + 1, $y + 1, 'Description of Work Requested :');
-        $this->SetXY(self::ML + 1, $y + 5);
+        $this->SetXY(self::ML + 1, $y + 4.5);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
         $this->MultiCell(self::BW - 2, 4, $this->val($this->wr->description_of_work_requested ?? ''), 0);
@@ -443,7 +445,8 @@ class WorkRequestPdf extends \FPDF
         bool    $noTop    = false,
         ?string $sigField = null
     ): float {
-        $h    = 18;
+        // Reduced from 18 → 16 to save 2mm each (×3 = 6mm total)
+        $h    = 16;
         $draw = $noTop ? 'boxNoTop' : 'box';
         $this->$draw(self::ML,                      $y, self::CA, $h);
         $this->$draw(self::ML + self::CA,            $y, self::CB, $h);
@@ -477,7 +480,8 @@ class WorkRequestPdf extends \FPDF
     private function rowCheckedBy(float $y): float
     {
         $hh = 5;
-        $hc = 18;
+        // Reduced $hc from 18 → 15 to save 3mm
+        $hc = 15;
         $rx = self::ML + self::CA;
         $rw = self::CB + self::CC;
 
@@ -520,7 +524,8 @@ class WorkRequestPdf extends \FPDF
         string  $notes,
         ?string $signature = null
     ): float {
-        $h = 18;
+        // Reduced from 18 → 16 to save 2mm each (×3 = 6mm total)
+        $h = 16;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
@@ -542,17 +547,21 @@ class WorkRequestPdf extends \FPDF
     // ─── ROW: Accepted By ──────────────────────────────────────────────────────
     private function rowAccepted(float $y): float
     {
-        $h = 18;
+        // Reduced from 18 → 16 to save 2mm
+        $h = 16;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
 
-       $this->lbl(self::ML + 1, $y + 1, 'Accepted by :');
+        $this->lbl(self::ML + 1, $y + 1, 'Accepted by :');
+
+        // FIX: was missing the $signatureValue argument — now passes null explicitly
         $this->sigLine(
             self::ML,
             $y,
             self::CA,
             $this->val($this->wr->accepted_by_contractor ?? $this->wr->contractor_name ?? ''),
             'Contractor',
+            $this->wr->accepted_by_contractor_signature ?? null
         );
 
         $rx = self::ML + self::CA + 1;
@@ -564,7 +573,7 @@ class WorkRequestPdf extends \FPDF
 
         $this->lbl($rx + 57, $y + 1, 'Time:');
         $this->SetXY($rx + 57, $y + 5);
-        $this->Cell(self::CB + self::CC - 59, 4, $this->fmtTime($this->wr->accepted_time ?? ''), 'B');
+        $this->Cell(self::CB + self::CC - 59, 4, $this->val($this->wr->accepted_time ?? ''), 'B');
 
         return $y + $h;
     }
@@ -683,13 +692,13 @@ class WorkRequestPdf extends \FPDF
     /**
      * Draw a signature block inside a cell.
      *
-     * Layout (relative to $cellX / $cellY, cell height assumed ≥ 15mm):
+     * Layout (relative to $cellX / $cellY):
      *
      *   ┌──────────────────── cellW ─────────────────────┐
      *   │                                                │
-     *   │    [signature image 36 × 10 mm if present]    │  ← sigY (lineY - 10.5)
+     *   │    [signature image 36 × 9 mm if present]     │  ← sigY (lineY - 9.5)
      *   │         PRINTED NAME  (bold 8 pt, centred)    │  ← lineY - 4
-     *   │    ────────────────────────────────────────    │  ← lineY (cellY + 11)
+     *   │    ────────────────────────────────────────    │  ← lineY (cellY + 10)
      *   │         Signature Over Printed Name           │  ← lineY + 0.5
      *   │                  Role / Title                 │  ← lineY + 3.5
      *   └────────────────────────────────────────────────┘
@@ -704,14 +713,15 @@ class WorkRequestPdf extends \FPDF
     ): void {
         $lineW = min(46, $cellW - 8);
         $lineX = $cellX + ($cellW - $lineW) / 2;
-        $lineY = $cellY + 11;
+        // Adjusted lineY from +11 to +10 to fit compact row heights
+        $lineY = $cellY + 10;
 
         // ── Signature image ───────────────────────────────────────────────────
         $sigFile = $this->resolveSignatureToFile($signatureValue);
 
         if ($sigFile) {
             $sigW = 36;
-            $sigH = 10;
+            $sigH = 9;
             $sigX = $cellX + ($cellW - $sigW) / 2;
             $sigY = $lineY - $sigH - 0.5;
 
@@ -735,10 +745,8 @@ class WorkRequestPdf extends \FPDF
 
         // ── Sub-labels below the line ─────────────────────────────────────────
         $this->SetXY($cellX, $lineY + 0.5);
-        $this->SetFont('Arial', '', 6);
-        $this->SetTextColor(...self::DGRAY);
-        $this->SetX($cellX);
         $this->SetFont('Arial', '', 6.5);
+        $this->SetTextColor(...self::DGRAY);
         $this->Cell($cellW, 3, $role, 0, 0, 'C');
 
         $this->resetColors();
@@ -756,26 +764,15 @@ class WorkRequestPdf extends \FPDF
         return $v ?? '';
     }
 
-    private function fmtDate(mixed $d, string $fmt = 'M d, Y'): string
+    private function fmtDate(?string $d, string $fmt = 'M d, Y'): string
     {
         if (!$d) {
             return '';
         }
         try {
-            return ($d instanceof \Carbon\Carbon ? $d : Carbon::parse($d))->format($fmt);
+            return Carbon::parse($d)->format($fmt);
         } catch (\Throwable $e) {
             return '';
-        }
-    }
-    private function fmtTime(?string $t): string
-    {
-        if (!$t) {
-            return '';
-        }
-        try {
-            return Carbon::parse($t)->format('h:i A');
-        } catch (\Throwable $e) {
-            return $t;
         }
     }
 }

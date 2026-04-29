@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     @endpush
     @include('admin.work-requests.partials._assign_styles')
-    
 
     <div class="py-8 wr-wrap max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -26,16 +25,17 @@
             </a>
         </div>
 
+        {{-- Contractor pre-selected RE notice --}}
         @if ($contractorPreselectedRe)
             <div class="wr-contractor-hint">
-                <span style="font-size:18px; flex-shrink:0;">⚠️</span>
-                <div>
+                <span class="wr-contractor-hint-icon">⚠️</span>
+                <div class="wr-contractor-hint-body">
                     <strong>Contractor's preferred Resident Engineer:</strong>
-                    {{ $contractorPreselectedRe->name }} — pre-filled below.
+                    {{ $contractorPreselectedRe->name }} — pre-filled in step 3 below.
                     You may keep or change this selection.
                     <br>
-                    <strong>All other reviewers must still be assigned</strong> before the pipeline can start.
-                    No steps are skipped automatically.
+                    <span class="warn-strong">All other reviewers must still be assigned</span>
+                    before the pipeline can start. No steps are skipped automatically.
                 </div>
             </div>
         @endif
@@ -44,7 +44,7 @@
         <div class="wr-info-banner">
             <span class="wr-info-icon">📋</span>
             <div class="wr-info-text">
-                <strong>How this works:</strong> Reviewers are notified in pipeline order — only assign roles that are required and leave a slot blank to skip it.
+                <strong>How this works:</strong> Reviewers are notified in pipeline order. Assign all required roles — leave a slot blank only if that role is not needed for this request.
                 <div class="wr-pipeline">
                     <span class="wr-pipeline-step regular">Site Inspector</span>
                     <span class="wr-pipeline-arrow">→</span>
@@ -61,8 +61,8 @@
                     <span class="wr-pipeline-step final">Provincial Engineer</span>
                 </div>
                 <div class="wr-note-badge">
-                    📌 The <strong style="margin:0 3px;">Provincial Engineer</strong> makes the final approve/reject decision.
-                    After approval, <strong style="margin:0 3px;">MTQA</strong> is notified to print the document.
+                    📌 The <strong>Provincial Engineer</strong> makes the final approve/reject decision.
+                    After approval, <strong>MTQA</strong> is notified to print the document.
                 </div>
             </div>
         </div>
@@ -91,12 +91,12 @@
                 @php
                     $slots = [
                         ['label' => 'Site Inspector',     'name' => 'assigned_site_inspector_id',     'users' => $siteInspectors,      'step' => 1, 'final' => false],
-                        ['label' => 'Surveyor',            'name' => 'assigned_surveyor_id',            'users' => $surveyors,           'step' => 2, 'final' => false],
-                        ['label' => 'Resident Engineer',   'name' => 'assigned_resident_engineer_id',  'users' => $residentEngineers,   'step' => 3, 'final' => false],
-                        ['label' => 'MTQA',                'name' => 'assigned_mtqa_id',               'users' => $mtqas,               'step' => 4, 'final' => false],
-                        ['label' => 'Engineer IV',         'name' => 'assigned_engineer_iv_id',        'users' => $engineersIv,         'step' => 5, 'final' => false],
-                        ['label' => 'Engineer III',        'name' => 'assigned_engineer_iii_id',       'users' => $engineersIii,        'step' => 6, 'final' => false],
-                        ['label' => 'Provincial Engineer', 'name' => 'assigned_provincial_engineer_id','users' => $provincialEngineers, 'step' => 7, 'final' => true],
+                        ['label' => 'Surveyor',           'name' => 'assigned_surveyor_id',            'users' => $surveyors,           'step' => 2, 'final' => false],
+                        ['label' => 'Resident Engineer',  'name' => 'assigned_resident_engineer_id',   'users' => $residentEngineers,   'step' => 3, 'final' => false],
+                        ['label' => 'MTQA',               'name' => 'assigned_mtqa_id',                'users' => $mtqas,               'step' => 4, 'final' => false],
+                        ['label' => 'Engineer IV',        'name' => 'assigned_engineer_iv_id',         'users' => $engineersIv,         'step' => 5, 'final' => false],
+                        ['label' => 'Engineer III',       'name' => 'assigned_engineer_iii_id',        'users' => $engineersIii,        'step' => 6, 'final' => false],
+                        ['label' => 'Provincial Engineer','name' => 'assigned_provincial_engineer_id', 'users' => $provincialEngineers, 'step' => 7, 'final' => true],
                     ];
                 @endphp
 
@@ -104,13 +104,13 @@
                     @foreach ($slots as $slot)
                         @php
                             $isPreselectedRe = $slot['name'] === 'assigned_resident_engineer_id'
-                                            && $contractorPreselectedRe;
+                                               && $contractorPreselectedRe;
                         @endphp
 
                         <div class="wr-slot {{ $isPreselectedRe ? 'preselected' : '' }}">
 
                             {{-- Step Badge --}}
-                            <div class="wr-step-badge {{ $slot['final'] ? 'final' : 'regular' }}">
+                            <div class="wr-step-badge {{ $slot['final'] ? 'final' : ($isPreselectedRe ? 'preselected-badge' : 'regular') }}">
                                 {{ $slot['step'] }}
                             </div>
 
@@ -124,7 +124,7 @@
                                 </div>
                                 <div class="wr-slot-label-hint">
                                     @if ($slot['final'])
-                                        Approves or rejects
+                                        Approves or rejects the request
                                     @elseif ($isPreselectedRe)
                                         Pre-selected by contractor — confirm or change
                                     @else
@@ -138,7 +138,7 @@
 
                             {{-- Select --}}
                             <div class="wr-slot-select-col">
-                                <div class="wr-slot-select-wrap {{ $slot['final'] ? 'final-select' : '' }}">
+                                <div class="wr-slot-select-wrap {{ $slot['final'] ? 'final-select' : ($isPreselectedRe ? 'preselected-select' : '') }}">
                                     <select name="{{ $slot['name'] }}" id="{{ $slot['name'] }}">
                                         <option value="">— Skip this step —</option>
                                         @foreach ($slot['users'] as $u)
@@ -153,6 +153,7 @@
                                     <div class="wr-field-error">⚠ {{ $message }}</div>
                                 @enderror
                             </div>
+
                         </div>
                     @endforeach
                 </div>
