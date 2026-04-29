@@ -8,15 +8,20 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     * Usage: middleware('role:admin') or ('role:instructor,student')
-     */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         $user = $request->user();
 
-        if (!$user || !in_array($user->role, $roles)) {
+        if (!$user) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // 🔥 normalize role (handles enum OR string safely)
+        $userRole = is_string($user->role)
+            ? strtolower(trim($user->role))
+            : $user->role->value;
+
+        if (!in_array($userRole, $roles)) {
             abort(403, 'Unauthorized action.');
         }
 
