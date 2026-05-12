@@ -140,6 +140,23 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
                                 : 'directory not found',
         ]);
     });
+
+    Route::prefix('memos')->name('memos.')->group(function () {
+ 
+        Route::get('/',               [MemoController::class, 'index'])   ->name('index');
+        Route::get('/create',         [MemoController::class, 'create'])  ->name('create');
+        Route::post('/',              [MemoController::class, 'store'])   ->name('store');
+        Route::get('/{memo}',         [MemoController::class, 'show'])    ->name('show');
+        Route::get('/{memo}/edit',    [MemoController::class, 'edit'])    ->name('edit');
+        Route::put('/{memo}',         [MemoController::class, 'update'])  ->name('update');
+        Route::delete('/{memo}',      [MemoController::class, 'destroy']) ->name('destroy');
+ 
+        // Actions
+        Route::post('/{memo}/send-now',          [MemoController::class, 'sendNow'])          ->name('send-now');
+        Route::post('/{memo}/cancel',            [MemoController::class, 'cancel'])            ->name('cancel');
+        Route::delete('/{memo}/attachment',      [MemoController::class, 'removeAttachment']) ->name('remove-attachment');
+        Route::post('/{memo}/mark-read',         [MemoController::class, 'markRead'])         ->name('mark-read');
+    });
 });
 
 // =============================================================================
