@@ -179,6 +179,15 @@
     </a>
 
     <div class="sb-divider"></div>
+    <span class="sb-section-label">Communications</span>
+
+    <a href="{{ route('admin.memos.index') }}"
+       class="sb-link {{ request()->routeIs('admin.memos*') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-envelope-open-text"></i></span>
+        Memos
+    </a>
+
+    <div class="sb-divider"></div>
     <span class="sb-section-label">System</span>
 
     <a href="#"
