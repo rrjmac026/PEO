@@ -20,7 +20,15 @@ class ReviewerWorkRequestController extends Controller
         $user = Auth::user();
 
         // Base query: requests where it is currently this user's turn
-        $query = WorkRequest::assignedToUser($user->id);
+        $query = WorkRequest::where(function($q) use ($user) {
+            $q->where('assigned_site_inspector_id', $user->id)
+            ->orWhere('assigned_surveyor_id', $user->id)
+            ->orWhere('assigned_resident_engineer_id', $user->id)
+            ->orWhere('assigned_mtqa_id', $user->id)
+            ->orWhere('assigned_engineer_iv_id', $user->id)
+            ->orWhere('assigned_engineer_iii_id', $user->id)
+            ->orWhere('assigned_provincial_engineer_id', $user->id);
+        });
 
         // MTQA special case: also surface approved requests they are assigned to
         if ($user->role === 'mtqa') {
