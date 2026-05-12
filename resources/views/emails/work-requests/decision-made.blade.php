@@ -1,15 +1,16 @@
 @php
-    $isApproved  = $workRequest->admin_decision === 'approved';
-    $emailTitle  = 'Work Request ' . ucfirst($workRequest->admin_decision);
+    $isApproved  = $workRequest->status === 'approved';
+    $statusLabel = $isApproved ? 'Approved' : 'Rejected';
+    $emailTitle  = 'Work Request ' . $statusLabel;
     $badgeClass  = $isApproved ? 'green' : 'red';
-    $badgeText   = $isApproved ? 'Approved' : 'Rejected';
+    $badgeText   = $statusLabel;
 @endphp
 
 @extends('emails.work-requests.layout')
 
 @section('content')
 <h2 class="email-title">
-    Your Work Request Has Been {{ ucfirst($workRequest->admin_decision) }}
+    Your Work Request Has Been {{ $statusLabel }}
 </h2>
 
 @if($isApproved)
@@ -39,12 +40,12 @@
     </tr>
     <tr>
         <td class="lbl">Decision</td>
-        <td class="val"><span class="step-pill">{{ ucfirst($workRequest->admin_decision) }}</span></td>
+        <td class="val"><span class="step-pill">{{ $statusLabel }}</span></td>
     </tr>
     <tr>
         <td class="lbl">Decided On</td>
         <td class="val">
-            {{ $workRequest->admin_decision_at?->format('F j, Y \a\t g:i A') ?? now()->format('F j, Y') }}
+            {{ $workRequest->updated_at?->format('F j, Y \a\t g:i A') ?? now()->format('F j, Y') }}
         </td>
     </tr>
 </table>

@@ -15,7 +15,8 @@ class WorkRequestDecisionMadeMail extends Mailable
 
     public function build(): static
     {
-        $decision = ucfirst($this->workRequest->admin_decision);
+        $isApproved = $this->workRequest->status === 'approved';
+        $decision = $isApproved ? 'Approved' : 'Rejected';
 
         return $this
             ->subject("[Work Request {$decision}] {$this->workRequest->name_of_project}")
