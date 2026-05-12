@@ -121,8 +121,30 @@
         background: var(--sb-border);
         margin: 12px 16px;
     }
+    /* Notification count badge on sidebar links */
+    .sb-notif-badge {
+        margin-left: auto;
+        font-size: 10px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ea580c, #f97316);
+        color: #fff;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        box-shadow: 0 1px 4px rgba(234,88,12,0.45);
+        animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes badge-pop {
+        from { transform: scale(0); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+    }
 </style>
-
+@include('layouts.partials.notification-bell')
 <nav class="space-y-1 p-3">
 
     <span class="sb-section-label">Main</span>
@@ -152,15 +174,21 @@
     <span class="sb-section-label">Work</span>
 
     <a href="{{ route('admin.work-requests.index') }}"
-       class="sb-link {{ request()->routeIs('admin.work-requests*') ? 'active' : '' }}">
+    class="sb-link {{ request()->routeIs('admin.work-requests*') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-file-contract"></i></span>
         Work Requests
+        @if($sidebarUnreadWR > 0)
+            <span class="sb-notif-badge">{{ $sidebarUnreadWR > 99 ? '99+' : $sidebarUnreadWR }}</span>
+        @endif
     </a>
 
     <a href="{{ route('admin.concrete-pouring.index') }}"
-       class="sb-link {{ request()->routeIs('admin.concrete-pouring*') ? 'active' : '' }}">
+    class="sb-link {{ request()->routeIs('admin.concrete-pouring*') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-fill-drip"></i></span>
         Concrete Pouring
+        @if($sidebarUnreadCP > 0)
+            <span class="sb-notif-badge">{{ $sidebarUnreadCP > 99 ? '99+' : $sidebarUnreadCP }}</span>
+        @endif
     </a>
 
     <div class="sb-divider"></div>

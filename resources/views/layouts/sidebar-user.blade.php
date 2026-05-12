@@ -75,8 +75,31 @@
     .dark .sb-sub-link.active { color: #22d3ee; }
     .sb-sub-link .sb-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: 0.5; }
     .sb-sub-link.active .sb-dot { opacity: 1; }
-</style>
 
+    /* Notification count badge on sidebar links */
+    .sb-notif-badge {
+        margin-left: auto;
+        font-size: 10px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ea580c, #f97316);
+        color: #fff;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        box-shadow: 0 1px 4px rgba(234,88,12,0.45);
+        animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes badge-pop {
+        from { transform: scale(0); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+    }
+</style>
+@include('layouts.partials.notification-bell')
 <nav class="space-y-1 p-3">
 
     <span class="sb-section-label">Main</span>
@@ -90,10 +113,14 @@
     <div class="sb-divider"></div>
     <span class="sb-section-label">Work Requests</span>
 
+    {{-- Work Requests --}}
     <a href="{{ route('user.work-requests.index') }}"
-       class="sb-link {{ request()->routeIs('user.work-requests*') ? 'active' : '' }}">
+    class="sb-link {{ request()->routeIs('user.work-requests*') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-file-contract"></i></span>
         Work Requests
+        @if($sidebarUnreadWR > 0)
+            <span class="sb-notif-badge">{{ $sidebarUnreadWR > 99 ? '99+' : $sidebarUnreadWR }}</span>
+        @endif
     </a>
 
     <a href="{{ route('user.work-requests.create') }}"
@@ -104,10 +131,14 @@
     <div class="sb-divider"></div>
     <span class="sb-section-label">Concrete Pouring</span>
 
+    {{-- My Pourings — CP count only --}}
     <a href="{{ route('user.concrete-pouring.index') }}"
-       class="sb-link cyan-active {{ request()->routeIs('user.concrete-pouring.index') ? 'active' : '' }}">
+    class="sb-link cyan-active {{ request()->routeIs('user.concrete-pouring.index') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-fill-drip"></i></span>
         My Pourings
+        @if($sidebarUnreadCP > 0)
+            <span class="sb-notif-badge">{{ $sidebarUnreadCP > 99 ? '99+' : $sidebarUnreadCP }}</span>
+        @endif
     </a>
 
     <a href="{{ route('user.concrete-pouring.index', ['status' => 'requested']) }}"
