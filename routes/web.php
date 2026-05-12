@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminConcretePouringController;
 use App\Http\Controllers\Reviewer\ReviewerController;
 use App\Http\Controllers\Reviewer\ReviewerWorkRequestController;
 use App\Http\Controllers\Reviewer\ReviewerConcretePouringController;
+use App\Http\Controllers\Admin\MemoController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
