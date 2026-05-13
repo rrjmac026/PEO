@@ -168,6 +168,24 @@
         <span class="sb-icon"><i class="fas fa-plus-circle"></i></span>
         New Pouring
     </a>
+    <div class="sb-divider"></div>
+    <span class="sb-section-label">Memos</span>
+
+    @php
+        $sidebarUnreadMemos = \App\Models\MemoRecipient::where('user_id', Auth::id())
+            ->whereNull('read_at')
+            ->whereHas('memo', fn ($q) => $q->where('status', 'sent'))
+            ->count();
+    @endphp
+
+    <a href="{{ route('user.memos.index') }}"
+       class="sb-link {{ request()->routeIs('user.memos*') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-envelope"></i></span>
+        Memos
+        @if($sidebarUnreadMemos > 0)
+            <span class="sb-notif-badge">{{ $sidebarUnreadMemos > 99 ? '99+' : $sidebarUnreadMemos }}</span>
+        @endif
+    </a>
 
     <div class="sb-divider"></div>
     <span class="sb-section-label">Account</span>
