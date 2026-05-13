@@ -51,4 +51,21 @@ class User extends Authenticatable
     {
         return $this->hasOne(Employee::class);
     }
+    
+    public function memoRoute(Memo $memo): string
+    {
+        $reviewerRoles = [
+            'site_inspector', 'surveyor', 'resident_engineer',
+            'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
+        ];
+
+        return match(true) {
+            $this->role === 'admin'               => route('admin.memos.show', $memo),
+            $this->role === 'contractor'          => route('user.memos.show', $memo),
+            in_array($this->role, $reviewerRoles) => \Illuminate\Support\Facades\Route::has('reviewer.memos.show')
+                                                        ? route('reviewer.memos.show', $memo)
+                                                        : route('admin.memos.show', $memo),
+            default                               => route('user.memos.show', $memo),
+        };
+    }
 }

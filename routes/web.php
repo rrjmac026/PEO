@@ -177,7 +177,8 @@ Route::prefix('user')->name('user.')->middleware(['auth', 'role:contractor'])->g
         ->name('concrete-pouring.print');
 
     Route::resource('concrete-pouring', UserConcretePouringController::class);
-        Route::prefix('memos')->name('memos.')->group(function () {
+    
+    Route::prefix('memos')->name('memos.')->group(function () {
         Route::get('/',              [UserMemoController::class, 'index'])    ->name('index');
         Route::get('/{memo}',        [UserMemoController::class, 'show'])     ->name('show');
         Route::post('/{memo}/mark-read', [UserMemoController::class, 'markRead'])->name('mark-read');

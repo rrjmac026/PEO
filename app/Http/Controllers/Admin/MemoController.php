@@ -336,22 +336,34 @@ class MemoController extends Controller
 
     private function dispatchNotifications(Memo $memo, array $userIds): void
     {
-        // In-app notifications
-        Notification::send(
-            $userIds,
-            'memo',
-            "[{$memo->type_label}] {$memo->subject}",
-            "You have received a new memo from {$memo->sender->name}.",
-            route('admin.memos.show', $memo),
-            $memo
-        );
-
-        // Queue emails
         $recipients = User::whereIn('id', $userIds)->get();
+
+        $reviewerRoles = [
+            'site_inspector', 'surveyor', 'resident_engineer',
+            'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
+        ];
+
         foreach ($recipients as $user) {
+            $link = match(true) {
+                $user->role === 'admin'               => route('admin.memos.show', $memo),
+                $user->role === 'contractor'          => route('user.memos.show', $memo),
+                in_array($user->role, $reviewerRoles) => \Illuminate\Support\Facades\Route::has('reviewer.memos.show')
+                                                            ? route('reviewer.memos.show', $memo)
+                                                            : route('admin.memos.show', $memo),
+                default                               => route('user.memos.show', $memo),
+            };
+
+            Notification::send(
+                [$user->id],
+                'memo',
+                "[{$memo->type_label}] {$memo->subject}",
+                "You have received a new memo from {$memo->sender->name}.",
+                $link,
+                $memo
+            );
+
             try {
                 Mail::to($user->email)->queue(new MemoMail($memo, $user));
-
                 MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_sent_at' => now()]);
