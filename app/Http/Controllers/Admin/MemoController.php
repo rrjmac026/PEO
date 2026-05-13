@@ -334,6 +334,8 @@ class MemoController extends Controller
         };
     }
 
+    // ── Private helpers ───────────────────────────────────────────────────────
+
     private function dispatchNotifications(Memo $memo, array $userIds): void
     {
         $recipients = User::whereIn('id', $userIds)->get();
@@ -363,11 +365,17 @@ class MemoController extends Controller
             );
 
             try {
-                Mail::to($user->email)->queue(new MemoMail($memo, $user));
+                // Use send() instead of queue() so exceptions are catchable here.
+                // If you need async, switch to a dedicated SendMemoMail job that
+                // handles its own retry/failure logging.
+                Mail::to($user->email)->send(new MemoMail($memo, $user));
+
                 MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_sent_at' => now()]);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("MemoMail failed for user {$user->id}: " . $e->getMessage());
+
                 MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_failed' => true]);
