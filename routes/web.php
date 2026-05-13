@@ -13,6 +13,7 @@ use App\Http\Controllers\Reviewer\ReviewerWorkRequestController;
 use App\Http\Controllers\Reviewer\ReviewerConcretePouringController;
 use App\Http\Controllers\Admin\MemoController;
 use App\Http\Controllers\User\UserMemoController;
+use App\Http\Controllers\Reviewer\ReviewerMemoController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
@@ -177,7 +178,7 @@ Route::prefix('user')->name('user.')->middleware(['auth', 'role:contractor'])->g
         ->name('concrete-pouring.print');
 
     Route::resource('concrete-pouring', UserConcretePouringController::class);
-    
+
     Route::prefix('memos')->name('memos.')->group(function () {
         Route::get('/',              [UserMemoController::class, 'index'])    ->name('index');
         Route::get('/{memo}',        [UserMemoController::class, 'show'])     ->name('show');
@@ -272,6 +273,12 @@ Route::prefix('reviewer')->name('reviewer.')
         Route::post('/{concretePouring}/provincial-note',
             [ReviewerConcretePouringController::class, 'storeProvincialNote'])
             ->name('store-provincial-note');
+    });
+
+    Route::prefix('memos')->name('memos.')->group(function () {
+        Route::get('/',                      [ReviewerMemoController::class, 'index'])    ->name('index');
+        Route::get('/{memo}',                [ReviewerMemoController::class, 'show'])     ->name('show');
+        Route::post('/{memo}/mark-read',     [ReviewerMemoController::class, 'markRead']) ->name('mark-read');
     });
 });
 
