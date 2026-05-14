@@ -1,8 +1,10 @@
 {{-- resources/views/emails/user/credentials.blade.php --}}
 @php
-    $emailTitle = 'Account Created — Your Login Credentials';
+    $emailTitle = isset($isResend) && $isResend 
+        ? 'Credentials Reset — Your New Login' 
+        : 'Account Created — Your Login Credentials';
     $badgeClass = 'orange';
-    $badgeText  = 'Account Created';
+    $badgeText  = isset($isResend) && $isResend ? 'Credentials Reset' : 'Account Created';
 @endphp
 
 @extends('emails.work-requests.layout')

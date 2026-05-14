@@ -46,7 +46,7 @@ class UserManagementController extends Controller
         ]);
 
         // Generate a random password — no manual entry needed
-        $plainPassword = Str::password(12); // e.g. "aB3$xZq1!mPw"
+        $plainPassword = Str::random(12); // e.g. "aB3$xZq1!mPw"
 
         $user = User::create([
             'name'     => $request->name,
@@ -103,14 +103,14 @@ class UserManagementController extends Controller
         return redirect()->route('admin.users.index')
                          ->with('success', 'User deleted successfully.');
     }
-    
+
     public function resendCredentials(User $user)
     {
-        $plainPassword = Str::password(12);
+        $plainPassword = Str::random(12);
 
         $user->update(['password' => Hash::make($plainPassword)]);
 
-        Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword));
+        Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword, isResend: true));
 
         return back()->with('success', 'New credentials sent to ' . $user->email);
     }
