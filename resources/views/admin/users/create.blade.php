@@ -80,37 +80,29 @@
                             @enderror
                         </div>
 
-                        {{-- Password Field --}}
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {{-- Password (optional) --}}
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {{ __('Password') }}
-                                <span class="text-red-500">*</span>
+                                <span class="text-gray-400 font-normal">(leave blank to auto-generate)</span>
                             </label>
-                            <input 
-                                type="password" 
-                                id="password" 
+                            <input type="password"
                                 name="password"
-                                class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-orange-500 dark:focus:border-orange-600 focus:ring-orange-500 dark:focus:ring-orange-600 shadow-sm @error('password') is-invalid border-red-500 @enderror"
-                                placeholder="Enter password (minimum 6 characters)"
-                                required>
+                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm"
+                                placeholder="Leave blank to auto-generate">
                             @error('password')
-                                <p class="mt-1 text-sm text-red-500 dark:text-red-400">{{ $message }}</p>
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        {{-- Confirm Password Field --}}
-                        <div>
-                            <label for="password_confirmation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {{ __('Confirm Password') }}
-                                <span class="text-red-500">*</span>
                             </label>
-                            <input 
-                                type="password" 
-                                id="password_confirmation" 
+                            <input type="password"
                                 name="password_confirmation"
-                                class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-orange-500 dark:focus:border-orange-600 focus:ring-orange-500 dark:focus:ring-orange-600 shadow-sm"
-                                placeholder="Confirm password"
-                                required>
+                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm"
+                                placeholder="Confirm password">
                         </div>
 
                         {{-- Form Actions --}}

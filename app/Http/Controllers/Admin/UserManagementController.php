@@ -40,13 +40,16 @@ class UserManagementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'role'  => 'required|string',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'role'     => 'required|string',
+            'password' => 'nullable|min:8|confirmed',
         ]);
 
-        // Generate a random password — no manual entry needed
-        $plainPassword = Str::random(12); // e.g. "aB3$xZq1!mPw"
+        // Use admin's password if provided, otherwise auto-generate
+        $plainPassword = $request->filled('password')
+            ? $request->password
+            : Str::random(12);
 
         $user = User::create([
             'name'     => $request->name,
@@ -104,9 +107,15 @@ class UserManagementController extends Controller
                          ->with('success', 'User deleted successfully.');
     }
 
-    public function resendCredentials(User $user)
+    public function resendCredentials(Request $request, User $user)
     {
-        $plainPassword = Str::random(12);
+        $request->validate([
+            'password' => 'nullable|min:8|confirmed',
+        ]);
+
+        $plainPassword = $request->filled('password')
+            ? $request->password
+            : Str::random(12);
 
         $user->update(['password' => Hash::make($plainPassword)]);
 
