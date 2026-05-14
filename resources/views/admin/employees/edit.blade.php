@@ -6,7 +6,7 @@
     <!-- Header -->
     <div class="mb-8">
         <div class="flex items-center gap-4">
-            <a href="{{ route('employees.index') }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition ease-in-out duration-150">
+            <a href="{{ route('admin.employees.index') }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition ease-in-out duration-150">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Employee</h1>
@@ -45,7 +45,7 @@
             </div>
 
             <!-- Form -->
-            <form action="{{ route('employees.update', $employee) }}" method="POST" class="p-6 md:p-8 space-y-6">
+            <form action="{{ route('admin.employees.update', $employee) }}" method="POST" class="p-6 md:p-8 space-y-6">
                 @csrf
                 @method('PUT')
 
@@ -143,7 +143,7 @@
 
                 <!-- Form Actions -->
                 <div class="pt-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
-                    <a href="{{ route('employees.index') }}" 
+                    <a href="{{ route('admin.employees.index') }}" 
                        class="inline-flex items-center px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition ease-in-out duration-150">
                         <i class="fas fa-times mr-2"></i>Cancel
                     </a>

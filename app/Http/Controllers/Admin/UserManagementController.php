@@ -10,6 +10,17 @@ use Illuminate\Support\Facades\Hash;
 class UserManagementController extends Controller
 {
     // 📌 Display all users
+    private array $roles = [
+        'admin'               => 'Admin',
+        'contractor'          => 'Contractor',
+        'site_inspector'      => 'Site Inspector',
+        'surveyor'            => 'Surveyor',
+        'mtqa'                => 'MTQA',
+        'resident_engineer'   => 'Resident Engineer',
+        'engineeriv'          => 'Engineer IV',
+        'engineeriii'         => 'Engineer III',
+        'provincial_engineer' => 'Provincial Engineer',
+    ];
     public function index()
     {
         $users = User::latest()->paginate(10);
@@ -19,7 +30,7 @@ class UserManagementController extends Controller
     // 📌 Show create form
     public function create()
     {
-        return view('admin.users.create');
+        return view('admin.users.create', ['roles' => $this->roles]);
     }
 
     // 📌 Store new user
@@ -39,7 +50,7 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('users.index')
+        return redirect()->route('admin.users.index')
                          ->with('success', 'User created successfully.');
     }
 
@@ -52,7 +63,7 @@ class UserManagementController extends Controller
     // 📌 Show edit form
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        return view('admin.users.edit', compact('user') + ['roles' => $this->roles]);
     }
 
     // 📌 Update user
@@ -73,7 +84,7 @@ class UserManagementController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('users.index')
+        return redirect()->route('admin.users.index')
                          ->with('success', 'User updated successfully.');
     }
 
@@ -82,7 +93,7 @@ class UserManagementController extends Controller
     {
         $user->delete();
 
-        return redirect()->route('users.index')
+        return redirect()->route('admin.users.index')
                          ->with('success', 'User deleted successfully.');
     }
 }

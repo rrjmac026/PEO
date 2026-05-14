@@ -54,7 +54,7 @@ class EmployeeManagementController extends Controller
     // 📌 Show single employee
     public function show(Employee $employee)
     {
-        $employee->load('user', 'workRequests');
+        $employee->load('user');
 
         return view('admin.employees.show', compact('employee'));
     }

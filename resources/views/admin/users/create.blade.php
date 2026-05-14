@@ -69,8 +69,11 @@
                                 class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-orange-500 dark:focus:border-orange-600 focus:ring-orange-500 dark:focus:ring-orange-600 shadow-sm @error('role') is-invalid border-red-500 @enderror"
                                 required>
                                 <option value="">{{ __('Select a role') }}</option>
-                                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>{{ __('Admin') }}</option>
-                                <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>{{ __('User') }}</option>
+                                @foreach($roles as $value => $label)
+                                    <option value="{{ $value }}" {{ old('role', $user->role ?? '') == $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('role')
                                 <p class="mt-1 text-sm text-red-500 dark:text-red-400">{{ $message }}</p>
