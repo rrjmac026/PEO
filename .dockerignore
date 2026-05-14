@@ -1,0 +1,29 @@
+# Dependencies (rebuilt inside container)
+node_modules/
+vendor/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# Dev/test files
+tests/
+*.test.*
+
+# Logs
+*.log
+storage/logs/
+
+# Docker files themselves
+docker-compose*.yml
+docker/
+
+# IDE
+.idea/
+.vscode/
+*.DS_Store
