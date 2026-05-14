@@ -6,7 +6,7 @@
     <!-- Header -->
     <div class="mb-8">
         <div class="flex items-center gap-4">
-            <a href="{{ route('employees.index') }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition ease-in-out duration-150">
+            <a href="{{ route('admin.employees.index') }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition ease-in-out duration-150">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Employee Details</h1>
@@ -100,11 +100,11 @@
 
                     <!-- Action Buttons -->
                     <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 flex-wrap">
-                        <a href="{{ route('employees.edit', $employee) }}" 
+                        <a href="{{ route('admin.employees.edit', $employee) }}" 
                            class="inline-flex items-center px-4 py-2 bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded-lg font-semibold hover:bg-amber-200 dark:hover:bg-amber-800 transition ease-in-out duration-150">
                             <i class="fas fa-edit mr-2"></i>Edit Employee
                         </a>
-                        <form action="{{ route('employees.destroy', $employee) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this employee?');">
+                        <form action="{{ route('admin.employees.destroy', $employee) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this employee?');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" 
