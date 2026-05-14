@@ -57,4 +57,30 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    public function updateEmployee(Request $request)
+    {
+        $user = $request->user();
+
+        // Admin has no employee record
+        if ($user->role === 'admin') {
+            abort(403);
+        }
+
+        $request->validate([
+            'employee_number' => 'nullable|string|unique:employees,employee_number,' 
+                                . ($user->employee?->id ?? 'NULL') . ',id',
+            'position'        => 'nullable|string|max:255',
+            'department'      => 'nullable|string|max:255',
+            'phone'           => 'nullable|string|max:20',
+            'office'          => 'nullable|string|max:255',
+        ]);
+
+        $user->employee()->updateOrCreate(
+            ['user_id' => $user->id],
+            $request->only(['employee_number', 'position', 'department', 'phone', 'office'])
+        );
+
+        return back()->with('status', 'employee-updated');
+    }
 }
