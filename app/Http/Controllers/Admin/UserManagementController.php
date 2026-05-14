@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Mail\UserCredentialsMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
 {
@@ -37,21 +40,25 @@ class UserManagementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name'  => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'role' => 'required|string',
-            'password' => 'required|min:6|confirmed',
+            'role'  => 'required|string',
         ]);
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'password' => Hash::make($request->password),
+        // Generate a random password — no manual entry needed
+        $plainPassword = Str::password(12); // e.g. "aB3$xZq1!mPw"
+
+        $user = User::create([
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'role'     => $request->role,
+            'password' => Hash::make($plainPassword),
         ]);
+
+        Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword));
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'User created successfully.');
+                        ->with('success', 'User created and credentials sent via email.');
     }
 
     // 📌 Show single user
@@ -95,5 +102,16 @@ class UserManagementController extends Controller
 
         return redirect()->route('admin.users.index')
                          ->with('success', 'User deleted successfully.');
+    }
+    
+    public function resendCredentials(User $user)
+    {
+        $plainPassword = Str::password(12);
+
+        $user->update(['password' => Hash::make($plainPassword)]);
+
+        Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword));
+
+        return back()->with('success', 'New credentials sent to ' . $user->email);
     }
 }

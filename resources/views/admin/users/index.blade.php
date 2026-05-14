@@ -232,6 +232,16 @@
 
         /* ── Pagination wrapper ── */
         .um-pagination { margin-top: 20px; }
+
+        .dark .um-action-btn.resend { 
+            color: #34d399; 
+            border-color: rgba(52,211,153,.3); 
+            background: rgba(52,211,153,.1); 
+        }
+        .dark .um-action-btn.resend:hover { 
+            background: rgba(52,211,153,.2); 
+            border-color: rgba(52,211,153,.5); 
+        }
     </style>
     @endpush
 
@@ -336,6 +346,9 @@
                                                class="um-action-btn edit" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            <button type="submit" class="um-action-btn resend" title="Resend Credentials">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
                                             <form action="{{ route('admin.users.destroy', $user) }}"
                                                   method="POST" class="inline"
                                                   onsubmit="return confirm('Are you sure you want to delete this user?');">

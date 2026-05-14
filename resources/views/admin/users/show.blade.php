@@ -146,6 +146,16 @@
                     <i class="fas fa-edit mr-2"></i>
                     {{ __('Edit User') }}
                 </a>
+                <form method="POST" action="{{ route('admin.users.resend-credentials', $user) }}"
+                    class="inline"
+                    onsubmit="return confirm('Reset password and resend credentials to {{ $user->name }}?');">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center px-6 py-3 bg-emerald-600 dark:bg-emerald-500 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-emerald-700 dark:hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        {{ __('Resend Credentials') }}
+                    </button>
+                </form>
                 <form action="{{ route('admin.users.destroy', $user) }}" 
                       method="POST" 
                       class="inline"
