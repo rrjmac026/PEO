@@ -183,6 +183,11 @@
             const tabs   = document.querySelectorAll('.profile-tab-btn');
             const panels = document.querySelectorAll('.profile-tab-panel');
 
+            const hash = window.location.hash.replace('#', '');
+            if (hash && document.getElementById(`tab-${hash}`)) {
+                switchTab(hash);
+            }
+
             // Auto-switch to employee tab if that form was just saved
             const status = @json(session('status'));
             if (status === 'employee-updated') {

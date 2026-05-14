@@ -220,6 +220,9 @@
                 </div>
             </div>
 
+            {{-- ── Employee Info Alert ── --}}
+            @include('partials.employee-info-alert')
+
             <!-- ── Stats Grid ── -->
             {{-- ── Site Inspector ────────────────────────────── --}}
             @if($role === 'site_inspector')
