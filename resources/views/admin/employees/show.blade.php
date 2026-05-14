@@ -143,39 +143,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Work Requests Summary -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <i class="fas fa-file-alt text-indigo-600 dark:text-indigo-400"></i>Work Requests
-                </h3>
-                @if ($employee->workRequests->count() > 0)
-                    <div class="space-y-2">
-                        <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{{ $employee->workRequests->count() }}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Total submissions</p>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="space-y-2">
-                            @foreach ($employee->workRequests->take(5) as $request)
-                                <a href="#" class="block p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition ease-in-out duration-150">
-                                    <p class="text-sm text-gray-900 dark:text-gray-100 font-medium truncate">
-                                        {{ Str::limit($request->description, 40) }}
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $request->created_at->format('M d, Y') }}</p>
-                                </a>
-                            @endforeach
-                        </div>
-                        @if ($employee->workRequests->count() > 5)
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">+{{ $employee->workRequests->count() - 5 }} more</p>
-                        @endif
-                    </div>
-                @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox text-gray-300 text-3xl mb-2"></i>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">No work requests yet</p>
-                    </div>
-                @endif
-            </div>
         </div>
     </div>
 @endsection
