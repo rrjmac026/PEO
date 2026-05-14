@@ -190,10 +190,40 @@
     <div class="sb-divider"></div>
     <span class="sb-section-label">Account</span>
 
-    <a href="{{ route('profile.edit') }}"
-       class="sb-link {{ request()->routeIs('profile*') ? 'active' : '' }}">
-        <span class="sb-icon"><i class="fas fa-user-circle"></i></span>
+    {{-- After --}}
+    @php
+        $profileIncomplete = Auth::user()->role !== 'admin' && (
+            !Auth::user()->employee ||
+            !Auth::user()->employee->position ||
+            !Auth::user()->employee->employee_number ||
+            !Auth::user()->employee->phone
+        );
+    @endphp
+
+    <a href="{{ route('profile.edit') }}#tab-employee"
+    class="sb-link {{ request()->routeIs('profile*') ? 'active' : '' }}"
+    style="position: relative;">
+        <span class="sb-icon" style="position: relative;">
+            <i class="fas fa-user-circle"></i>
+            @if($profileIncomplete)
+                <span style="
+                    position: absolute; top: 2px; right: 2px;
+                    width: 8px; height: 8px; border-radius: 50%;
+                    background: #ef4444;
+                    border: 2px solid var(--sb-surface);
+                    display: block;
+                "></span>
+            @endif
+        </span>
         My Profile
+        @if($profileIncomplete)
+            <span style="
+                margin-left: auto; font-size: 10px; font-weight: 700;
+                background: #ef4444; color: #fff;
+                padding: 2px 6px; border-radius: 8px; line-height: 1.4;
+                white-space: nowrap;
+            ">Setup</span>
+        @endif
     </a>
 
     <form method="POST" action="{{ route('logout') }}">
