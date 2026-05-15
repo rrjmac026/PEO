@@ -94,8 +94,8 @@
                 ];
                 $stepKeys  = array_keys($steps);
                 $roleMap   = [
-                    'ME/MTQA'                          => 'mtqa',
-                    'Resident Engineer'                => 'resident_engineer',
+                    'ME/MTQA'                              => 'mtqa',
+                    'Resident Engineer'                    => 'resident_engineer',
                     'Provincial Engineer (Final Decision)' => 'provincial_engineer',
                 ];
                 $currentStepKey = $roleMap[$role] ?? null;
@@ -118,14 +118,14 @@
             <div class="action-box">
                 <p>⚡ It is currently your turn to review this request. Please log in and submit your findings.</p>
             </div>
-            <a href="{{ url('/reviewer/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+            <a href="{{ route('reviewer.concrete-pouring.show', $concretePouring->id) }}" class="btn">
                 Review Now →
             </a>
         @else
             <p style="color:#64748b; font-size:13px;">
                 You will receive another email when it is your turn to review.
             </p>
-            <a href="{{ url('/reviewer/concrete-pouring/' . $concretePouring->id) }}" class="btn"
+            <a href="{{ route('reviewer.concrete-pouring.show', $concretePouring->id) }}" class="btn"
                style="background:#475569;">
                 View Request →
             </a>

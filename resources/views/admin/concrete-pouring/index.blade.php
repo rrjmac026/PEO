@@ -83,6 +83,13 @@
         .dark .cp-alert.success { background: rgba(5,150,105,.12); border-color: rgba(52,211,153,.3); color: #6ee7b7; }
         .cp-alert-close { background: none; border: none; cursor: pointer; font-size: 14px; opacity: .6; color: inherit; padding: 0; margin-left: 12px; }
         .cp-alert-close:hover { opacity: 1; }
+        .cp-action-btn.view:hover   { background: #ffedd5; }
+        .cp-action-btn.print:hover  { background: #dbeafe; }
+        .cp-action-btn.delete { color: #dc2626; border-color: #fecaca; background: #fff1f2; }
+        .cp-action-btn.delete:hover { background: #fee2e2; }
+        .dark .cp-action-btn.view   { color: #fb923c; border-color: rgba(251,146,60,.3);  background: rgba(251,146,60,.1); }
+        .dark .cp-action-btn.print  { color: #60a5fa; border-color: rgba(96,165,250,.3);  background: rgba(96,165,250,.1); }
+        .dark .cp-action-btn.delete { color: #f87171; border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.1); }
     </style>
     @endpush
 
@@ -233,13 +240,22 @@
                                     <td>
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.concrete-pouring.show', $p) }}"
-                                               class="cp-action-btn view" title="View">
+                                            class="cp-action-btn view" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <a href="{{ route('admin.concrete-pouring.print', $p) }}"
-                                               class="cp-action-btn print" title="Print" target="_blank">
+                                            class="cp-action-btn print" title="Print" target="_blank">
                                                 <i class="fas fa-print"></i>
                                             </a>
+                                            <form method="POST"
+                                                action="{{ route('admin.concrete-pouring.destroy', $p) }}"
+                                                onsubmit="return confirm('Delete this concrete pouring request? This cannot be undone.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="cp-action-btn delete" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

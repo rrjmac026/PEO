@@ -96,7 +96,7 @@
             <p>⚡ Please log in to review all findings and submit your final decision (Approve or Disapprove).</p>
         </div>
 
-        <a href="{{ url('/reviewer/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+        <a href="{{ route('reviewer.concrete-pouring.show', $concretePouring->id) }}" class="btn">
             Submit Final Decision →
         </a>
     </div>

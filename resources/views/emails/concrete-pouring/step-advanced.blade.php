@@ -79,7 +79,7 @@
             <p>⚡ Please log in to review and submit your findings or signature for this request.</p>
         </div>
 
-        <a href="{{ url('/reviewer/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+        <a href="{{ route('reviewer.concrete-pouring.show', $concretePouring->id) }}" class="btn">
             Review Now →
         </a>
     </div>

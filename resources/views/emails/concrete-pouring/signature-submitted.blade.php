@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <a href="{{ url('/admin/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+        <a href="{{ route('admin.concrete-pouring.show', $concretePouring->id) }}" class="btn">
             View Request →
         </a>
     </div>

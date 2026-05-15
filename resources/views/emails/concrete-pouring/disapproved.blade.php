@@ -99,7 +99,7 @@
             or submit a new concrete pouring request.
         </p>
 
-        <a href="{{ url('/user/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+        <a href="{{ route('user.concrete-pouring.show', $concretePouring->id) }}" class="btn">
             View Request →
         </a>
     </div>

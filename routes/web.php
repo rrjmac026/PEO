@@ -96,6 +96,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
         Route::get( '/{concretePouring}/decision', [AdminConcretePouringController::class, 'decisionForm'])  ->name('decision-form');
         Route::post('/{concretePouring}/decision', [AdminConcretePouringController::class, 'storeDecision']) ->name('store-decision');
+        Route::delete('/{concretePouring}', [AdminConcretePouringController::class, 'destroy'])->name('destroy');
 
         
     });

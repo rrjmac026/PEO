@@ -79,7 +79,7 @@
 
         <p>Please log in to assign reviewers (ME/MTQA, Resident Engineer, and Provincial Engineer).</p>
 
-        <a href="{{ url('/admin/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+        <a href="{{ route('admin.concrete-pouring.show', $concretePouring->id) }}" class="btn">
             View &amp; Assign Reviewers →
         </a>
     </div>

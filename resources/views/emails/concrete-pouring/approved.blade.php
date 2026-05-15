@@ -92,7 +92,7 @@
 
         <p>You may now proceed with the concrete pouring as scheduled.</p>
 
-        <a href="{{ url('/user/concrete-pouring/' . $concretePouring->id) }}" class="btn">
+        <a href="{{ route('user.concrete-pouring.show', $concretePouring->id) }}" class="btn">
             View Approved Request →
         </a>
     </div>
