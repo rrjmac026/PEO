@@ -181,6 +181,24 @@
     .email-footer strong {
         color: rgba(255,255,255,0.65);
     }
+
+    /* ── CTA Button ── */
+    .cta-wrap {
+        text-align: center;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+    .cta-btn {
+        display: inline-block;
+        padding: 14px 32px;
+        background: linear-gradient(135deg, #E05A00, #FF8C38);
+        color: #ffffff !important;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        border-radius: 10px;
+        letter-spacing: 0.02em;
+    }
 </style>
 </head>
 <body>
@@ -244,6 +262,18 @@
                 <p class="attach-note">Files are attached to this email.</p>
             </div>
         @endif
+        
+        {{-- CTA --}}
+        <div class="cta-wrap">
+            <a href="{{ $memoUrl }}" class="cta-btn">
+                📄 View Memo in System
+            </a>
+        </div>
+        <p style="text-align:center; font-size:11px; color:#A07858; margin-top:10px;">
+            Or copy this link:
+            <br>
+            <span style="word-break:break-all; color:#E05A00;">{{ $memoUrl }}</span>
+        </p>
 
     </div>
 
