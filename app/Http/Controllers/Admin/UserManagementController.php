@@ -46,7 +46,6 @@ class UserManagementController extends Controller
             'password' => 'nullable|min:8|confirmed',
         ]);
 
-        // Use admin's password if provided, otherwise auto-generate
         $plainPassword = $request->filled('password')
             ? $request->password
             : Str::random(12);
@@ -58,10 +57,15 @@ class UserManagementController extends Controller
             'password' => Hash::make($plainPassword),
         ]);
 
-        Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword));
+        try {
+            Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword));
+            $message = 'User created and credentials sent via email.';
+        } catch (\Exception $e) {
+            \Log::error('Failed to send credentials: ' . $e->getMessage());
+            $message = 'User created but email failed: ' . $e->getMessage();
+        }
 
-        return redirect()->route('admin.users.index')
-                        ->with('success', 'User created and credentials sent via email.');
+        return redirect()->route('admin.users.index')->with('success', $message);
     }
 
     // 📌 Show single user
@@ -119,8 +123,14 @@ class UserManagementController extends Controller
 
         $user->update(['password' => Hash::make($plainPassword)]);
 
-        Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword, isResend: true));
+        try {
+            Mail::to($user->email)->send(new UserCredentialsMail($user, $plainPassword, isResend: true));
+            $message = 'New credentials sent to ' . $user->email;
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend credentials: ' . $e->getMessage());
+            $message = 'Password reset but email failed: ' . $e->getMessage();
+        }
 
-        return back()->with('success', 'New credentials sent to ' . $user->email);
+        return back()->with('success', $message);
     }
 }

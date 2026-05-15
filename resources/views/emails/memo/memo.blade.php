@@ -251,7 +251,7 @@
     <div class="email-footer">
         <p>
             This is an official memo from<br>
-            <strong>{{ config('app.name') }}</strong>
+            <strong>Provincial Engineering Office Work Request Management System</strong>
         </p>
         <p style="margin-top: 8px;">Please do not reply directly to this email.</p>
     </div>

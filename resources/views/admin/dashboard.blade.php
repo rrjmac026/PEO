@@ -303,53 +303,6 @@
                 </div>
             </div>
 
-            <!-- ── Recent Activity ── -->
-            <div>
-                <h2 class="db-section-heading">
-                    <i class="fas fa-history text-orange-500 dark:text-orange-400"></i>
-                    Recent Activity
-                </h2>
-
-                <div class="db-panel">
-                    <div class="db-activity-item">
-                        <div class="flex items-start gap-4">
-                            <div class="db-act-icon orange"><i class="fas fa-file-circle-plus"></i></div>
-                            <div class="flex-1 min-w-0">
-                                <p class="db-act-title">New system initialized</p>
-                                <p class="db-act-desc">Admin dashboard activated for Provincial Engineering Office</p>
-                                <p class="db-act-time">Today at {{ now()->format('g:i A') }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="db-activity-item">
-                        <div class="flex items-start gap-4">
-                            <div class="db-act-icon green"><i class="fas fa-users"></i></div>
-                            <div class="flex-1 min-w-0">
-                                <p class="db-act-title">Employee module activated</p>
-                                <p class="db-act-desc">Ready to manage employee records and information</p>
-                                <p class="db-act-time">Today at {{ now()->format('g:i A') }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="db-activity-item">
-                        <div class="flex items-start gap-4">
-                            <div class="db-act-icon blue"><i class="fas fa-check-circle"></i></div>
-                            <div class="flex-1 min-w-0">
-                                <p class="db-act-title">System configuration completed</p>
-                                <p class="db-act-desc">All required modules have been configured and are ready for use</p>
-                                <p class="db-act-time">Today at {{ now()->format('g:i A') }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="db-panel-foot">
-                        <button>View All Activity <i class="fas fa-arrow-right text-xs"></i></button>
-                    </div>
-                </div>
-            </div>
-
             <!-- ── Footer Stats ── -->
             <div class="db-footer-divider pt-8">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
