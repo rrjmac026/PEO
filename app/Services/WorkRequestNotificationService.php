@@ -7,6 +7,7 @@ use App\Mail\WorkRequestDecisionMadeMail;
 use App\Mail\WorkRequestReadyForDecisionMail;
 use App\Mail\WorkRequestStepAdvancedMail;
 use App\Mail\WorkRequestSubmittedMail;
+use App\Mail\WorkRequestReadyToPrintMail;
 use App\Models\Notification;
 use App\Models\WorkRequest;
 use App\Models\User;
@@ -180,15 +181,14 @@ class WorkRequestNotificationService
         $contractor = User::where('name', $wr->contractor_name)
             ->where('role', 'contractor')
             ->first();
-
-        if (!$contractor) return;
-
+    
         $isApproved = $wr->status === WorkRequest::STATUS_APPROVED;
         $decision   = $isApproved ? 'Approved ✅' : 'Rejected ❌';
         $emoji      = $isApproved ? '🎉' : '😔';
         $statusWord = $isApproved ? 'approved' : 'rejected';
-
-        // Notify assigned MTQA when approved — they can now print
+    
+        // Notify MTQA when approved — they can now print
+        // Uses WorkRequestReadyToPrintMail, NOT WorkRequestDecisionMadeMail
         if ($isApproved && $wr->assigned_mtqa_id) {
             $mtqaUser = User::find($wr->assigned_mtqa_id);
             if ($mtqaUser) {
@@ -200,35 +200,39 @@ class WorkRequestNotificationService
                     route('reviewer.work-requests.show', $wr),
                     $wr
                 );
+    
                 try {
-                    Mail::to($mtqaUser->email)->send(new WorkRequestDecisionMadeMail($wr));
+                    Mail::to($mtqaUser->email)->send(new WorkRequestReadyToPrintMail($wr));
                 } catch (\Throwable $e) {
-                    Log::error('WorkRequestDecisionMadeMail (MTQA) failed', [
+                    Log::error('WorkRequestReadyToPrintMail (MTQA) failed', [
                         'to'    => $mtqaUser->email,
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
         }
-
+    
         // Notify contractor of the outcome
-        Notification::send(
-            $contractor->id,
-            'work_request',
-            "{$emoji} Work Request {$decision}",
-            "Your work request for \"{$wr->name_of_project}\" has been {$statusWord}." .
-            ($wr->approved_recommendation_action ? " Remarks: {$wr->approved_recommendation_action}" : ''),
-            route('user.work-requests.show', $wr),
-            $wr
-        );
-
-        try {
-            Mail::to($contractor->email)->send(new WorkRequestDecisionMadeMail($wr));
-        } catch (\Throwable $e) {
-            Log::error('WorkRequestDecisionMadeMail failed', [
-                'to'    => $contractor->email,
-                'error' => $e->getMessage(),
-            ]);
+        if ($contractor) {
+            Notification::send(
+                $contractor->id,
+                'work_request',
+                "{$emoji} Work Request {$decision}",
+                "Your work request for \"{$wr->name_of_project}\" has been {$statusWord}." .
+                ($wr->approved_recommendation_action ? " Remarks: {$wr->approved_recommendation_action}" : ''),
+                route('user.work-requests.show', $wr),
+                $wr
+            );
+    
+            try {
+                Mail::to($contractor->email)->send(new WorkRequestDecisionMadeMail($wr));
+            } catch (\Throwable $e) {
+                Log::error('WorkRequestDecisionMadeMail (contractor) failed', [
+                    'to'    => $contractor->email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
+
 }
