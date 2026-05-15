@@ -15,7 +15,7 @@ class RoleSeeder extends Seeder
             // User (Contractor)
             [
                 'name'     => 'Juan Dela Cruz',
-                'email'    => 'user@example.com',
+                'email'    => 'lolzka12345@gmail.com',
                 'role'     => 'contractor',
                 'employee' => [
                     'employee_number' => 'EMP-002',
@@ -57,7 +57,7 @@ class RoleSeeder extends Seeder
             // MTQA
             [
                 'name'     => 'Randy P. Diaz',
-                'email'    => 'mtqa@example.com',
+                'email'    => 'namisanchez123@gmail.com',
                 'role'     => 'mtqa',
                 'employee' => [
                     'employee_number' => 'EMP-007',
@@ -191,7 +191,7 @@ class RoleSeeder extends Seeder
             ],
             [
                 'name'     => 'Aaron Daniel P. Alvez',
-                'email'    => 'resident.engineer.alvez@example.com',
+                'email'    => 'macalutasreyramesesjudeiii@gmail.com',
                 'role'     => 'resident_engineer',
                 'employee' => [
                     'employee_number' => 'EMP-RE-010',
@@ -240,7 +240,7 @@ class RoleSeeder extends Seeder
 
             // Engineer IV
             [
-                'email'    => 'engineeriv@example.com',
+                'email'    => 'obaobrosejane@gmail.com',
                 'role'     => 'engineeriv',
                 'name'     => 'Grace D. Cañete',
                 'employee' => [
@@ -283,7 +283,7 @@ class RoleSeeder extends Seeder
             // Provincial Engineer
             [
                 'name'     => 'Jose Pastor P. De La Cerna, III',
-                'email'    => 'provincial.engineer@example.com',
+                'email'    => '1901102366@student.buksu.edu.ph',
                 'role'     => 'provincial_engineer',
                 'employee' => [
                     'employee_number' => 'EMP-006',

@@ -69,7 +69,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         ->name('work-request-logs.index');
 
     // ── Users & Employees ─────────────────────────────────────────────────────
-    Route::post('admin/users/{user}/resend-credentials', [UserManagementController::class, 'resendCredentials'])
+    Route::post('/users/{user}/resend-credentials', [UserManagementController::class, 'resendCredentials'])
     ->name('users.resend-credentials');
     Route::resource('users', UserManagementController::class);
     Route::resource('employees', EmployeeManagementController::class);

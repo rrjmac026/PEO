@@ -11,7 +11,7 @@ services:
       - "80:80"
     environment:
       APP_ENV: production
-      APP_DEBUG: "false"
+      APP_DEBUG: "true"
       APP_KEY: "${APP_KEY}"
       APP_URL: "${APP_URL}"
 
@@ -23,6 +23,17 @@ services:
       DB_PASSWORD: "${DB_PASSWORD}"
 
       QUEUE_CONNECTION: "${QUEUE_CONNECTION:-database}"
+      CACHE_STORE: "database"
+      SESSION_DRIVER: "database"
+
+      MAIL_MAILER: "smtp"
+      MAIL_HOST: "smtp.gmail.com"
+      MAIL_PORT: "587"
+      MAIL_USERNAME: "${MAIL_USERNAME}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD}"
+      MAIL_ENCRYPTION: "tls"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS}"
+      MAIL_FROM_NAME: "${APP_NAME}"
     volumes:
       # Persist storage (logs, uploaded files, etc.)
       - app_storage:/var/www/html/storage
