@@ -64,10 +64,12 @@ class AdminConcretePouringController extends Controller
         $concretePouring->load([
             'workRequest', 'requestedBy', 'meMtqaChecker',
             'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
-            'logs.user',   // ← eager-load logs with their actor
+            'logs.user',
         ]);
 
-        return view('admin.concrete-pouring.show', compact('concretePouring'));
+        $isMyTurn = false; // Admin is read-only; no action forms shown
+
+        return view('admin.concrete-pouring.show', compact('concretePouring', 'isMyTurn'));
     }
 
     // =========================================================================
