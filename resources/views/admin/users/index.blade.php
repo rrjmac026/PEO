@@ -346,9 +346,15 @@
                                                class="um-action-btn edit" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button type="submit" class="um-action-btn resend" title="Resend Credentials">
-                                                <i class="fas fa-paper-plane"></i>
-                                            </button>
+                                            <form action="{{ route('admin.users.resend-credentials', $user) }}"
+                                                method="POST" class="inline"
+                                                onsubmit="return confirm('Reset password and resend credentials to {{ $user->name }}?');">
+                                                @csrf
+                                                <button type="submit" class="um-action-btn resend" title="Resend Credentials">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </button>
+                                            </form>
+
                                             <form action="{{ route('admin.users.destroy', $user) }}"
                                                   method="POST" class="inline"
                                                   onsubmit="return confirm('Are you sure you want to delete this user?');">
