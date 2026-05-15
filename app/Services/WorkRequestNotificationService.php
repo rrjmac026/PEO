@@ -106,6 +106,10 @@ class WorkRequestNotificationService
     /**
      * A reviewer completed their step → notify the next reviewer.
      * Call this AFTER $wr->advanceReviewStep() has been saved.
+     *
+     * FIX: when the next step is 'provincial_engineer', send
+     * WorkRequestReadyForDecisionMail instead of the generic step mail,
+     * since the PE is making the final decision, not just reviewing.
      */
     public static function stepAdvanced(WorkRequest $wr, string $completedByName, string $completedStep): void
     {
@@ -117,62 +121,52 @@ class WorkRequestNotificationService
             'engineer_iv'         => 'Engineer IV',
             'engineer_iii'        => 'Engineer III',
             'provincial_engineer' => 'Provincial Engineer',
-            'admin_final'         => 'Admin Final Decision',
         ];
 
         $nextStep = $wr->current_review_step;
 
-        if ($nextStep === 'admin_final') {
-            $admins = User::where('role', 'admin')->get();
-
-            Notification::send(
-                $admins->pluck('id')->toArray(),
-                'work_request',
-                '✅ Work Request Ready for Final Decision',
-                "Work request \"{$wr->name_of_project}\" has completed all reviews. Please make a final decision.",
-                route('admin.work-requests.decision-form', $wr),
-                $wr
-            );
-
-            foreach ($admins as $admin) {
-                try {
-                    Mail::to($admin->email)->send(new WorkRequestReadyForDecisionMail($wr));
-                } catch (\Throwable $e) {
-                    Log::error('WorkRequestReadyForDecisionMail failed', [
-                        'to'    => $admin->email,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
+        // Pipeline is complete — decisionMade() handles the outcome notifications.
+        if (is_null($nextStep)) {
             return;
         }
 
         $col = WorkRequest::REVIEW_STEPS[$nextStep]['assigned_col'] ?? null;
         if (!$col || !$wr->$col) return;
 
-        $nextReviewer  = User::find($wr->$col);
+        $nextReviewer = User::find($wr->$col);
         if (!$nextReviewer) return;
 
-        $nextStepLabel = $stepLabels[$nextStep]      ?? $nextStep;
+        $nextStepLabel = $stepLabels[$nextStep] ?? $nextStep;
         $prevLabel     = $stepLabels[$completedStep] ?? $completedStep;
 
+        // In-app notification (same for all steps)
         Notification::send(
             $wr->$col,
             'work_request',
-            "🔔 It's Your Turn to Review",
-            "{$prevLabel} \"{$completedByName}\" completed their review of \"{$wr->name_of_project}\". It's now your turn as {$nextStepLabel}.",
+            $nextStep === 'provincial_engineer'
+                ? '✅ Work Request Ready for Final Decision'
+                : "🔔 It's Your Turn to Review",
+            $nextStep === 'provincial_engineer'
+                ? "Work request \"{$wr->name_of_project}\" has completed all reviews and is awaiting your final decision."
+                : "{$prevLabel} \"{$completedByName}\" completed their review of \"{$wr->name_of_project}\". It's now your turn as {$nextStepLabel}.",
             route('reviewer.work-requests.show', $wr),
             $wr
         );
 
+        // FIX: Provincial Engineer gets the "Final Decision Needed" mail,
+        // everyone else gets the generic "Your Review Turn" mail.
         try {
-            Mail::to($nextReviewer->email)->send(
-                new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
-            );
+            if ($nextStep === 'provincial_engineer') {
+                Mail::to($nextReviewer->email)->send(new WorkRequestReadyForDecisionMail($wr));
+            } else {
+                Mail::to($nextReviewer->email)->send(
+                    new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
+                );
+            }
         } catch (\Throwable $e) {
-            Log::error('WorkRequestStepAdvancedMail failed', [
+            Log::error('WorkRequest step mail failed', [
                 'to'    => $nextReviewer->email,
+                'step'  => $nextStep,
                 'error' => $e->getMessage(),
             ]);
         }
@@ -206,6 +200,14 @@ class WorkRequestNotificationService
                     route('reviewer.work-requests.show', $wr),
                     $wr
                 );
+                try {
+                    Mail::to($mtqaUser->email)->send(new WorkRequestDecisionMadeMail($wr));
+                } catch (\Throwable $e) {
+                    Log::error('WorkRequestDecisionMadeMail (MTQA) failed', [
+                        'to'    => $mtqaUser->email,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 

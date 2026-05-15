@@ -282,8 +282,9 @@
                         <div class="min-w-[150px]">
                             <select name="role" class="um-input">
                                 <option value="">All Roles</option>
-                                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                                <option value="user"  {{ request('role') == 'user'  ? 'selected' : '' }}>User</option>
+                                @foreach(['admin' => 'Admin', 'contractor' => 'Contractor', 'site_inspector' => 'Site Inspector', 'surveyor' => 'Surveyor', 'mtqa' => 'MTQA', 'resident_engineer' => 'Resident Engineer', 'engineeriv' => 'Engineer IV', 'engineeriii' => 'Engineer III', 'provincial_engineer' => 'Provincial Engineer'] as $value => $label)
+                                    <option value="{{ $value }}" {{ request('role') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="flex gap-2">

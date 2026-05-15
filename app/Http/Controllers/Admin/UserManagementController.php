@@ -24,9 +24,30 @@ class UserManagementController extends Controller
         'engineeriii'         => 'Engineer III',
         'provincial_engineer' => 'Provincial Engineer',
     ];
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::latest()->paginate(10);
+        $query = User::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                // Split search into individual words for better partial matching
+                $terms = array_filter(explode(' ', $search));
+                foreach ($terms as $term) {
+                    $q->where(function ($inner) use ($term) {
+                        $inner->where('name', 'like', "%{$term}%")
+                            ->orWhere('email', 'like', "%{$term}%");
+                    });
+                }
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        $users = $query->latest()->paginate(10)->withQueryString();
+
         return view('admin.users.index', compact('users'));
     }
 
