@@ -23,7 +23,6 @@ FROM php:8.3-fpm-bookworm AS app
 
 # ── System dependencies ──────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Core utilities
     curl \
     unzip \
     git \
@@ -34,9 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libonig-dev \
     libxml2-dev \
     libgd-dev \
-    # Supervisor (process manager)
     supervisor \
-    # Nginx
     nginx \
  && rm -rf /var/lib/apt/lists/*
 
@@ -80,11 +77,14 @@ RUN chown -R www-data:www-data /var/www/html \
  && chmod -R 755 /var/www/html/bootstrap/cache
 
 # ── Copy config files ────────────────────────────────────────
-COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+COPY docker/nginx/default.conf        /etc/nginx/sites-available/default
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/php/php.ini               /usr/local/etc/php/conf.d/custom.ini
+
+# ── Entrypoint (runs storage:link AFTER volume is mounted) ───
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80
 
-# Supervisor manages nginx + php-fpm + queue worker
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
