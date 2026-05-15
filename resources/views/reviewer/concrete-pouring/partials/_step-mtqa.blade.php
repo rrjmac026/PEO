@@ -2,12 +2,17 @@
 {{-- Variables expected: $concretePouring, $isMyTurn --}}
 
 @php
-    $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
-    $mtqaActive = $concretePouring->current_review_step === 'mtqa';
-    $isMyMtqa   = $isMyTurn && $mtqaActive;
-    $mtqaSigUrl = $concretePouring->me_mtqa_signature ? asset('storage/' . $concretePouring->me_mtqa_signature) : null;
-    $showMtqaSig = $mtqaDone && $mtqaSigUrl;
+    $mtqaDone    = !is_null($concretePouring->me_mtqa_date);
+    $mtqaActive  = $concretePouring->current_review_step === 'mtqa';
+    $isMyMtqa    = $isMyTurn && $mtqaActive;
     $isFinalised = in_array($concretePouring->status, ['approved', 'disapproved']);
+    $sig         = $concretePouring->me_mtqa_signature;
+    $mtqaSigUrl  = $sig
+        ? (str_starts_with($sig, 'http') || str_starts_with($sig, 'data:')
+            ? $sig
+            : asset('storage/' . $sig))
+        : null;
+    $showMtqaSig = !is_null($mtqaSigUrl);
 @endphp
 
 <div class="cp-timeline-item">

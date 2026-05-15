@@ -5,8 +5,13 @@
     $peDone   = !is_null($concretePouring->noted_date);
     $peActive = $concretePouring->current_review_step === 'provincial_engineer';
     $isMyPe   = $isMyTurn && $peActive;
-    $peSigUrl = $concretePouring->noted_by_signature ? asset('storage/' . $concretePouring->noted_by_signature) : null;
-    $showPeSig = $peDone && $peSigUrl;
+    $sig      = $concretePouring->noted_by_signature;
+    $peSigUrl = $sig
+        ? (str_starts_with($sig, 'http') || str_starts_with($sig, 'data:')
+            ? $sig
+            : asset('storage/' . $sig))
+        : null;
+    $showPeSig = !is_null($peSigUrl);
 @endphp
 
 <div class="cp-timeline-item">

@@ -5,8 +5,13 @@
     $reDone   = !is_null($concretePouring->re_date);
     $reActive = $concretePouring->current_review_step === 'resident_engineer';
     $isMyRe   = $isMyTurn && $reActive;
-    $reSigUrl = $concretePouring->re_signature ? asset('storage/' . $concretePouring->re_signature) : null;
-    $showReSig = $reDone && $reSigUrl;
+    $sig      = $concretePouring->re_signature;
+    $reSigUrl = $sig
+        ? (str_starts_with($sig, 'http') || str_starts_with($sig, 'data:')
+            ? $sig
+            : asset('storage/' . $sig))
+        : null;
+    $showReSig = !is_null($reSigUrl);
 @endphp
 
 <div class="cp-timeline-item">
