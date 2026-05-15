@@ -237,6 +237,7 @@ class ReviewerConcretePouringController extends Controller
     {
         if (empty($value)) return null;
 
+        // 1. Base64 drawn signature — save to disk
         if (str_starts_with($value, 'data:image')) {
             $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $value));
             $filename  = 'signatures/' . $prefix . '_' . time() . '.png';
@@ -244,15 +245,24 @@ class ReviewerConcretePouringController extends Controller
             return $filename;
         }
 
-        $storageUrl = url('storage') . '/';
+        // 2. Already a relative storage path (e.g. "signatures/xyz.png")
+        if (!str_starts_with($value, 'http') && !str_starts_with($value, '/')) {
+            return $value; // already clean
+        }
+
+        // 3. Full URL — strip to relative path
+        // Try stripping the public storage URL
+        $storageUrl = rtrim(url('storage'), '/') . '/';
         if (str_starts_with($value, $storageUrl)) {
             return ltrim(substr($value, strlen($storageUrl)), '/');
         }
 
+        // 4. Absolute path starting with /storage/
         if (str_starts_with($value, '/storage/')) {
             return ltrim(substr($value, strlen('/storage/')), '/');
         }
 
+        // 5. Fallback: use the user's saved signature path
         return Auth::user()->signature_path ?? null;
     }
 

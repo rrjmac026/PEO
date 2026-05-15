@@ -6,11 +6,27 @@
     $reActive = $concretePouring->current_review_step === 'resident_engineer';
     $isMyRe   = $isMyTurn && $reActive;
     $sig      = $concretePouring->re_signature;
-    $reSigUrl = $sig
-        ? (str_starts_with($sig, 'http') || str_starts_with($sig, 'data:')
-            ? $sig
-            : asset('storage/' . $sig))
-        : null;
+
+    $reSigUrl = null;
+    if ($sig) {
+        if (str_starts_with($sig, 'data:image')) {
+            // Raw base64 stored directly (legacy)
+            $reSigUrl = $sig;
+        } elseif (str_starts_with($sig, 'http://') || str_starts_with($sig, 'https://')) {
+            // Already a full URL
+            $reSigUrl = $sig;
+        } elseif (str_starts_with($sig, '/storage/')) {
+            // Absolute path: /storage/signatures/...
+            $reSigUrl = asset(ltrim($sig, '/'));
+        } elseif (str_starts_with($sig, 'storage/')) {
+            // Relative with storage/ prefix
+            $reSigUrl = asset($sig);
+        } else {
+            // Plain relative path: signatures/re_4_xxx.png
+            $reSigUrl = asset('storage/' . $sig);
+        }
+    }
+
     $showReSig = !is_null($reSigUrl);
 @endphp
 

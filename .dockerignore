@@ -4,6 +4,7 @@ vendor/
 
 # Local environment
 .env
+.env2
 .env.*
 !.env.example
 

@@ -7,11 +7,22 @@
     $isMyMtqa    = $isMyTurn && $mtqaActive;
     $isFinalised = in_array($concretePouring->status, ['approved', 'disapproved']);
     $sig         = $concretePouring->me_mtqa_signature;
-    $mtqaSigUrl  = $sig
-        ? (str_starts_with($sig, 'http') || str_starts_with($sig, 'data:')
-            ? $sig
-            : asset('storage/' . $sig))
-        : null;
+
+    $mtqaSigUrl = null;
+    if ($sig) {
+        if (str_starts_with($sig, 'data:image')) {
+            $mtqaSigUrl = $sig;
+        } elseif (str_starts_with($sig, 'http://') || str_starts_with($sig, 'https://')) {
+            $mtqaSigUrl = $sig;
+        } elseif (str_starts_with($sig, '/storage/')) {
+            $mtqaSigUrl = asset(ltrim($sig, '/'));
+        } elseif (str_starts_with($sig, 'storage/')) {
+            $mtqaSigUrl = asset($sig);
+        } else {
+            $mtqaSigUrl = asset('storage/' . $sig);
+        }
+    }
+
     $showMtqaSig = !is_null($mtqaSigUrl);
 @endphp
 

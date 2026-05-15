@@ -6,11 +6,22 @@
     $peActive = $concretePouring->current_review_step === 'provincial_engineer';
     $isMyPe   = $isMyTurn && $peActive;
     $sig      = $concretePouring->noted_by_signature;
-    $peSigUrl = $sig
-        ? (str_starts_with($sig, 'http') || str_starts_with($sig, 'data:')
-            ? $sig
-            : asset('storage/' . $sig))
-        : null;
+
+    $peSigUrl = null;
+    if ($sig) {
+        if (str_starts_with($sig, 'data:image')) {
+            $peSigUrl = $sig;
+        } elseif (str_starts_with($sig, 'http://') || str_starts_with($sig, 'https://')) {
+            $peSigUrl = $sig;
+        } elseif (str_starts_with($sig, '/storage/')) {
+            $peSigUrl = asset(ltrim($sig, '/'));
+        } elseif (str_starts_with($sig, 'storage/')) {
+            $peSigUrl = asset($sig);
+        } else {
+            $peSigUrl = asset('storage/' . $sig);
+        }
+    }
+
     $showPeSig = !is_null($peSigUrl);
 @endphp
 
