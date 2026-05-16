@@ -19,8 +19,8 @@ function initCpSignaturePad(prefix, radioName) {
 
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, cssW, cssH);
+    // ── NO white fill — keep background transparent so only ink strokes
+    //    are exported, matching WorkRequest behaviour ──────────────────
 
     let drawing = false;
 
@@ -67,8 +67,7 @@ function initCpSignaturePad(prefix, radioName) {
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             ctx.clearRect(0, 0, cssW, cssH);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, cssW, cssH);
+            // ── No white refill on clear either ──────────────────────
             output.value = '';
             if (preview && previewEmpty) {
                 preview.style.display = 'none';

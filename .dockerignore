@@ -1,6 +1,7 @@
 # Dependencies (rebuilt inside container)
 node_modules/
 vendor/
+public/storage
 
 # Local environment
 .env
@@ -26,4 +27,5 @@ docker-compose*.yml
 # IDE
 .idea/
 .vscode/
-*.DS_Storepublic/hot
+*.DS_Store
+public/hot
