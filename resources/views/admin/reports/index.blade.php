@@ -1,5 +1,5 @@
 {{-- resources/views/admin/reports/index.blade.php --}}
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Reports Dashboard')
 
