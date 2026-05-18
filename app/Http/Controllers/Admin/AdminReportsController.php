@@ -311,17 +311,56 @@ class AdminReportsController extends Controller
     {
         $range = $this->resolveRange($request);
 
-        $wrCount  = WorkRequest::whereBetween('created_at', [$range['from'], $range['to']])->count();
-        $cpCount  = ConcretePouring::whereBetween('created_at', [$range['from'], $range['to']])->count();
-        $memoCount = Memo::whereBetween('created_at', [$range['from'], $range['to']])->count();
+        // ── Work Requests ────────────────────────────────────────────────────
+        $wrBase = WorkRequest::whereBetween('created_at', [$range['from'], $range['to']]);
 
-        $wrApproved = WorkRequest::whereBetween('created_at', [$range['from'], $range['to']])
-                                 ->where('status', WorkRequest::STATUS_APPROVED)->count();
-        $cpApproved = ConcretePouring::whereBetween('created_at', [$range['from'], $range['to']])
-                                     ->where('status', 'approved')->count();
+        $workRequestStats = [
+            'total'     => (clone $wrBase)->count(),
+            'approved'  => (clone $wrBase)->where('status', WorkRequest::STATUS_APPROVED)->count(),
+            'rejected'  => (clone $wrBase)->where('status', WorkRequest::STATUS_REJECTED)->count(),
+            'in_review' => (clone $wrBase)->where('status', WorkRequest::STATUS_IN_REVIEW)->count(),
+            'pending'   => (clone $wrBase)->whereNotIn('status', [
+                            WorkRequest::STATUS_APPROVED,
+                            WorkRequest::STATUS_REJECTED,
+                        ])->count(),
+        ];
+
+        // ── Concrete Pourings ────────────────────────────────────────────────
+        $cpBase = ConcretePouring::whereBetween('created_at', [$range['from'], $range['to']]);
+
+        $concretePouringStats = [
+            'total'        => (clone $cpBase)->count(),
+            'approved'     => (clone $cpBase)->where('status', 'approved')->count(),
+            'disapproved'  => (clone $cpBase)->where('status', 'disapproved')->count(),
+            'pending'      => (clone $cpBase)->where('status', 'requested')->count(),
+            'total_volume' => round((clone $cpBase)->sum('estimated_volume'), 2),
+            'avg_volume'   => round((clone $cpBase)->avg('estimated_volume') ?? 0, 2),
+        ];
+
+        // ── Memos ────────────────────────────────────────────────────────────
+        $memoBase = Memo::whereBetween('created_at', [$range['from'], $range['to']]);
+
+        $memoStats = [
+            'total'     => (clone $memoBase)->count(),
+            'sent'      => (clone $memoBase)->where('status', Memo::STATUS_SENT)->count(),
+            'draft'     => (clone $memoBase)->where('status', Memo::STATUS_DRAFT)->count(),
+            'scheduled' => (clone $memoBase)->where('status', Memo::STATUS_SCHEDULED)->count(),
+        ];
+
+        // ── Users ────────────────────────────────────────────────────────────
+        $userStats = [
+            'total'   => User::count(),
+            'by_role' => User::select('role', DB::raw('count(*) as total'))
+                            ->groupBy('role')
+                            ->pluck('total', 'role'),
+        ];
 
         return view('admin.reports.overview', compact(
-            'range', 'wrCount', 'cpCount', 'memoCount', 'wrApproved', 'cpApproved',
+            'range',
+            'workRequestStats',
+            'concretePouringStats',
+            'memoStats',
+            'userStats',
         ));
     }
 
