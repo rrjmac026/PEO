@@ -189,10 +189,6 @@
                                                     </button>
                                                 </form>
                                             @endif
-                                            <a href="{{ route('user.concrete-pouring.print', $cp) }}" target="_blank"
-                                               style="color:var(--cp-muted)" title="Print">
-                                                <i class="fas fa-print"></i>
-                                            </a>
                                         </div>
                                     </td>
                                 </tr>
