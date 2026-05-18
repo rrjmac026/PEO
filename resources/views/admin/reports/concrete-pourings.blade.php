@@ -370,10 +370,18 @@
             @if(is_iterable($checklistStats) && count($checklistStats) > 0)
             <div class="rpt-breakdown-card">
                 <div class="rpt-breakdown-header">Checklist Stats</div>
-                @foreach($checklistStats as $key => $value)
+                @foreach($checklistStats as $key => $stat)
                     <div class="rpt-breakdown-item">
-                        <span class="rpt-breakdown-label">{{ ucfirst(str_replace('_', ' ', $key)) }}</span>
-                        <span class="rpt-breakdown-value">{{ is_numeric($value) ? round($value, 2) : $value }}</span>
+                        <div style="flex: 1;">
+                            <span class="rpt-breakdown-label">{{ $stat['label'] }}</span>
+                            <div class="rpt-bar">
+                                <div class="rpt-bar-fill" style="width: {{ $stat['rate'] }}%;"></div>
+                            </div>
+                        </div>
+                        <span class="rpt-breakdown-value">
+                            {{ $stat['checked'] }}/{{ $stat['total'] }}
+                            <span style="font-size: 11px; color: var(--rpt-muted);">({{ $stat['rate'] }}%)</span>
+                        </span>
                     </div>
                 @endforeach
             </div>
@@ -412,11 +420,6 @@
                                 </span>
                             </td>
                             <td>{{ $cp->estimated_date?->format('M d, Y') ?? 'N/A' }}</td>
-                            <td>
-                                <a href="{{ route('admin.concrete-pourings.show', $cp) }}" class="rpt-btn" style="font-size: 11px;">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            </td>
                         </tr>
                     @empty
                         <tr>

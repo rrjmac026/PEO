@@ -113,8 +113,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
         // Overview (combined)
         Route::get('/overview',       [AdminReportsController::class, 'overview'])      ->name('overview');
-        Route::get('/overview/pdf',   [AdminReportsController::class, 'overviewPdf'])   ->name('overview.pdf');
-        Route::get('/overview/excel', [AdminReportsController::class, 'overviewExcel']) ->name('overview.excel');
+        Route::get('/overview/pdf',   [AdminReportsController::class, 'overviewPdf'])   ->name('overview-pdf');
+        Route::get('/overview/excel', [AdminReportsController::class, 'overviewExcel']) ->name('overview-excel');
 
         // Work Requests
         Route::get('/work-requests',       [AdminReportsController::class, 'workRequests'])      ->name('work-requests');
@@ -128,8 +128,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
         // Memos
         Route::get('/memos',       [AdminReportsController::class, 'memos'])      ->name('memos');
-        Route::get('/memos/pdf',   [AdminReportsController::class, 'memosPdf'])   ->name('memos.pdf');
-        Route::get('/memos/excel', [AdminReportsController::class, 'memosExcel']) ->name('memos.excel');
+        Route::get('/memos/pdf',   [AdminReportsController::class, 'memosPdf'])   ->name('memos-pdf');
+        Route::get('/memos/excel', [AdminReportsController::class, 'memosExcel']) ->name('memos-excel');
     });
 
     
