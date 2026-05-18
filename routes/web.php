@@ -118,13 +118,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
         // Work Requests
         Route::get('/work-requests',       [AdminReportsController::class, 'workRequests'])      ->name('work-requests');
-        Route::get('/work-requests/pdf',   [AdminReportsController::class, 'workRequestsPdf'])   ->name('work-requests.pdf');
-        Route::get('/work-requests/excel', [AdminReportsController::class, 'workRequestsExcel']) ->name('work-requests.excel');
+        Route::get('/work-requests/pdf',   [AdminReportsController::class, 'workRequestsPdf'])   ->name('work-requests-pdf');
+        Route::get('/work-requests/excel', [AdminReportsController::class, 'workRequestsExcel']) ->name('work-requests-excel');
 
         // Concrete Pourings
         Route::get('/concrete-pourings',       [AdminReportsController::class, 'concretePourings'])      ->name('concrete-pourings');
-        Route::get('/concrete-pourings/pdf',   [AdminReportsController::class, 'concretePouringsPdf'])   ->name('concrete-pourings.pdf');
-        Route::get('/concrete-pourings/excel', [AdminReportsController::class, 'concretePouringsExcel']) ->name('concrete-pourings.excel');
+        Route::get('/concrete-pourings/pdf',   [AdminReportsController::class, 'concretePouringsPdf'])   ->name('concrete-pourings-pdf');
+        Route::get('/concrete-pourings/excel', [AdminReportsController::class, 'concretePouringsExcel']) ->name('concrete-pourings-excel');
 
         // Memos
         Route::get('/memos',       [AdminReportsController::class, 'memos'])      ->name('memos');

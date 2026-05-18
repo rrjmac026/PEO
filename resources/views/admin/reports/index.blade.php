@@ -101,11 +101,11 @@
                 <a href="{{ route('admin.reports.work-requests', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-primary">
                     View Full Report
                 </a>
-                <a href="{{ route('admin.reports.work-requests.pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">
+                <a href="{{ route('admin.reports.work-requests-pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">
                     <svg viewBox="0 0 20 20" fill="currentColor" class="rpt-btn-icon"><path d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586L7.707 10.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z"/></svg>
                     PDF
                 </a>
-                <a href="{{ route('admin.reports.work-requests.excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">
+                <a href="{{ route('admin.reports.work-requests-excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">
                     <svg viewBox="0 0 20 20" fill="currentColor" class="rpt-btn-icon"><path d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 9a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zm0 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/></svg>
                     Excel
                 </a>
@@ -160,8 +160,8 @@
                 <a href="{{ route('admin.reports.concrete-pourings', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-primary rpt-btn-orange">
                     View Full Report
                 </a>
-                <a href="{{ route('admin.reports.concrete-pourings.pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">PDF</a>
-                <a href="{{ route('admin.reports.concrete-pourings.excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">Excel</a>
+                <a href="{{ route('admin.reports.concrete-pourings-pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">PDF</a>
+                <a href="{{ route('admin.reports.concrete-pourings-excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">Excel</a>
             </div>
         </div>
 
@@ -217,8 +217,8 @@
                 <a href="{{ route('admin.reports.memos', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-primary rpt-btn-violet">
                     View Full Report
                 </a>
-                <a href="{{ route('admin.reports.memos.pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">PDF</a>
-                <a href="{{ route('admin.reports.memos.excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">Excel</a>
+                <a href="{{ route('admin.reports.memos-pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">PDF</a>
+                <a href="{{ route('admin.reports.memos-excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">Excel</a>
             </div>
         </div>
 
@@ -268,10 +268,10 @@
             <a href="{{ route('admin.reports.overview', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-primary">
                 View Overview
             </a>
-            <a href="{{ route('admin.reports.overview.pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">
+            <a href="{{ route('admin.reports.overview-pdf', request()->only(['preset','date_from','date_to'])) }}" target="_blank" class="rpt-btn rpt-btn-outline">
                 Export PDF
             </a>
-            <a href="{{ route('admin.reports.overview.excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">
+            <a href="{{ route('admin.reports.overview-excel', request()->only(['preset','date_from','date_to'])) }}" class="rpt-btn rpt-btn-outline">
                 Export Excel
             </a>
         </div>
