@@ -13,7 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ReportsController extends Controller
+class AdminReportsController extends Controller
 {
     public function __construct(
         protected ReportPdfService   $pdfService,

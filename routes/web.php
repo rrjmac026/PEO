@@ -14,6 +14,7 @@ use App\Http\Controllers\Reviewer\ReviewerConcretePouringController;
 use App\Http\Controllers\Admin\MemoController;
 use App\Http\Controllers\User\UserMemoController;
 use App\Http\Controllers\Reviewer\ReviewerMemoController;
+use App\Http\Controllers\Admin\AdminReportsController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
@@ -42,6 +43,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     Route::get('/dashboard', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])
         ->name('dashboard');
+
+    Route::get('/reports', [AdminReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/work-requests', [AdminReportsController::class, 'workRequests'])->name('reports.work-requests');
 
     // ── Work Requests ─────────────────────────────────────────────────────────
     Route::resource('work-requests', WorkRequestController::class);
@@ -74,6 +78,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::resource('users', UserManagementController::class);
     Route::resource('employees', EmployeeManagementController::class);
 
+    
+
     // ── Concrete Pouring ──────────────────────────────────────────────────────
     Route::prefix('concrete-pouring')->name('concrete-pouring.')->group(function () {
         Route::get('/logs',                  [AdminConcretePouringController::class, 'logsIndex']) ->name('logs');
@@ -100,6 +106,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
         
     });
+
+    
 
     Route::get('/dev/pdf-grid', function () {
         $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4');

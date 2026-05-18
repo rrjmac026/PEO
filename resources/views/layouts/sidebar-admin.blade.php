@@ -231,4 +231,10 @@
         Settings
     </a>
 
+    <a href="{{ route('admin.reports.index') }}"
+       class="sb-link {{ request()->routeIs('admin.reports.index') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-chart-pie"></i></span>
+        Reports
+    </a>
+
 </nav>
