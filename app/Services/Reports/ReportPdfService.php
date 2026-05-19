@@ -21,18 +21,18 @@ use Illuminate\Support\Collection;
 class ReportPdfService
 {
     // ── Brand colours — sourced from login blade palette (RGB) ───────────────
-    private const COLOR_HEADER_BG = [224,  90,   0];   // --orange       #E05A00
-    private const COLOR_HEADER_FG = [255, 255, 255];   // white
-    private const COLOR_ALT_ROW   = [255, 248, 240];   // --cream        #FFF8F0
-    private const COLOR_WHITE     = [255, 255, 255];
-    private const COLOR_DARK      = [ 44,  30,  18];   // --stone        #2C1E12
-    private const COLOR_MUTED     = [107,  79,  58];   // --stone-mid    #6B4F3A
-    private const COLOR_SECTION_BG = [245, 237, 228];  // --gray-soft    #F5EDE4
-    private const COLOR_SECTION_FG = [184,  74,   0];  // --orange-dark  #B84A00
-    private const COLOR_GREEN     = [ 22, 163,  74];
-    private const COLOR_RED       = [220,  38,  38];
-    private const COLOR_YELLOW    = [202, 138,   4];
-    private const COLOR_BLUE      = [ 37,  99, 235];
+    private const COLOR_HEADER_BG  = [224,  90,   0];   // --orange       #E05A00
+    private const COLOR_HEADER_FG  = [255, 255, 255];   // white
+    private const COLOR_ALT_ROW    = [255, 248, 240];   // --cream        #FFF8F0
+    private const COLOR_WHITE      = [255, 255, 255];
+    private const COLOR_DARK       = [ 44,  30,  18];   // --stone        #2C1E12
+    private const COLOR_MUTED      = [107,  79,  58];   // --stone-mid    #6B4F3A
+    private const COLOR_SECTION_BG = [245, 237, 228];   // --gray-soft    #F5EDE4
+    private const COLOR_SECTION_FG = [184,  74,   0];   // --orange-dark  #B84A00
+    private const COLOR_GREEN      = [ 22, 163,  74];
+    private const COLOR_RED        = [220,  38,  38];
+    private const COLOR_YELLOW     = [202, 138,   4];
+    private const COLOR_BLUE       = [ 37,  99, 235];
 
     // ── Column widths (portrait A4 = 190 usable mm) ─────────────────────────
     private const PAGE_W = 190;  // usable width (A4 portrait, 10 mm margins each side)
@@ -55,11 +55,11 @@ class ReportPdfService
         // ── Cover summary ────────────────────────────────────────────────────
         $this->sectionTitle($pdf, 'Summary');
         $this->summaryGrid($pdf, [
-            ['Total Requests',    $summary['total']],
-            ['Approved',          $summary['approved']],
-            ['Rejected',          $summary['rejected']],
-            ['Pending / In-Review', $summary['pending'] + ($summary['in_review'] ?? 0)],
-            ['Approval Rate',     $summary['approval_rate'] . '%'],
+            ['Total Requests',        $summary['total']],
+            ['Approved',              $summary['approved']],
+            ['Rejected',              $summary['rejected']],
+            ['Pending / In-Review',   $summary['pending'] + ($summary['in_review'] ?? 0)],
+            ['Approval Rate',         $summary['approval_rate'] . '%'],
         ]);
 
         // ── Contractor breakdown ─────────────────────────────────────────────
@@ -99,8 +99,6 @@ class ReportPdfService
             ], $widths);
         }
 
-        $this->footer($pdf, $workRequests->count());
-
         return $pdf->Output('S');
     }
 
@@ -118,21 +116,22 @@ class ReportPdfService
         // ── Summary ──────────────────────────────────────────────────────────
         $this->sectionTitle($pdf, 'Summary');
         $this->summaryGrid($pdf, [
-            ['Total Requests',          $summary['total']],
-            ['Approved',                $summary['approved']],
-            ['Disapproved',             $summary['disapproved']],
-            ['Pending',                 $summary['pending']],
-            ['Total Estimated Volume',  number_format($summary['total_volume'], 2) . ' m³'],
-            ['Avg Volume / Request',    number_format($summary['avg_volume'], 2) . ' m³'],
-            ['Avg Checklist Completion',$summary['avg_checklist_completion'] . '%'],
-            ['Approval Rate',           $summary['approval_rate'] . '%'],
+            ['Total Requests',           $summary['total']],
+            ['Approved',                 $summary['approved']],
+            ['Disapproved',              $summary['disapproved']],
+            ['Pending',                  $summary['pending']],
+            // enc() converts m³ -> "m\xb3" so FPDF renders it correctly
+            ['Total Estimated Volume',   number_format($summary['total_volume'], 2) . ' m' . chr(179)],
+            ['Avg Volume / Request',     number_format($summary['avg_volume'], 2)   . ' m' . chr(179)],
+            ['Avg Checklist Completion', $summary['avg_checklist_completion'] . '%'],
+            ['Approval Rate',            $summary['approval_rate'] . '%'],
         ]);
 
         // ── Contractor breakdown ─────────────────────────────────────────────
         $byContractor = $concretePourings->groupBy('contractor');
         if ($byContractor->count()) {
             $this->sectionTitle($pdf, 'Breakdown by Contractor');
-            $this->tableHeader($pdf, ['Contractor', 'Total', 'Approved', 'Disapproved', 'Volume (m³)'], [60, 25, 28, 32, 45]);
+            $this->tableHeader($pdf, ['Contractor', 'Total', 'Approved', 'Disapproved', 'Volume (m' . chr(179) . ')'], [60, 25, 28, 32, 45]);
             $row = 0;
             foreach ($byContractor as $contractor => $group) {
                 $this->tableRow($pdf, $row++, [
@@ -184,14 +183,12 @@ class ReportPdfService
             $this->tableRow($pdf, $row++, [
                 $cp->reference_number ?? 'N/A',
                 $this->truncate($cp->project_name, 34),
-                $this->truncate($cp->contractor ?? '—', 28),
+                $this->truncate($cp->contractor ?? chr(151), 28),
                 number_format($cp->estimated_volume, 2),
                 strtoupper($cp->status),
                 $cp->created_at->format('m/d/Y'),
             ], [28, 55, 45, 20, 22, 20]);
         }
-
-        $this->footer($pdf, $concretePourings->count());
 
         return $pdf->Output('S');
     }
@@ -209,13 +206,13 @@ class ReportPdfService
 
         $this->sectionTitle($pdf, 'Summary');
         $this->summaryGrid($pdf, [
-            ['Total Memos',       $summary['total']],
-            ['Sent',              $summary['sent']],
-            ['Draft',             $summary['draft']],
-            ['Scheduled',         $summary['scheduled']],
-            ['Total Recipients',  $summary['total_recipients']],
-            ['Total Read',        $summary['total_read']],
-            ['Avg Read Rate',     $summary['avg_read_rate'] . '%'],
+            ['Total Memos',      $summary['total']],
+            ['Sent',             $summary['sent']],
+            ['Draft',            $summary['draft']],
+            ['Scheduled',        $summary['scheduled']],
+            ['Total Recipients', $summary['total_recipients']],
+            ['Total Read',       $summary['total_read']],
+            ['Avg Read Rate',    $summary['avg_read_rate'] . '%'],
         ]);
 
         // ── By type ──────────────────────────────────────────────────────────
@@ -223,7 +220,7 @@ class ReportPdfService
         if ($byType->count()) {
             $this->sectionTitle($pdf, 'Breakdown by Type');
             $this->tableHeader($pdf, ['Type', 'Total', 'Sent', 'Draft / Scheduled'], [80, 35, 35, 40]);
-            $row = 0;
+            $row   = 0;
             $types = \App\Models\Memo::types();
             foreach ($byType as $type => $group) {
                 $this->tableRow($pdf, $row++, [
@@ -255,8 +252,6 @@ class ReportPdfService
             ], [25, 55, 28, 20, 22, 18, 22]);
         }
 
-        $this->footer($pdf, $memos->count());
-
         return $pdf->Output('S');
     }
 
@@ -277,10 +272,10 @@ class ReportPdfService
         // ── Overall stats ────────────────────────────────────────────────────
         $this->sectionTitle($pdf, 'Work Requests');
         $this->summaryGrid($pdf, [
-            ['Total',        $wrSummary['total']],
-            ['Approved',     $wrSummary['approved']],
-            ['Rejected',     $wrSummary['rejected']],
-            ['Approval Rate',$wrSummary['approval_rate'] . '%'],
+            ['Total',         $wrSummary['total']],
+            ['Approved',      $wrSummary['approved']],
+            ['Rejected',      $wrSummary['rejected']],
+            ['Approval Rate', $wrSummary['approval_rate'] . '%'],
         ]);
 
         $this->sectionTitle($pdf, 'Concrete Pourings');
@@ -288,19 +283,17 @@ class ReportPdfService
             ['Total',          $cpSummary['total']],
             ['Approved',       $cpSummary['approved']],
             ['Disapproved',    $cpSummary['disapproved']],
-            ['Total Volume',   number_format($cpSummary['total_volume'], 2) . ' m³'],
+            ['Total Volume',   number_format($cpSummary['total_volume'], 2) . ' m' . chr(179)],
             ['Approval Rate',  $cpSummary['approval_rate'] . '%'],
         ]);
 
         $this->sectionTitle($pdf, 'Memos');
         $this->summaryGrid($pdf, [
-            ['Total',           $memoSummary['total']],
-            ['Sent',            $memoSummary['sent']],
-            ['Total Recipients',$memoSummary['total_recipients']],
-            ['Avg Read Rate',   $memoSummary['avg_read_rate'] . '%'],
+            ['Total',            $memoSummary['total']],
+            ['Sent',             $memoSummary['sent']],
+            ['Total Recipients', $memoSummary['total_recipients']],
+            ['Avg Read Rate',    $memoSummary['avg_read_rate'] . '%'],
         ]);
-
-        $this->footer($pdf, $workRequests->count() + $concretePourings->count() + $memos->count());
 
         return $pdf->Output('S');
     }
@@ -310,25 +303,76 @@ class ReportPdfService
     // =========================================================================
 
     /**
-     * Bootstrap a new FPDF instance with agency header.
+     * Bootstrap a new FPDF subclass instance with agency header and a
+     * sticky footer that FPDF calls automatically on every page.
      *
      * Logo layout mirrors ConcretePouringPdf::drawHeader():
      *   [province_seal]   centered text block   [app_logo]
      */
     private function makePdf(string $title, array $range): \FPDF
     {
-        $pdf = new \FPDF('P', 'mm', 'A4');
+        // ── Anonymous subclass — gives us a real Footer() override ──────────
+        $recordCount = 0; // will be set after content is written via setFooterCount()
+
+        $pdf = new class(
+            'P', 'mm', 'A4',
+            self::COLOR_MUTED,
+            self::COLOR_SECTION_BG,
+            self::PAGE_W,
+        ) extends \FPDF {
+            private array  $mutedColor;
+            private array  $sectionBg;
+            private int    $pageW;
+            public  int    $footerRecordCount = 0;
+
+            public function __construct(
+                string $orientation,
+                string $unit,
+                string $size,
+                array  $mutedColor,
+                array  $sectionBg,
+                int    $pageW,
+            ) {
+                parent::__construct($orientation, $unit, $size);
+                $this->mutedColor = $mutedColor;
+                $this->sectionBg  = $sectionBg;
+                $this->pageW      = $pageW;
+            }
+
+            /** Called automatically by FPDF before each page break / Output(). */
+            public function Footer(): void
+            {
+                // Position 15 mm from the bottom
+                $this->SetY(-15);
+                $this->SetFont('Arial', 'I', 7);
+                $this->SetTextColor(...$this->mutedColor);
+                $this->SetFillColor(...$this->sectionBg);
+
+                // Thin top border line
+                $this->SetLineWidth(0.2);
+                $this->SetDrawColor(...$this->mutedColor);
+                $this->Line(10, $this->GetY(), 10 + $this->pageW, $this->GetY());
+                $this->Ln(1);
+
+                $left  = 'Total records: ' . $this->footerRecordCount . '  |  This report is system-generated.';
+                $right = 'Page ' . $this->PageNo() . ' of {nb}';
+
+                $this->Cell($this->pageW / 2, 5, $left,  0, 0, 'L');
+                $this->Cell($this->pageW / 2, 5, $right, 0, 0, 'R');
+            }
+        };
+
+        $pdf->AliasNbPages();          // enables {nb} total-page placeholder
         $pdf->SetAutoPageBreak(true, 20);
         $pdf->SetMargins(10, 10, 10);
         $pdf->AddPage();
 
         // ── Logo / seal layout ───────────────────────────────────────────────
-        // Mirrors ConcretePouringPdf: seal left of centred text, logo right.
-        $imgSize = 18;   // square image size in mm
-        $gap     = 3;    // gap between image and text block
-        $cw      = 80;   // width of the centred text column
-        $cx      = 10 + (self::PAGE_W - $cw) / 2;   // X of centred text block
-        $imgY    = 10;   // top of header
+        $imgSize = 18;
+        $gap     = 3;
+        $cw      = 80;
+        $cx      = 10 + (self::PAGE_W - $cw) / 2;
+        $imgY    = 10;
 
         $seal = public_path('assets/province_seal_small.png');
         if (file_exists($seal)) {
@@ -372,8 +416,9 @@ class ReportPdfService
         $pdf->SetTextColor(...self::COLOR_DARK);
         $pdf->SetFont('Arial', '', 8);
         $pdf->SetX(10);
-        $pdf->Cell(self::PAGE_W / 2, 6, 'Report Period: ' . $range['label'], 0, 0, 'L', true);
-        $pdf->Cell(self::PAGE_W / 2, 6, 'Generated: ' . now()->format('M d, Y  h:i A'), 0, 1, 'R', true);
+        // enc() used here: range['label'] may contain em-dash from Carbon
+        $pdf->Cell(self::PAGE_W / 2, 6, $this->enc('Report Period: ' . $range['label']), 0, 0, 'L', true);
+        $pdf->Cell(self::PAGE_W / 2, 6, 'Generated: ' . now()->format('M d, Y  h:i A'),  0, 1, 'R', true);
 
         $pdf->SetTextColor(...self::COLOR_DARK);
         $pdf->Ln(4);
@@ -397,8 +442,8 @@ class ReportPdfService
      */
     private function summaryGrid(\FPDF $pdf, array $items): void
     {
-        $perRow  = 4;
-        $cellW   = self::PAGE_W / $perRow;
+        $perRow = 4;
+        $cellW  = self::PAGE_W / $perRow;
 
         $pdf->SetFont('Arial', '', 8);
 
@@ -413,11 +458,11 @@ class ReportPdfService
                 $pdf->SetFont('Arial', '', 7);
                 $pdf->SetTextColor(...self::COLOR_MUTED);
                 $pdf->SetXY($x + 1, $y + 1);
-                $pdf->Cell($cellW - 2, 4, $item[0], 0, 1, 'L');
+                $pdf->Cell($cellW - 2, 4, $this->enc((string) $item[0]), 0, 1, 'L');
                 $pdf->SetFont('Arial', 'B', 10);
                 $pdf->SetTextColor(...self::COLOR_DARK);
                 $pdf->SetXY($x + 1, $y + 5);
-                $pdf->Cell($cellW - 2, 6, (string) $item[1], 0, 0, 'L');
+                $pdf->Cell($cellW - 2, 6, $this->enc((string) $item[1]), 0, 0, 'L');
                 $x += $cellW;
             }
             $pdf->SetXY(10, $y + 14);
@@ -433,7 +478,7 @@ class ReportPdfService
         $pdf->SetLineWidth(0);
 
         foreach ($cols as $i => $col) {
-            $pdf->Cell($widths[$i], 7, $col, 0, 0, 'C', true);
+            $pdf->Cell($widths[$i], 7, $this->enc($col), 0, 0, 'C', true);
         }
         $pdf->Ln();
         $pdf->SetTextColor(...self::COLOR_DARK);
@@ -447,7 +492,7 @@ class ReportPdfService
 
         foreach ($cells as $i => $cell) {
             $align = ($i === 0) ? 'L' : 'C';
-            $pdf->Cell($widths[$i], 6, (string) $cell, 0, 0, $align, $fill);
+            $pdf->Cell($widths[$i], 6, $this->enc((string) $cell), 0, 0, $align, $fill);
         }
         $pdf->Ln();
     }
@@ -460,16 +505,25 @@ class ReportPdfService
         }
     }
 
-    private function footer(\FPDF $pdf, int $recordCount): void
+    // =========================================================================
+    // PRIVATE  —  UTILITIES
+    // =========================================================================
+
+    /**
+     * Convert a UTF-8 string to ISO-8859-1 so FPDF renders special characters
+     * correctly (e.g. em-dash U+2014 -> chr(151), superscript-3 U+00B3 -> chr(179)).
+     *
+     * Characters that have no ISO-8859-1 equivalent are transliterated or dropped.
+     */
+    private function enc(string $text): string
     {
-        $pdf->Ln(4);
-        $pdf->SetFont('Arial', 'I', 7);
-        $pdf->SetTextColor(...self::COLOR_MUTED);
-        $pdf->Cell(self::PAGE_W, 5, "Total records: {$recordCount}  |  This report is system-generated.", 'T', 1, 'C');
+        // iconv with //TRANSLIT falls back gracefully for unmapped chars
+        $converted = iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text);
+        return $converted !== false ? $converted : $text;
     }
 
     private function truncate(string $text, int $max): string
     {
-        return mb_strlen($text) > $max ? mb_substr($text, 0, $max - 1) . '…' : $text;
+        return mb_strlen($text) > $max ? mb_substr($text, 0, $max - 1) . '...' : $text;
     }
 }
