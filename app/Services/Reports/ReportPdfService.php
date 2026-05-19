@@ -80,23 +80,29 @@ class ReportPdfService
         }
 
         // ── Detail table ─────────────────────────────────────────────────────
-        $this->checkPageBreak($pdf);
+        // Reserve room for section title (8) + header row (7) + first data row (6) = ~25 mm
+        $this->checkPageBreak($pdf, 25);
         $this->sectionTitle($pdf, 'Detailed Records');
 
-        $cols   = ['Ref #', 'Project', 'Contractor', 'Status', 'Submitted'];
-        $widths = [30, 60, 45, 30, 25];
-        $this->tableHeader($pdf, $cols, $widths);
+        $detailCols   = ['Ref #', 'Project', 'Contractor', 'Status', 'Submitted'];
+        $detailWidths = [30, 60, 45, 30, 25];
+        $this->tableHeader($pdf, $detailCols, $detailWidths);
 
         $row = 0;
         foreach ($workRequests as $wr) {
-            $this->checkPageBreak($pdf, 8);
+            // Re-draw column header whenever a new page is needed
+            if ($pdf->GetY() > (297 - 30 - 8)) {
+                $pdf->AddPage();
+                $pdf->Ln(4);
+                $this->tableHeader($pdf, $detailCols, $detailWidths);
+            }
             $this->tableRow($pdf, $row++, [
                 $wr->reference_number ?? 'N/A',
                 $this->truncate($wr->name_of_project, 38),
                 $this->truncate($wr->contractor_name, 28),
                 strtoupper($wr->status),
                 $wr->created_at->format('m/d/Y'),
-            ], $widths);
+            ], $detailWidths);
         }
 
         return $pdf->Output('S');
@@ -174,12 +180,24 @@ class ReportPdfService
         }
 
         // ── Detail table ─────────────────────────────────────────────────────
-        $this->checkPageBreak($pdf);
+        // Always start Detailed Records on a fresh page so the section title,
+        // column header, and first data row are never orphaned at page bottom.
+        $pdf->AddPage();
+        $pdf->Ln(4);
         $this->sectionTitle($pdf, 'Detailed Records');
-        $this->tableHeader($pdf, ['Ref #', 'Project', 'Contractor', 'Volume', 'Status', 'Date'], [28, 55, 45, 20, 22, 20]);
+
+        $detailCols   = ['Ref #', 'Project', 'Contractor', 'Volume', 'Status', 'Date'];
+        $detailWidths = [28, 55, 45, 20, 22, 20];
+        $this->tableHeader($pdf, $detailCols, $detailWidths);
+
         $row = 0;
         foreach ($concretePourings as $cp) {
-            $this->checkPageBreak($pdf, 8);
+            // Re-draw column header whenever a new page is needed
+            if ($pdf->GetY() > (297 - 30 - 8)) {
+                $pdf->AddPage();
+                $pdf->Ln(4);
+                $this->tableHeader($pdf, $detailCols, $detailWidths);
+            }
             $this->tableRow($pdf, $row++, [
                 $cp->reference_number ?? 'N/A',
                 $this->truncate($cp->project_name, 34),
@@ -187,7 +205,7 @@ class ReportPdfService
                 number_format($cp->estimated_volume, 2),
                 strtoupper($cp->status),
                 $cp->created_at->format('m/d/Y'),
-            ], [28, 55, 45, 20, 22, 20]);
+            ], $detailWidths);
         }
 
         return $pdf->Output('S');
@@ -233,12 +251,22 @@ class ReportPdfService
         }
 
         // ── Detail table ─────────────────────────────────────────────────────
-        $this->checkPageBreak($pdf);
+        // Reserve room for section title (8) + header row (7) + first data row (6) = ~25 mm
+        $this->checkPageBreak($pdf, 25);
         $this->sectionTitle($pdf, 'Detailed Records');
-        $this->tableHeader($pdf, ['Ref #', 'Subject', 'Type', 'Status', 'Recipients', 'Read', 'Date'], [25, 55, 28, 20, 22, 18, 22]);
+
+        $detailCols   = ['Ref #', 'Subject', 'Type', 'Status', 'Recipients', 'Read', 'Date'];
+        $detailWidths = [25, 55, 28, 20, 22, 18, 22];
+        $this->tableHeader($pdf, $detailCols, $detailWidths);
+
         $row = 0;
         foreach ($memos as $memo) {
-            $this->checkPageBreak($pdf, 8);
+            // Re-draw column header whenever a new page is needed
+            if ($pdf->GetY() > (297 - 30 - 8)) {
+                $pdf->AddPage();
+                $pdf->Ln(4);
+                $this->tableHeader($pdf, $detailCols, $detailWidths);
+            }
             $recipientCount = $memo->memoRecipients->count();
             $readCount      = $memo->memoRecipients->whereNotNull('read_at')->count();
             $this->tableRow($pdf, $row++, [
@@ -249,7 +277,7 @@ class ReportPdfService
                 $recipientCount,
                 $readCount,
                 $memo->created_at->format('m/d/Y'),
-            ], [25, 55, 28, 20, 22, 18, 22]);
+            ], $detailWidths);
         }
 
         return $pdf->Output('S');
