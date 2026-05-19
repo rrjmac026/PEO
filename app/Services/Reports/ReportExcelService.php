@@ -12,6 +12,7 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 /**
  * ReportExcelService
@@ -25,20 +26,20 @@ use PhpOffice\PhpSpreadsheet\Cell\DataType;
  */
 class ReportExcelService
 {
-    // ── Brand palette (ARGB hex, no #) ───────────────────────────────────────
-    private const CLR_HEADER_BG   = 'FF1E40AF';  // Indigo-700
-    private const CLR_HEADER_FG   = 'FFFFFFFF';
-    private const CLR_ALT_ROW     = 'FFF1F5F9';  // Slate-100
-    private const CLR_SECTION_BG  = 'FFE2E8F0';  // Slate-200
-    private const CLR_SECTION_FG  = 'FF1E40AF';
-    private const CLR_DARK        = 'FF0F172A';  // Slate-900
-    private const CLR_MUTED       = 'FF64748B';  // Slate-500
+    // ── Brand palette — sourced from login blade (ARGB hex, no #) ────────────
+    private const CLR_HEADER_BG   = 'FFE05A00';  // --orange        #E05A00
+    private const CLR_HEADER_FG   = 'FFFFFFFF';  // white
+    private const CLR_ALT_ROW     = 'FFFFF8F0';  // --cream         #FFF8F0
+    private const CLR_SECTION_BG  = 'FFF5EDE4';  // --gray-soft     #F5EDE4
+    private const CLR_SECTION_FG  = 'FFB84A00';  // --orange-dark   #B84A00
+    private const CLR_DARK        = 'FF2C1E12';  // --stone         #2C1E12
+    private const CLR_MUTED       = 'FF6B4F3A';  // --stone-mid     #6B4F3A
     private const CLR_GREEN       = 'FF16A34A';
     private const CLR_RED         = 'FFDC2626';
     private const CLR_YELLOW      = 'FFCA8A04';
     private const CLR_BLUE        = 'FF2563EB';
     private const CLR_WHITE       = 'FFFFFFFF';
-    private const CLR_CARD_BG     = 'FFF8FAFC';  // Slate-50
+    private const CLR_CARD_BG     = 'FFFFFCF9';  // --warm-white    #FFFCF9
 
     // ── Output directory ─────────────────────────────────────────────────────
     private const OUTPUT_DIR = 'reports';
@@ -60,7 +61,7 @@ class ReportExcelService
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setTitle('Work Requests Report')
-            ->setCreator('DPWH Reporting System')
+            ->setCreator('PEO Reporting System')
             ->setDescription('Work Requests Report – ' . $range['label']);
 
         // ── Sheet 1: Summary ─────────────────────────────────────────────────
@@ -69,7 +70,7 @@ class ReportExcelService
 
         $this->writeAgencyHeader($sheet, 'Work Requests Report', $range);
 
-        $row = 6;
+        $row = 8;
         $this->writeSectionHeading($sheet, $row++, 'SUMMARY STATISTICS', 'A', 'F');
 
         $summaryItems = [
@@ -97,7 +98,7 @@ class ReportExcelService
         $sheet2->setTitle('By Contractor');
         $this->writeAgencyHeader($sheet2, 'Work Requests by Contractor', $range);
 
-        $row = 6;
+        $row = 8;
         $headers = ['Contractor', 'Total', 'Approved', 'Rejected', 'Pending', 'Approval Rate'];
         $colWidths = [40, 12, 12, 12, 12, 16];
         $this->writeTableHeader($sheet2, $row++, $headers, $colWidths);
@@ -122,7 +123,7 @@ class ReportExcelService
         $sheet3->setTitle('By Review Step');
         $this->writeAgencyHeader($sheet3, 'Work Requests by Review Step', $range);
 
-        $row = 6;
+        $row = 8;
         $this->writeTableHeader($sheet3, $row++, ['Review Step', 'Count', '% of Total'], [40, 15, 15]);
         $byStep  = $workRequests->groupBy('current_review_step');
         $total   = $workRequests->count();
@@ -140,7 +141,7 @@ class ReportExcelService
         $sheet4->setTitle('Detailed Records');
         $this->writeAgencyHeader($sheet4, 'Work Requests – Detailed Records', $range);
 
-        $row = 6;
+        $row = 8;
         $headers = [
             'Ref #', 'Project Name', 'Contractor', 'Status',
             'Current Step', 'Submitted Date', 'Assigned PE', 'Assigned By',
@@ -161,7 +162,6 @@ class ReportExcelService
                 optional($wr->assignedByAdmin)->name ?? '—',
             ], $colWidths);
 
-            // Colour-code status cell (col D = 4th column)
             $statusCol = 'D';
             $statusColor = match (strtolower($wr->status)) {
                 'approved'  => self::CLR_GREEN,
@@ -169,8 +169,8 @@ class ReportExcelService
                 'in_review' => self::CLR_BLUE,
                 default     => self::CLR_YELLOW,
             };
-            $sheet4->getStyle($statusCol . $row - 1)->getFont()->getColor()->setARGB($statusColor);
-            $sheet4->getStyle($statusCol . $row - 1)->getFont()->setBold(true);
+            $sheet4->getStyle($statusCol . ($row - 1))->getFont()->getColor()->setARGB($statusColor);
+            $sheet4->getStyle($statusCol . ($row - 1))->getFont()->setBold(true);
         }
 
         $this->writeTableFooter($sheet4, $row, count($headers), $colWidths);
@@ -194,7 +194,7 @@ class ReportExcelService
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setTitle('Concrete Pourings Report')
-            ->setCreator('DPWH Reporting System')
+            ->setCreator('PEO Reporting System')
             ->setDescription('Concrete Pourings Report – ' . $range['label']);
 
         // ── Sheet 1: Summary ─────────────────────────────────────────────────
@@ -202,7 +202,7 @@ class ReportExcelService
         $sheet->setTitle('Summary');
         $this->writeAgencyHeader($sheet, 'Concrete Pourings Report', $range);
 
-        $row = 6;
+        $row = 8;
         $this->writeSectionHeading($sheet, $row++, 'SUMMARY STATISTICS', 'A', 'F');
 
         $summaryItems = [
@@ -231,7 +231,7 @@ class ReportExcelService
         $sheet2->setTitle('By Contractor');
         $this->writeAgencyHeader($sheet2, 'Concrete Pourings by Contractor', $range);
 
-        $row = 6;
+        $row = 8;
         $headers   = ['Contractor', 'Total', 'Approved', 'Disapproved', 'Pending', 'Total Volume (m³)', 'Avg Volume (m³)'];
         $colWidths  = [40, 10, 12, 14, 10, 18, 16];
         $this->writeTableHeader($sheet2, $row++, $headers, $colWidths);
@@ -257,7 +257,7 @@ class ReportExcelService
         $sheet3->setTitle('Checklist Compliance');
         $this->writeAgencyHeader($sheet3, 'Checklist Compliance Rates', $range);
 
-        $row = 6;
+        $row = 8;
         $this->writeTableHeader($sheet3, $row++, ['Checklist Item', 'Checked', 'Total', 'Compliance Rate'], [45, 12, 12, 18]);
 
         $checklistFields = [
@@ -282,7 +282,6 @@ class ReportExcelService
                 $rate . '%',
             ], [45, 12, 12, 18]);
 
-            // Colour the rate cell
             $rateColor = $rate >= 75 ? self::CLR_GREEN : ($rate >= 50 ? self::CLR_YELLOW : self::CLR_RED);
             $sheet3->getStyle('D' . $row)->getFont()->getColor()->setARGB($rateColor);
             $sheet3->getStyle('D' . $row)->getFont()->setBold(true);
@@ -294,7 +293,7 @@ class ReportExcelService
         $sheet4->setTitle('Detailed Records');
         $this->writeAgencyHeader($sheet4, 'Concrete Pourings – Detailed Records', $range);
 
-        $row = 6;
+        $row = 8;
         $headers = [
             'Ref #', 'Project Name', 'Contractor', 'Est. Volume (m³)',
             'Status', 'Date Requested', 'Checklist %', 'Requested By',
@@ -345,7 +344,7 @@ class ReportExcelService
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setTitle('Memos Report')
-            ->setCreator('DPWH Reporting System')
+            ->setCreator('PEO Reporting System')
             ->setDescription('Memos Report – ' . $range['label']);
 
         // ── Sheet 1: Summary ─────────────────────────────────────────────────
@@ -353,7 +352,7 @@ class ReportExcelService
         $sheet->setTitle('Summary');
         $this->writeAgencyHeader($sheet, 'Memos Report', $range);
 
-        $row = 6;
+        $row = 8;
         $this->writeSectionHeading($sheet, $row++, 'SUMMARY STATISTICS', 'A', 'F');
 
         $summaryItems = [
@@ -382,7 +381,7 @@ class ReportExcelService
         $sheet2->setTitle('By Type');
         $this->writeAgencyHeader($sheet2, 'Memos by Type', $range);
 
-        $row = 6;
+        $row = 8;
         $this->writeTableHeader($sheet2, $row++, ['Type', 'Total', 'Sent', 'Draft', 'Scheduled'], [35, 12, 12, 12, 14]);
         $byType  = $memos->groupBy('type');
         $dataRow = 0;
@@ -402,7 +401,7 @@ class ReportExcelService
         $sheet3->setTitle('Read Rate Analysis');
         $this->writeAgencyHeader($sheet3, 'Memo Read Rate Analysis', $range);
 
-        $row = 6;
+        $row = 8;
         $headers   = ['Ref #', 'Subject', 'Type', 'Status', 'Sent At', 'Recipients', 'Read', 'Unread', 'Read Rate'];
         $colWidths  = [16, 44, 22, 14, 16, 12, 10, 10, 12];
         $this->writeTableHeader($sheet3, $row++, $headers, $colWidths);
@@ -437,7 +436,7 @@ class ReportExcelService
         $sheet4->setTitle('Detailed Records');
         $this->writeAgencyHeader($sheet4, 'Memos – Detailed Records', $range);
 
-        $row = 6;
+        $row = 8;
         $headers = ['Ref #', 'Subject', 'Type', 'Status', 'Sender', 'Created', 'Sent At', 'Recipients', 'Read'];
         $colWidths = [16, 44, 22, 14, 26, 14, 14, 12, 10];
         $this->writeTableHeader($sheet4, $row++, $headers, $colWidths);
@@ -491,7 +490,7 @@ class ReportExcelService
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setTitle('System Overview Report')
-            ->setCreator('DPWH Reporting System')
+            ->setCreator('PEO Reporting System')
             ->setDescription('Overview Report – ' . $range['label']);
 
         // ── Sheet 1: Overview ────────────────────────────────────────────────
@@ -499,9 +498,8 @@ class ReportExcelService
         $sheet->setTitle('Overview');
         $this->writeAgencyHeader($sheet, 'System Overview Report', $range);
 
-        $row = 6;
+        $row = 8;
 
-        // Work Requests block
         $this->writeSectionHeading($sheet, $row++, 'WORK REQUESTS', 'A', 'F');
         $items = [
             ['Total Requests', $wrSummary['total'], null],
@@ -516,7 +514,6 @@ class ReportExcelService
         }
 
         $row++;
-        // Concrete Pourings block
         $this->writeSectionHeading($sheet, $row++, 'CONCRETE POURINGS', 'A', 'F');
         $items = [
             ['Total Requests',         $cpSummary['total'],                             null],
@@ -533,7 +530,6 @@ class ReportExcelService
         }
 
         $row++;
-        // Memos block
         $this->writeSectionHeading($sheet, $row++, 'MEMOS', 'A', 'F');
         $items = [
             ['Total Memos',      $memoSummary['total'],             null],
@@ -555,7 +551,7 @@ class ReportExcelService
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('WR Snapshot');
         $this->writeAgencyHeader($sheet2, 'Work Requests Snapshot', $range);
-        $row = 6;
+        $row = 8;
         $this->writeTableHeader($sheet2, $row++, ['Ref #', 'Project', 'Contractor', 'Status', 'Date'], [18, 44, 30, 14, 14]);
         $dataRow = 0;
         foreach ($workRequests as $wr) {
@@ -572,7 +568,7 @@ class ReportExcelService
         $sheet3 = $spreadsheet->createSheet();
         $sheet3->setTitle('CP Snapshot');
         $this->writeAgencyHeader($sheet3, 'Concrete Pourings Snapshot', $range);
-        $row = 6;
+        $row = 8;
         $this->writeTableHeader($sheet3, $row++, ['Ref #', 'Project', 'Contractor', 'Volume (m³)', 'Status', 'Date'], [18, 40, 30, 14, 14, 14]);
         $dataRow = 0;
         foreach ($concretePourings as $cp) {
@@ -590,7 +586,7 @@ class ReportExcelService
         $sheet4 = $spreadsheet->createSheet();
         $sheet4->setTitle('Memos Snapshot');
         $this->writeAgencyHeader($sheet4, 'Memos Snapshot', $range);
-        $row = 6;
+        $row = 8;
         $this->writeTableHeader($sheet4, $row++, ['Ref #', 'Subject', 'Type', 'Status', 'Recipients', 'Read', 'Date'], [16, 44, 22, 14, 12, 10, 14]);
         $dataRow = 0;
         $types   = \App\Models\Memo::types();
@@ -615,49 +611,107 @@ class ReportExcelService
     // =========================================================================
 
     /**
-     * Agency header: logo placeholder + title + date range band.
-     * Occupies rows 1-5.
+     * Agency header with logo layout mirroring ConcretePouringPdf::drawHeader():
+     *   [province_seal]   centred agency text   [app_logo]
+     *
+     * Occupies rows 1-7 (rows 1-2 = logo/text area, 3 = title band,
+     * 4 = date range band, 5-7 = spacers).
      */
-    private function writeAgencyHeader(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $title, array $range): void
-    {
-        // Merge for header
-        $sheet->mergeCells('A1:H1');
-        $sheet->mergeCells('A2:H2');
-        $sheet->mergeCells('A3:H3');
-        $sheet->mergeCells('A4:H4');
+    private function writeAgencyHeader(
+        \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet,
+        string $title,
+        array  $range,
+    ): void {
+        // ── Row heights ──────────────────────────────────────────────────────
+        $sheet->getRowDimension(1)->setRowHeight(14);  // "Republic of the Philippines"
+        $sheet->getRowDimension(2)->setRowHeight(14);  // "PROVINCE OF BUKIDNON"
+        $sheet->getRowDimension(3)->setRowHeight(14);  // "PROVINCIAL ENGINEER'S OFFICE"
+        $sheet->getRowDimension(4)->setRowHeight(12);  // "Provincial Capitol 8700"
+        $sheet->getRowDimension(5)->setRowHeight(20);  // title band
+        $sheet->getRowDimension(6)->setRowHeight(14);  // date range band
+        $sheet->getRowDimension(7)->setRowHeight(6);   // spacer
 
-        // Row 1 — Agency name
-        $sheet->setCellValue('A1', 'DEPARTMENT OF PUBLIC WORKS AND HIGHWAYS');
-        $sheet->getStyle('A1')->applyFromArray([
-            'font'      => ['bold' => true, 'size' => 14, 'color' => ['argb' => self::CLR_WHITE]],
+        // ── Province seal (column A, rows 1–4) ──────────────────────────────
+        $seal = public_path('assets/province_seal_small.png');
+        if (file_exists($seal)) {
+            $drawing = new Drawing();
+            $drawing->setName('Province Seal');
+            $drawing->setDescription('Province Seal');
+            $drawing->setPath($seal);
+            $drawing->setHeight(60);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(4);
+            $drawing->setOffsetY(2);
+            $drawing->setWorksheet($sheet);
+        }
+
+        // ── App logo (column H, rows 1–4) ───────────────────────────────────
+        $logo = public_path('assets/app_logo_small.png');
+        if (file_exists($logo)) {
+            $drawing2 = new Drawing();
+            $drawing2->setName('App Logo');
+            $drawing2->setDescription('App Logo');
+            $drawing2->setPath($logo);
+            $drawing2->setHeight(60);
+            $drawing2->setCoordinates('H1');
+            $drawing2->setOffsetX(4);
+            $drawing2->setOffsetY(2);
+            $drawing2->setWorksheet($sheet);
+        }
+
+        // ── Centred agency text (columns B–G, rows 1–4) ─────────────────────
+        $textStyle = [
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => self::CLR_WHITE]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ];
+
+        foreach ([1, 2, 3, 4] as $r) {
+            $sheet->mergeCells("B{$r}:G{$r}");
+            $sheet->getStyle("B{$r}:G{$r}")->applyFromArray($textStyle);
+        }
+
+        $sheet->setCellValue('B1', 'Republic of the Philippines');
+        $sheet->getStyle('B1')->getFont()->setSize(8)->setColor((new Color())->setARGB(self::CLR_DARK));
+
+        $sheet->setCellValue('B2', 'PROVINCE OF BUKIDNON');
+        $sheet->getStyle('B2')->getFont()->setSize(10)->setBold(true)->setColor((new Color())->setARGB(self::CLR_DARK));
+
+        $sheet->setCellValue('B3', "PROVINCIAL ENGINEER'S OFFICE");
+        $sheet->getStyle('B3')->getFont()->setSize(10)->setBold(true)->setColor((new Color())->setARGB(self::CLR_DARK));
+
+        $sheet->setCellValue('B4', 'Provincial Capitol 8700');
+        $sheet->getStyle('B4')->getFont()->setSize(8)->setColor((new Color())->setARGB(self::CLR_MUTED));
+
+        // ── Orange title band (row 5) ────────────────────────────────────────
+        $sheet->mergeCells('A5:H5');
+        $sheet->setCellValue('A5', strtoupper($title));
+        $sheet->getStyle('A5')->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 12, 'color' => ['argb' => self::CLR_HEADER_FG]],
             'fill'      => ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => self::CLR_HEADER_BG]],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getRowDimension(1)->setRowHeight(22);
 
-        // Row 2 — Report title
-        $sheet->setCellValue('A2', strtoupper($title));
-        $sheet->getStyle('A2')->applyFromArray([
-            'font'      => ['bold' => false, 'size' => 10, 'color' => ['argb' => self::CLR_WHITE]],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => self::CLR_HEADER_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-        ]);
-        $sheet->getRowDimension(2)->setRowHeight(16);
-
-        // Row 3 — Date range
-        $sheet->setCellValue('A3', 'Report Period: ' . $range['label'] . '   |   Generated: ' . now()->format('M d, Y h:i A'));
-        $sheet->getStyle('A3')->applyFromArray([
+        // ── Date range / generated band (row 6) ─────────────────────────────
+        $sheet->mergeCells('A6:H6');
+        $sheet->setCellValue(
+            'A6',
+            'Report Period: ' . $range['label'] . '   |   Generated: ' . now()->format('M d, Y h:i A')
+        );
+        $sheet->getStyle('A6')->applyFromArray([
             'font'      => ['size' => 8, 'color' => ['argb' => self::CLR_DARK]],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => 'FFE2E8F0']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => self::CLR_SECTION_BG]],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getRowDimension(3)->setRowHeight(14);
 
-        // Row 4 — spacer
-        $sheet->getRowDimension(4)->setRowHeight(6);
+        // ── Spacer row 7 ─────────────────────────────────────────────────────
+        $sheet->mergeCells('A7:H7');
 
-        // Row 5 — spacer
-        $sheet->getRowDimension(5)->setRowHeight(4);
+        // ── Column widths (seal col A, logo col H, text cols B-G) ────────────
+        $sheet->getColumnDimension('A')->setWidth(10);
+        $sheet->getColumnDimension('H')->setWidth(10);
+        foreach (['B', 'C', 'D', 'E', 'F', 'G'] as $col) {
+            $sheet->getColumnDimension($col)->setWidth(18);
+        }
     }
 
     private function writeSectionHeading(

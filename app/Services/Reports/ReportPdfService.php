@@ -20,16 +20,19 @@ use Illuminate\Support\Collection;
  */
 class ReportPdfService
 {
-    // ── Brand colours (RGB) ──────────────────────────────────────────────────
-    private const COLOR_HEADER_BG = [30, 64, 175];    // Indigo-700
-    private const COLOR_ALT_ROW   = [241, 245, 249];  // Slate-100
+    // ── Brand colours — sourced from login blade palette (RGB) ───────────────
+    private const COLOR_HEADER_BG = [224,  90,   0];   // --orange       #E05A00
+    private const COLOR_HEADER_FG = [255, 255, 255];   // white
+    private const COLOR_ALT_ROW   = [255, 248, 240];   // --cream        #FFF8F0
     private const COLOR_WHITE     = [255, 255, 255];
-    private const COLOR_DARK      = [15,  23,  42];   // Slate-900
-    private const COLOR_MUTED     = [100, 116, 139];  // Slate-500
-    private const COLOR_GREEN     = [22, 163, 74];
-    private const COLOR_RED       = [220, 38, 38];
-    private const COLOR_YELLOW    = [202, 138, 4];
-    private const COLOR_BLUE      = [37, 99, 235];
+    private const COLOR_DARK      = [ 44,  30,  18];   // --stone        #2C1E12
+    private const COLOR_MUTED     = [107,  79,  58];   // --stone-mid    #6B4F3A
+    private const COLOR_SECTION_BG = [245, 237, 228];  // --gray-soft    #F5EDE4
+    private const COLOR_SECTION_FG = [184,  74,   0];  // --orange-dark  #B84A00
+    private const COLOR_GREEN     = [ 22, 163,  74];
+    private const COLOR_RED       = [220,  38,  38];
+    private const COLOR_YELLOW    = [202, 138,   4];
+    private const COLOR_BLUE      = [ 37,  99, 235];
 
     // ── Column widths (portrait A4 = 190 usable mm) ─────────────────────────
     private const PAGE_W = 190;  // usable width (A4 portrait, 10 mm margins each side)
@@ -308,6 +311,9 @@ class ReportPdfService
 
     /**
      * Bootstrap a new FPDF instance with agency header.
+     *
+     * Logo layout mirrors ConcretePouringPdf::drawHeader():
+     *   [province_seal]   centered text block   [app_logo]
      */
     private function makePdf(string $title, array $range): \FPDF
     {
@@ -316,30 +322,60 @@ class ReportPdfService
         $pdf->SetMargins(10, 10, 10);
         $pdf->AddPage();
 
-        // ── Agency header bar ────────────────────────────────────────────────
+        // ── Logo / seal layout ───────────────────────────────────────────────
+        // Mirrors ConcretePouringPdf: seal left of centred text, logo right.
+        $imgSize = 18;   // square image size in mm
+        $gap     = 3;    // gap between image and text block
+        $cw      = 80;   // width of the centred text column
+        $cx      = 10 + (self::PAGE_W - $cw) / 2;   // X of centred text block
+        $imgY    = 10;   // top of header
+
+        $seal = public_path('assets/province_seal_small.png');
+        if (file_exists($seal)) {
+            $pdf->Image($seal, $cx - $imgSize - $gap, $imgY + 1, $imgSize, $imgSize);
+        }
+
+        $logo = public_path('assets/app_logo_small.png');
+        if (file_exists($logo)) {
+            $pdf->Image($logo, $cx + $cw + $gap, $imgY + 1, $imgSize, $imgSize);
+        }
+
+        // ── Centred agency text ──────────────────────────────────────────────
+        $pdf->SetXY($cx, $imgY + 2);
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetTextColor(...self::COLOR_DARK);
+        $pdf->Cell($cw, 4, 'Republic of the Philippines', 0, 2, 'C');
+
+        $pdf->SetX($cx);
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell($cw, 4, 'PROVINCE OF BUKIDNON', 0, 2, 'C');
+
+        $pdf->SetX($cx);
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell($cw, 4, "PROVINCIAL ENGINEER'S OFFICE", 0, 2, 'C');
+
+        $pdf->SetX($cx);
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->Cell($cw, 4, 'Provincial Capitol 8700', 0, 2, 'C');
+
+        // ── Orange title band (below logos) ─────────────────────────────────
+        $headerBottom = $imgY + $imgSize + 4;
+
+        $pdf->SetXY(10, $headerBottom);
         $pdf->SetFillColor(...self::COLOR_HEADER_BG);
-        $pdf->SetTextColor(...self::COLOR_WHITE);
-        $pdf->Rect(10, 10, self::PAGE_W, 18, 'F');
-
-        $pdf->SetFont('Helvetica', 'B', 14);
-        $pdf->SetXY(12, 13);
-        $pdf->Cell(self::PAGE_W - 4, 7, 'DEPARTMENT OF PUBLIC WORKS AND HIGHWAYS', 0, 1, 'L');
-
-        $pdf->SetFont('Helvetica', '', 9);
-        $pdf->SetXY(12, 20);
-        $pdf->Cell(self::PAGE_W - 4, 5, strtoupper($title), 0, 1, 'L');
+        $pdf->SetTextColor(...self::COLOR_HEADER_FG);
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell(self::PAGE_W, 7, strtoupper($title), 0, 1, 'C', true);
 
         // ── Date range band ──────────────────────────────────────────────────
-        $pdf->SetFillColor(226, 232, 240);   // Slate-200
+        $pdf->SetFillColor(...self::COLOR_SECTION_BG);
         $pdf->SetTextColor(...self::COLOR_DARK);
-        $pdf->SetXY(10, 30);
-        $pdf->SetFont('Helvetica', '', 8);
-        $pdf->SetFillColor(226, 232, 240);
-        $pdf->Rect(10, 30, self::PAGE_W, 7, 'F');
-        $pdf->SetXY(12, 31);
-        $pdf->Cell(self::PAGE_W / 2, 5, 'Report Period: ' . $range['label'], 0, 0, 'L');
-        $pdf->Cell(self::PAGE_W / 2, 5, 'Generated: ' . now()->format('M d, Y  h:i A'), 0, 1, 'R');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetX(10);
+        $pdf->Cell(self::PAGE_W / 2, 6, 'Report Period: ' . $range['label'], 0, 0, 'L', true);
+        $pdf->Cell(self::PAGE_W / 2, 6, 'Generated: ' . now()->format('M d, Y  h:i A'), 0, 1, 'R', true);
 
+        $pdf->SetTextColor(...self::COLOR_DARK);
         $pdf->Ln(4);
 
         return $pdf;
@@ -348,9 +384,10 @@ class ReportPdfService
     private function sectionTitle(\FPDF $pdf, string $title): void
     {
         $pdf->Ln(2);
-        $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->SetTextColor(...self::COLOR_HEADER_BG);
-        $pdf->Cell(self::PAGE_W, 6, strtoupper($title), 'B', 1, 'L');
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->SetTextColor(...self::COLOR_SECTION_FG);
+        $pdf->SetFillColor(...self::COLOR_SECTION_BG);
+        $pdf->Cell(self::PAGE_W, 6, strtoupper($title), 'B', 1, 'L', true);
         $pdf->SetTextColor(...self::COLOR_DARK);
         $pdf->Ln(1);
     }
@@ -363,8 +400,7 @@ class ReportPdfService
         $perRow  = 4;
         $cellW   = self::PAGE_W / $perRow;
 
-        $pdf->SetFont('Helvetica', '', 8);
-        $pdf->SetFillColor(248, 250, 252);
+        $pdf->SetFont('Arial', '', 8);
 
         $chunks = array_chunk($items, $perRow);
         foreach ($chunks as $chunk) {
@@ -372,13 +408,13 @@ class ReportPdfService
             $x = 10;
             foreach ($chunk as $item) {
                 $pdf->SetXY($x, $y);
-                $pdf->SetFillColor(241, 245, 249);
+                $pdf->SetFillColor(...self::COLOR_ALT_ROW);
                 $pdf->Rect($x, $y, $cellW - 1, 12, 'F');
-                $pdf->SetFont('Helvetica', '', 7);
+                $pdf->SetFont('Arial', '', 7);
                 $pdf->SetTextColor(...self::COLOR_MUTED);
                 $pdf->SetXY($x + 1, $y + 1);
                 $pdf->Cell($cellW - 2, 4, $item[0], 0, 1, 'L');
-                $pdf->SetFont('Helvetica', 'B', 10);
+                $pdf->SetFont('Arial', 'B', 10);
                 $pdf->SetTextColor(...self::COLOR_DARK);
                 $pdf->SetXY($x + 1, $y + 5);
                 $pdf->Cell($cellW - 2, 6, (string) $item[1], 0, 0, 'L');
@@ -391,9 +427,9 @@ class ReportPdfService
 
     private function tableHeader(\FPDF $pdf, array $cols, array $widths): void
     {
-        $pdf->SetFont('Helvetica', 'B', 8);
+        $pdf->SetFont('Arial', 'B', 8);
         $pdf->SetFillColor(...self::COLOR_HEADER_BG);
-        $pdf->SetTextColor(...self::COLOR_WHITE);
+        $pdf->SetTextColor(...self::COLOR_HEADER_FG);
         $pdf->SetLineWidth(0);
 
         foreach ($cols as $i => $col) {
@@ -405,7 +441,7 @@ class ReportPdfService
 
     private function tableRow(\FPDF $pdf, int $rowIndex, array $cells, array $widths): void
     {
-        $pdf->SetFont('Helvetica', '', 7.5);
+        $pdf->SetFont('Arial', '', 7.5);
         $fill = ($rowIndex % 2 === 1);
         $pdf->SetFillColor(...self::COLOR_ALT_ROW);
 
@@ -427,7 +463,7 @@ class ReportPdfService
     private function footer(\FPDF $pdf, int $recordCount): void
     {
         $pdf->Ln(4);
-        $pdf->SetFont('Helvetica', 'I', 7);
+        $pdf->SetFont('Arial', 'I', 7);
         $pdf->SetTextColor(...self::COLOR_MUTED);
         $pdf->Cell(self::PAGE_W, 5, "Total records: {$recordCount}  |  This report is system-generated.", 'T', 1, 'C');
     }
