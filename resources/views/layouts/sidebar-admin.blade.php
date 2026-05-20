@@ -225,12 +225,6 @@
     <div class="sb-divider"></div>
     <span class="sb-section-label">System</span>
 
-    <a href="#"
-       class="sb-link {{ request()->routeIs('admin.settings*') ? 'active' : '' }}">
-        <span class="sb-icon"><i class="fas fa-sliders-h"></i></span>
-        Settings
-    </a>
-
     <a href="{{ route('admin.reports.index') }}"
        class="sb-link {{ request()->routeIs('admin.reports.index') ? 'active' : '' }}">
         <span class="sb-icon"><i class="fas fa-chart-pie"></i></span>
