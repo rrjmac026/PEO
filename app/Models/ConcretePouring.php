@@ -24,7 +24,7 @@ class ConcretePouring extends Model
             if (empty($model->reference_number)) {
                 $year  = now()->format('Y');
                 $count = static::whereYear('created_at', $year)->count() + 1;
-                $model->reference_number = sprintf('CP-%s-%04d', $year, $count);
+                $model->contract_number = sprintf('CN-%s-%04d', $year, $count);
             }
         });
     }
@@ -224,7 +224,7 @@ class ConcretePouring extends Model
     public function scopeSearch($query, $term)
     {
         return $query->where(function ($q) use ($term) {
-            $q->where('reference_number',  'LIKE', "%{$term}%")
+            $q->where('contract_number', 'LIKE', "%{$term}%")
               ->orWhere('project_name',       'LIKE', "%{$term}%")
               ->orWhere('location',          'LIKE', "%{$term}%")
               ->orWhere('contractor',        'LIKE', "%{$term}%")

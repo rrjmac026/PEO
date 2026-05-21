@@ -17,8 +17,8 @@ return new class extends Migration
                 ->constrained('work_requests')
                 ->onDelete('set null');
 
-            // ── Reference Number ─────────────────────────────────────────────
-            $table->string('reference_number')->nullable()->unique()
+            // ── Contract Number ─────────────────────────────────────────────
+            $table->string('contract_number')->nullable()->unique()
                 ->comment('e.g. CP-2025-0001 — auto-generated or set by admin');
 
             // ── Project Information ──────────────────────────────────────────
@@ -104,7 +104,7 @@ return new class extends Migration
 
             // ── Indexes ───────────────────────────────────────────────────────
             $table->index('work_request_id');
-            $table->index('reference_number');
+            $table->index('contract_number');
             $table->index('current_review_step');
             $table->index('project_name');
             $table->index('location');

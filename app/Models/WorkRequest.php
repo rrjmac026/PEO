@@ -13,7 +13,7 @@ class WorkRequest extends Model
 
     protected $fillable = [
         // ── Project Information ──────────────────────────────────────────────
-        'reference_number',
+        'contract_number',
         'name_of_project',
         'project_location',
 
@@ -438,7 +438,7 @@ class WorkRequest extends Model
     public static function validationRules($id = null): array
     {
         return [
-            'reference_number'                            => 'nullable|string|max:255',
+            'contract_number' => 'nullable|string|max:255',
             'name_of_project'                             => 'required|string|max:255',
             'project_location'                            => 'required|string|max:255',
             'for_office'                                  => 'nullable|string|max:255',

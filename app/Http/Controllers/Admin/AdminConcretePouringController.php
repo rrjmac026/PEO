@@ -317,7 +317,7 @@ class AdminConcretePouringController extends Controller
         ]);
 
         $pdf      = new ConcretePouringPdf($concretePouring);
-        $filename = 'concrete-pouring-' . ($concretePouring->reference_number ?? $concretePouring->id) . '.pdf';
+        $filename = 'concrete-pouring-' . ($concretePouring->contract_number ?? $concretePouring->id) . '.pdf';
 
         return response($pdf->Output('S'), 200, [
             'Content-Type'        => 'application/pdf',
@@ -369,7 +369,7 @@ class AdminConcretePouringController extends Controller
             $term = $request->search;
             $query->where(function ($q) use ($term) {
                 $q->whereHas('concretePouring', function ($q2) use ($term) {
-                    $q2->where('reference_number', 'LIKE', "%{$term}%")
+                    $q2->where('contract_number', 'LIKE', "%{$term}%")
                     ->orWhere('project_name',    'LIKE', "%{$term}%")
                     ->orWhere('contractor',       'LIKE', "%{$term}%");
                 })->orWhereHas('user', function ($q2) use ($term) {

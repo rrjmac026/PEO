@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
 
             // ── Project Information ──────────────────────────────────
-            $table->string('reference_number')->nullable();
+            $table->string('contract_number')->nullable();
             $table->string('name_of_project')->nullable();
             $table->string('project_location')->nullable();
 
