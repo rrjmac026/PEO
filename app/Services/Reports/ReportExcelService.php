@@ -304,7 +304,7 @@ class ReportExcelService
         $dataRow = 0;
         foreach ($concretePourings as $cp) {
             $this->writeTableRow($sheet4, $row++, $dataRow++, [
-                $cp->reference_number ?? 'N/A',
+                $cp->contract_number ?? 'N/A',
                 $cp->project_name ?? '—',
                 $cp->contractor ?? '—',
                 number_format($cp->estimated_volume, 2),
@@ -573,7 +573,7 @@ class ReportExcelService
         $dataRow = 0;
         foreach ($concretePourings as $cp) {
             $this->writeTableRow($sheet3, $row++, $dataRow++, [
-                $cp->reference_number ?? 'N/A',
+                $cp->contract_number ?? 'N/A',
                 $cp->project_name ?? '—',
                 $cp->contractor ?? '—',
                 number_format($cp->estimated_volume, 2),

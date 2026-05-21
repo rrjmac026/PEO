@@ -26,7 +26,7 @@ class ConcretePouringNotificationService
             $cp->requested_by_user_id,
             'concrete_pouring',
             '🏗️ Concrete Pouring Request Submitted',
-            "Your concrete pouring request {$cp->reference_number} for \"{$cp->project_name}\" has been submitted and is awaiting admin assignment.",
+            "Your concrete pouring request {$cp->contract_number} for \"{$cp->project_name}\" has been submitted and is awaiting admin assignment.",
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
@@ -39,7 +39,7 @@ class ConcretePouringNotificationService
             $admins->pluck('id')->toArray(),
             'concrete_pouring',
             '🏗️ New Concrete Pouring Request',
-            "A new concrete pouring request {$cp->reference_number} for \"{$cp->project_name}\" has been submitted by {$cp->contractor} and is awaiting reviewer assignment.",
+            "A new concrete pouring request {$cp->contract_number} for \"{$cp->project_name}\" has been submitted by {$cp->contractor} and is awaiting reviewer assignment.",
             route('admin.concrete-pouring.show', $cp->id),
             $cp
         );
@@ -66,7 +66,7 @@ class ConcretePouringNotificationService
             $cp->requested_by_user_id,
             'concrete_pouring',
             '✏️ Concrete Pouring Request Updated',
-            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been updated successfully.",
+            "Your concrete pouring request {$cp->contract_number} ({$cp->project_name}) has been updated successfully.",
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
@@ -79,7 +79,7 @@ class ConcretePouringNotificationService
      *
      * Pass $contractorId separately since the record will be deleted before this runs.
      */
-    public static function deleted(int $contractorId, string $referenceNumber, string $projectName): void
+    public static function deleted(int $contractorId, string $contractNumber, string $projectName): void
     {
         Notification::send(
             $contractorId,
@@ -103,7 +103,7 @@ class ConcretePouringNotificationService
             $cp->requested_by_user_id,
             'concrete_pouring',
             '🔍 Concrete Pouring Request Under Review',
-            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been picked up by admin and reviewers have been assigned. The review process has begun.",
+            "Your concrete pouring request {$cp->contract_number} ({$cp->project_name}) has been picked up by admin and reviewers have been assigned. The review process has begun.",
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
@@ -129,7 +129,7 @@ class ConcretePouringNotificationService
                     $userId,
                     'concrete_pouring',
                     '🔔 Action Required — Concrete Pouring Review',
-                    "You have been assigned as {$meta['label']} for concrete pouring request {$cp->reference_number} ({$cp->project_name}). It is now your turn to review.",
+                    "You have been assigned as {$meta['label']} for concrete pouring request {$cp->contract_number} ({$cp->project_name}). It is now your turn to review.",
                     route('reviewer.concrete-pouring.show', $cp->id),
                     $cp
                 );
@@ -138,7 +138,7 @@ class ConcretePouringNotificationService
                     $userId,
                     'concrete_pouring',
                     '📌 You Are in the Review Queue',
-                    "You have been queued as {$meta['label']} for concrete pouring request {$cp->reference_number} ({$cp->project_name}). You'll be notified when it's your turn.",
+                    "You have been queued as {$meta['label']} for concrete pouring request {$cp->contract_number} ({$cp->project_name}). You'll be notified when it's your turn.",
                     route('reviewer.concrete-pouring.show', $cp->id),
                     $cp
                 );
@@ -168,7 +168,7 @@ class ConcretePouringNotificationService
         string          $roleLabel,
         int             $signerId
     ): void {
-        $message = "{$roleLabel} has signed and submitted their review for concrete pouring request {$cp->reference_number} ({$cp->project_name}).";
+        $message = "{$roleLabel} has signed and submitted their review for concrete pouring request {$cp->contract_number} ({$cp->project_name}).";
 
         // All admins — in-app only (no dedicated mail for this event)
         $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
@@ -244,8 +244,8 @@ class ConcretePouringNotificationService
             ? '✅ Concrete Pouring Ready for Final Decision'
             : '🔔 Action Required — Concrete Pouring Review';
         $body    = $isFinal
-            ? "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision as {$nextLabel}."
-            : "It is now your turn as {$nextLabel} to review concrete pouring request {$cp->reference_number} ({$cp->project_name}).";
+            ? "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision as {$nextLabel}."
+            : "It is now your turn as {$nextLabel} to review concrete pouring request {$cp->contract_number} ({$cp->project_name}).";
 
         // In-app notification
         Notification::send(
@@ -290,7 +290,7 @@ class ConcretePouringNotificationService
                 $adminIds,
                 'concrete_pouring',
                 '✅ Concrete Pouring Ready for Final Decision',
-                "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision.",
+                "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision.",
                 route('admin.concrete-pouring.show', $cp->id),
                 $cp
             );
@@ -302,7 +302,7 @@ class ConcretePouringNotificationService
                 $cp->me_mtqa_user_id,
                 'concrete_pouring',
                 '📋 Concrete Pouring Awaiting Final Decision',
-                "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been fully reviewed and is now awaiting admin final decision.",
+                "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) has been fully reviewed and is now awaiting admin final decision.",
                 route('reviewer.concrete-pouring.show', $cp->id),
                 $cp
             );
@@ -322,7 +322,7 @@ class ConcretePouringNotificationService
             $cp->requested_by_user_id,
             'concrete_pouring',
             '✅ Concrete Pouring Request Approved',
-            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been approved.{$remarksNote}",
+            "Your concrete pouring request {$cp->contract_number} ({$cp->project_name}) has been approved.{$remarksNote}",
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
@@ -344,7 +344,7 @@ class ConcretePouringNotificationService
         self::notifyAllReviewers(
             $cp,
             '✅ Concrete Pouring Request Approved',
-            "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) that you reviewed has been approved.{$remarksNote}",
+            "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) that you reviewed has been approved.{$remarksNote}",
             new ConcretePouringApprovedMail($cp)
         );
     }
@@ -362,7 +362,7 @@ class ConcretePouringNotificationService
             $cp->requested_by_user_id,
             'concrete_pouring',
             '❌ Concrete Pouring Request Disapproved',
-            "Your concrete pouring request {$cp->reference_number} ({$cp->project_name}) has been disapproved.{$remarksNote}",
+            "Your concrete pouring request {$cp->contract_number} ({$cp->project_name}) has been disapproved.{$remarksNote}",
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
@@ -384,7 +384,7 @@ class ConcretePouringNotificationService
         self::notifyAllReviewers(
             $cp,
             '❌ Concrete Pouring Request Disapproved',
-            "Concrete pouring request {$cp->reference_number} ({$cp->project_name}) that you reviewed has been disapproved.{$remarksNote}",
+            "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) that you reviewed has been disapproved.{$remarksNote}",
             new ConcretePouringDisapprovedMail($cp)
         );
     }

@@ -199,7 +199,7 @@ class ReportPdfService
                 $this->tableHeader($pdf, $detailCols, $detailWidths);
             }
             $this->tableRow($pdf, $row++, [
-                $cp->reference_number ?? 'N/A',
+                $cp->contract_number ?? 'N/A',
                 $this->truncate($cp->project_name, 34),
                 $this->truncate($cp->contractor ?? chr(151), 28),
                 number_format($cp->estimated_volume, 2),
