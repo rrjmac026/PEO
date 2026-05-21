@@ -5,17 +5,17 @@
     <p class="wr-panel-sub">Enter the core project details for this work request.</p>
 
     <div class="wr-fields">
-        {{-- Reference Number --}}
+        {{-- Contract Number --}}
         <div class="wr-field">
-            <label class="wr-label" for="reference_number">Reference Number</label>
+            <label class="wr-label" for="contract_number">Contract Number</label>
             <div class="wr-input-wrap">
                 <span class="wr-icon">🔖</span>
-                <input type="text" name="reference_number" id="reference_number"
-                       value="{{ old('reference_number', $workRequest->reference_number ?? '') }}"
+                <input type="text" name="contract_number" id="contract_number"
+                       value="{{ old('contract_number', $workRequest->contract_number ?? '') }}"
                        placeholder="e.g.,2024-001">
             </div>
-            @error('reference_number')
-                <p class="wr-err-msg show" id="err-reference_number">⚠ {{ $message }}</p>
+            @error('contract_number')
+                <p class="wr-err-msg show" id="err-contract_number">⚠ {{ $message }}</p>
             @enderror
         </div>
 

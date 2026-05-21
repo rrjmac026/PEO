@@ -23,7 +23,7 @@ class UserWorkRequestController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->where('name_of_project', 'LIKE', "%{$request->search}%")
                   ->orWhere('project_location', 'LIKE', "%{$request->search}%")
-                  ->orWhere('reference_number', 'LIKE', "%{$request->search}%");
+                  ->orWhere('contract_number', 'LIKE', "%{$request->search}%");
             });
         }
 
@@ -60,10 +60,10 @@ class UserWorkRequestController extends Controller
      */
     public function create()
     {
-        $referenceNumbers = WorkRequest::whereNotNull('reference_number')
-            ->where('reference_number', '!=', '')
+        $contractNumbers = WorkRequest::whereNotNull('contract_number')
+            ->where('contract_number', '!=', '')
             ->distinct()
-            ->pluck('reference_number')
+            ->pluck('contract_number')
             ->sort()
             ->values();
 
@@ -73,7 +73,7 @@ class UserWorkRequestController extends Controller
             ->get();
 
         return view('user.work-requests.create', compact(
-            'referenceNumbers',
+            'contractNumbers',
             'residentEngineers'
         ));
     }
@@ -88,8 +88,8 @@ class UserWorkRequestController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // Reference Number
-            'reference_number'              => 'nullable|string|max:100',
+            // Contract Number
+            'contract_number'               => 'nullable|string|max:100',
 
             // Project Information
             'name_of_project'               => 'required|string|max:255',
@@ -215,7 +215,7 @@ class UserWorkRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'reference_number'              => 'nullable|string|max:100',
+            'contract_number'               => 'nullable|string|max:100',
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
             'for_office'                    => 'nullable|string|max:255',

@@ -143,7 +143,7 @@ class ReportExcelService
 
         $row = 8;
         $headers = [
-            'Ref #', 'Project Name', 'Contractor', 'Status',
+            'Contract #', 'Project Name', 'Contractor', 'Status',
             'Current Step', 'Submitted Date', 'Assigned PE', 'Assigned By',
         ];
         $colWidths = [18, 40, 30, 14, 20, 16, 28, 24];
@@ -152,7 +152,7 @@ class ReportExcelService
         $dataRow = 0;
         foreach ($workRequests as $wr) {
             $this->writeTableRow($sheet4, $row++, $dataRow++, [
-                $wr->reference_number ?? 'N/A',
+                $wr->contract_number ?? 'N/A',
                 $wr->name_of_project ?? '—',
                 $wr->contractor_name ?? '—',
                 strtoupper($wr->status),
@@ -552,11 +552,11 @@ class ReportExcelService
         $sheet2->setTitle('WR Snapshot');
         $this->writeAgencyHeader($sheet2, 'Work Requests Snapshot', $range);
         $row = 8;
-        $this->writeTableHeader($sheet2, $row++, ['Ref #', 'Project', 'Contractor', 'Status', 'Date'], [18, 44, 30, 14, 14]);
+        $this->writeTableHeader($sheet2, $row++, ['Contract #', 'Project', 'Contractor', 'Status', 'Date'], [18, 44, 30, 14, 14]);
         $dataRow = 0;
         foreach ($workRequests as $wr) {
             $this->writeTableRow($sheet2, $row++, $dataRow++, [
-                $wr->reference_number ?? 'N/A',
+                $wr->contract_number ?? 'N/A',
                 $wr->name_of_project ?? '—',
                 $wr->contractor_name ?? '—',
                 strtoupper($wr->status),

@@ -6,9 +6,9 @@
             <div class="wrd-project-loc">
                 <span>📍</span> {{ $workRequest->project_location }}
             </div>
-            @if($workRequest->reference_number)
+            @if($workRequest->contract_number)
                 <div style="font-size:12px; color:var(--wr-muted); margin-top:2px;">
-                    🔖 Ref: <strong>{{ $workRequest->reference_number }}</strong>
+                    🔖 Contract No: <strong>{{ $workRequest->contract_number }}</strong>
                 </div>
             @endif
         </div>

@@ -10,9 +10,9 @@
                 <span class="wrd-info-value">{{ $workRequest->name_of_project }}</span>
             </div>
             <div class="wrd-info-item">
-                <span class="wrd-info-label">Reference Number</span>
-                @if($workRequest->reference_number)
-                    <span class="wrd-info-value mono">{{ $workRequest->reference_number }}</span>
+                <span class="wrd-info-label">Contract Number</span>
+                @if($workRequest->contract_number)
+                    <span class="wrd-info-value mono">{{ $workRequest->contract_number }}</span>
                 @else
                     <span class="wrd-info-value empty">Not assigned</span>
                 @endif

@@ -15,8 +15,8 @@ $roleStatus = $roleStatusMap[$role] ?? null;
     <td class="wri-td">
         <div class="wri-project-name">{{ $workRequest->name_of_project }}</div>
         <div class="wri-project-id">#{{ str_pad($workRequest->id, 6, '0', STR_PAD_LEFT) }}</div>
-        @if($workRequest->reference_number)
-            <div class="wri-project-id">Ref: {{ $workRequest->reference_number }}</div>
+        @if($workRequest->contract_number)
+            <div class="wri-project-id">Contract No: {{ $workRequest->contract_number }}</div>
         @endif
     </td>
 

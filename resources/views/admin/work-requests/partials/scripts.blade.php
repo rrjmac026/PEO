@@ -7,7 +7,7 @@
     @if($errors->any())
     document.addEventListener('DOMContentLoaded', () => {
         const stepFields = {
-            1: ['name_of_project','project_location','reference_number'],
+            1: ['name_of_project','project_location','contract_number'],
             2: ['requested_work_start_date','description_of_work_requested'],
             3: [], 4: [], 5: [], 6: [], 7: ['status'],
         };

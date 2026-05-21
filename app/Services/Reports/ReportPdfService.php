@@ -84,7 +84,7 @@ class ReportPdfService
         $this->checkPageBreak($pdf, 25);
         $this->sectionTitle($pdf, 'Detailed Records');
 
-        $detailCols   = ['Ref #', 'Project', 'Contractor', 'Status', 'Submitted'];
+        $detailCols   = ['Contract #', 'Project', 'Contractor', 'Status', 'Submitted'];
         $detailWidths = [30, 60, 45, 30, 25];
         $this->tableHeader($pdf, $detailCols, $detailWidths);
 
@@ -97,7 +97,7 @@ class ReportPdfService
                 $this->tableHeader($pdf, $detailCols, $detailWidths);
             }
             $this->tableRow($pdf, $row++, [
-                $wr->reference_number ?? 'N/A',
+                $wr->contract_number ?? 'N/A',
                 $this->truncate($wr->name_of_project, 38),
                 $this->truncate($wr->contractor_name, 28),
                 strtoupper($wr->status),

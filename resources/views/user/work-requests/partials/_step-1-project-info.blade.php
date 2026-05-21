@@ -39,20 +39,20 @@
             </p>
         </div>
 
-        {{-- Reference Number --}}
+        {{-- Contract Number --}}
         <div class="wr-field" id="wrRefField">
             <label class="wr-label">
-                Reference Number
+                Contract Number
                 <span class="wr-label-optional">(optional)</span>
             </label>
 
             {{-- Main trigger button — looks like a real input --}}
             <div class="wr-ref-trigger" id="wrRefTrigger" onclick="wrRefToggle()" role="combobox"
-                 aria-haspopup="listbox" aria-expanded="false" aria-label="Reference number" tabindex="0"
+                 aria-haspopup="listbox" aria-expanded="false" aria-label="Contract number" tabindex="0"
                  onkeydown="if(event.key==='Enter'||event.key===' ')wrRefToggle()">
                 <span class="wr-ref-trigger-icon">#</span>
                 <span id="wrRefDisplay" class="wr-ref-display wr-ref-placeholder">
-                    Select or search a reference number
+                    Select or search a contract number
                 </span>
                 <span class="wr-ref-trigger-actions">
                     <button type="button" id="wrRefClearBtn" class="wr-ref-clear-btn"
@@ -66,7 +66,7 @@
             </div>
 
             {{-- Dropdown panel --}}
-            <div class="wr-ref-dropdown" id="wrRefDropdown" role="dialog" aria-label="Reference number options">
+            <div class="wr-ref-dropdown" id="wrRefDropdown" role="dialog" aria-label="Contract number options">
                 {{-- Search --}}
                 <div class="wr-ref-search-wrap">
                     <svg class="wr-ref-search-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -76,11 +76,11 @@
                         type="text"
                         class="wr-ref-search-input"
                         id="wrRefSearchInput"
-                        placeholder="Search reference numbers…"
+                        placeholder="Search contract numbers…"
                         autocomplete="off"
                         oninput="wrRefFilter(this.value)"
                         onkeydown="wrRefKey(event)"
-                        aria-label="Search reference numbers">
+                        aria-label="Search contract numbers">
                 </div>
 
                 {{-- List of options --}}
@@ -89,7 +89,7 @@
                 {{-- Custom entry footer --}}
                 <div class="wr-ref-footer" onclick="wrRefEnableCustom()">
                     <span class="wr-ref-footer-icon">+</span>
-                    <span id="wrRefAddLabel">Enter a custom reference number</span>
+                    <span id="wrRefAddLabel">Enter a custom contract number</span>
                 </div>
             </div>
 
@@ -106,9 +106,9 @@
             </div>
 
             {{-- Hidden field submitted with the form --}}
-            <input type="hidden" name="reference_number" id="wrRefHidden" value="{{ old('reference_number') }}">
+            <input type="hidden" name="contract_number" id="wrRefHidden" value="{{ old('contract_number') }}">
 
-            <p class="wr-field-hint">Pick from existing reference numbers, or type a custom one.</p>
+            <p class="wr-field-hint">Pick from existing contract numbers, or type a custom one.</p>
         </div>
 
         {{-- For Office --}}
@@ -149,7 +149,7 @@
 
 
 {{-- ============================================================
-     REFERENCE NUMBER COMBOBOX — Styles
+     CONTRACT NUMBER COMBOBOX — Styles
      ============================================================ --}}
 <style>
 /* ── Label optional tag ─────────────────────────────────────── */
@@ -426,13 +426,13 @@
 
 
 {{-- ============================================================
-     REFERENCE NUMBER COMBOBOX — JavaScript
+     CONTRACT NUMBER COMBOBOX — JavaScript
      ============================================================ --}}
 <script>
 (function () {
     'use strict';
 
-    const ALL_REFS = @json($referenceNumbers ?? []);
+    const ALL_REFS = @json($contractNumbers ?? []);
 
     let _selected  = null;
     let _isCustom  = false;
@@ -455,13 +455,14 @@
             list.innerHTML = '<div class="wr-ref-empty">No matches found</div>';
             $('wrRefAddLabel').textContent = q
                 ? `Use "${query.trim()}" as custom`
-                : 'Enter a custom reference number';
-            return;
+                : 'Enter a custom contract number';
+            return;  // ← early return ONLY for the empty case
         }
 
+        // Render the actual items
         list.innerHTML = _filtered.map((r, i) => {
             const sel     = r === _selected ? ' wr-ref-selected' : '';
-            const escaped = r.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+            const escaped = r.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
             return `<div class="wr-ref-item${sel}" data-idx="${i}" data-val="${escaped}" role="option">
                         <span class="wr-ref-item-hash">#</span>${r}
                     </div>`;
@@ -471,7 +472,7 @@
             el.addEventListener('click', () => wrRefSelect(el.dataset.val));
         });
 
-        $('wrRefAddLabel').textContent = 'Enter a custom reference number';
+        $('wrRefAddLabel').textContent = 'Enter a custom contract number';
     }
 
     // ── Open / close ─────────────────────────────────────────────────────────
@@ -527,7 +528,7 @@
         $('wrRefHidden').value = '';
 
         const disp = $('wrRefDisplay');
-        disp.textContent = 'Select or search a reference number';
+        disp.textContent = 'Select or search a contract number';
         disp.classList.add('wr-ref-placeholder');
 
         $('wrRefClearBtn').style.display = 'none';
@@ -558,7 +559,7 @@
             $('wrRefHidden').value = query;
             disp.textContent = query;
         } else {
-            disp.textContent = 'Custom reference number';
+            disp.textContent = 'Custom contract number';
         }
 
         wrRefClose();
@@ -569,7 +570,7 @@
     window.wrRefOnCustomInput = function (val) {
         $('wrRefHidden').value = val;
         const disp = $('wrRefDisplay');
-        disp.textContent = val || 'Custom reference number';
+        disp.textContent = val || 'Custom contract number';
         disp.classList.toggle('wr-ref-placeholder', !val);
     };
 
@@ -613,7 +614,7 @@
 
     // ── DOMContentLoaded: restore old() value + submit guard ─────────────────
     document.addEventListener('DOMContentLoaded', function () {
-        const oldVal = @json(old('reference_number') ?? '');
+        const oldVal = @json(old('contract_number') ?? '');
         if (oldVal) {
             if (ALL_REFS.includes(oldVal)) {
                 wrRefSelect(oldVal);

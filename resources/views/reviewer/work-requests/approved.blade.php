@@ -287,8 +287,8 @@
                                 <td class="ap-td">
                                     <div class="ap-project-name">{{ $wr->name_of_project }}</div>
                                     <div class="ap-project-sub">#{{ str_pad($wr->id, 6, '0', STR_PAD_LEFT) }}</div>
-                                    @if($wr->reference_number)
-                                        <div class="ap-project-sub">Ref: {{ $wr->reference_number }}</div>
+                                    @if($wr->contract_number)
+                                        <div class="ap-project-sub">Contract No: {{ $wr->contract_number }}</div>
                                     @endif
                                 </td>
                                 <td class="ap-td">{{ $wr->project_location }}</td>

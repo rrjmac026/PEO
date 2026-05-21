@@ -113,15 +113,15 @@ class WorkRequestPdf extends \FPDF
     {
         $lh = 5;
 
-        // ── Row 1: Reference Number ───────────────────────────────────────────
+        // ── Row 1: Contract Number ───────────────────────────────────────────
         $this->SetXY(self::ML, $y);
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::DGRAY);
-        $this->Cell(28, $lh, 'Ref. No.', 0, 0);
+        $this->Cell(28, $lh, 'Contract No.', 0, 0);
         $this->Cell(6,  $lh, ':', 0, 0, 'C');
         $this->SetFont('Arial', 'B', 8);
         $this->SetTextColor(...self::BLACK);
-        $this->Cell(self::BW - 34, $lh, $this->val($this->wr->reference_number ?? ''), 'B', 1);
+        $this->Cell(self::BW - 34, $lh, $this->val($this->wr->contract_number ?? ''), 'B', 1);
 
         $y += $lh;
 
