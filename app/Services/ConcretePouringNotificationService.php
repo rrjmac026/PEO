@@ -85,7 +85,7 @@ class ConcretePouringNotificationService
             $contractorId,
             'concrete_pouring',
             '🗑️ Concrete Pouring Request Deleted',
-            "Your concrete pouring request {$referenceNumber} ({$projectName}) has been deleted.",
+            "Your concrete pouring request {$contractNumber} ({$projectName}) has been deleted.",
             route('user.concrete-pouring.index'),
             null
         );

@@ -333,7 +333,7 @@ class AdminConcretePouringController extends Controller
         ]);
 
         $pdf      = new ConcretePouringPdf($concretePouring);
-        $filename = 'concrete-pouring-' . ($concretePouring->reference_number ?? $concretePouring->id) . '.pdf';
+        $filename = 'concrete-pouring-' . ($concretePouring->contract_number ?? $concretePouring->id) . '.pdf';
 
         return response($pdf->Output('S'), 200, [
             'Content-Type'        => 'application/pdf',

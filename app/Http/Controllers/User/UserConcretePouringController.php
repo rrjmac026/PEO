@@ -56,7 +56,7 @@ class UserConcretePouringController extends Controller
     {
         $validated = $request->validate([
             'work_request_id'        => 'nullable|exists:work_requests,id',
-            'reference_number'       => 'nullable|string|max:50|unique:concrete_pourings,reference_number',
+            'contract_number'       => 'nullable|string|max:50|unique:concrete_pourings,contract_number',
             'project_name'           => 'required|string|max:255',
             'location'               => 'required|string|max:255',
             'contractor'             => 'required|string|max:255',
@@ -128,7 +128,7 @@ class UserConcretePouringController extends Controller
 
         $validated = $request->validate([
             'work_request_id'        => 'nullable|exists:work_requests,id',
-            'reference_number'       => 'nullable|string|max:50|unique:concrete_pourings,reference_number,' . $concretePouring->id,
+            'contract_number'       => 'nullable|string|max:50|unique:concrete_pourings,contract_number,' . $concretePouring->id,
             'project_name'           => 'required|string|max:255',
             'location'               => 'required|string|max:255',
             'contractor'             => 'required|string|max:255',
@@ -167,7 +167,7 @@ class UserConcretePouringController extends Controller
         }
 
         $contractorId    = Auth::id();
-        $referenceNumber = $concretePouring->reference_number;
+        $contractNumber = $concretePouring->contract_number;
         $projectName     = $concretePouring->project_name;
 
         // Log before delete so the FK still exists
@@ -178,7 +178,7 @@ class UserConcretePouringController extends Controller
 
         $concretePouring->delete();
 
-        ConcretePouringNotificationService::deleted($contractorId, $referenceNumber, $projectName);
+        ConcretePouringNotificationService::deleted($contractorId, $contractNumber, $projectName);
 
         return redirect()
             ->route('user.concrete-pouring.index')

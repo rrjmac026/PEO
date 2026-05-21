@@ -57,7 +57,7 @@ class NotificationService
 
     public static function concretePouringDeleted(int $contractorId, string $contractNumber, string $projectName): void
     {
-        ConcretePouringNotificationService::deleted($contractorId, $referenceNumber, $projectName);
+        ConcretePouringNotificationService::deleted($contractorId, $contractNumber, $projectName);
     }
 
     public static function concretePouringAssigned(ConcretePouring $cp): void
