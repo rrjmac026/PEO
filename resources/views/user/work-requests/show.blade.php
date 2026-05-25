@@ -18,7 +18,7 @@
     </x-slot>
 
     @push('styles')
-        @include('user.work-requests.partials._show-styles')
+        @include('user.work-requests.show-partials._show-styles')
     @endpush
 
     @php
@@ -38,7 +38,7 @@
     <div class="py-8 wrd-wrap">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
-            @include('user.work-requests.partials._show-hero', compact('statusSlug', 'dotColor'))
+            @include('user.work-requests.show-partials._show-hero', compact('statusSlug', 'dotColor'))
 
             {{-- Meta chips --}}
             <div class="wrd-meta-row mb-5">
@@ -55,12 +55,12 @@
                 @endif
             </div>
 
-            @include('user.work-requests.partials._show-project-info')
-            @include('user.work-requests.partials._show-request-details')
-            @include('user.work-requests.partials._show-pay-items')
-            @include('user.work-requests.partials._show-submission')
-            @include('user.work-requests.partials._show-activity-log')
-            @include('user.work-requests.partials._show-danger-zone')
+            @include('user.work-requests.show-partials._show-project-info')
+            @include('user.work-requests.show-partials._show-request-details')
+            @include('user.work-requests.show-partials._show-pay-items')
+            @include('user.work-requests.show-partials._show-submission')
+            @include('user.work-requests.show-partials._show-activity-log')
+            @include('user.work-requests.show-partials._show-danger-zone')
 
         </div>
     </div>

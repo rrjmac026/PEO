@@ -12,7 +12,7 @@
     </x-slot>
 
     @push('styles')
-        @include('user.work-requests.partials._create-styles')
+        @include('user.work-requests.create-partials._create-styles')
     @endpush
 
     <div class="py-8 wr-wrap">
@@ -50,11 +50,11 @@
                     <form id="wr-form" action="{{ route('user.work-requests.store') }}" method="POST" novalidate>
                         @csrf
 
-                        @include('user.work-requests.partials._step-1-project-info')
-                        @include('user.work-requests.partials._step-2-request-details')
-                        @include('user.work-requests.partials._step-3-reviewer-selection')
-                        @include('user.work-requests.partials._step-4-pay-items')
-                        @include('user.work-requests.partials._step-5-review')
+                        @include('user.work-requests.create-partials._step-1-project-info')
+                        @include('user.work-requests.create-partials._step-2-request-details')
+                        @include('user.work-requests.create-partials._step-3-reviewer-selection')
+                        @include('user.work-requests.create-partials._step-4-pay-items')
+                        @include('user.work-requests.create-partials._step-5-review')
 
                     </form>
                 </div>
@@ -69,7 +69,7 @@
     </div>
 
     @push('scripts')
-        @include('user.work-requests.partials._create-scripts')
+        @include('user.work-requests.create-partials._create-scripts')
     @endpush
 
 </x-app-layout>
