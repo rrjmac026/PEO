@@ -52,17 +52,17 @@
                     <span class="wr-pipeline-arrow">→</span>
                     <span class="wr-pipeline-step regular">Resident Engineer</span>
                     <span class="wr-pipeline-arrow">→</span>
-                    <span class="wr-pipeline-step regular">MTQA</span>
+                    <span class="wr-pipeline-step regular">Material Engineer Assigned</span>
                     <span class="wr-pipeline-arrow">→</span>
-                    <span class="wr-pipeline-step regular">Engineer IV</span>
+                    <span class="wr-pipeline-step regular">MTQA Division Chief</span>
                     <span class="wr-pipeline-arrow">→</span>
-                    <span class="wr-pipeline-step regular">Engineer III</span>
+                    <span class="wr-pipeline-step regular">Project Division Chief</span>
                     <span class="wr-pipeline-arrow">→</span>
                     <span class="wr-pipeline-step final">Provincial Engineer</span>
                 </div>
                 <div class="wr-note-badge">
                     📌 The <strong>Provincial Engineer</strong> makes the final approve/reject decision.
-                    After approval, <strong>MTQA</strong> is notified to print the document.
+                    After approval, <strong>Material Engineer Assigned</strong> is notified to print the document.
                 </div>
             </div>
         </div>
@@ -93,9 +93,9 @@
                         ['label' => 'Site Inspector',     'name' => 'assigned_site_inspector_id',     'users' => $siteInspectors,      'step' => 1, 'final' => false],
                         ['label' => 'Surveyor',           'name' => 'assigned_surveyor_id',            'users' => $surveyors,           'step' => 2, 'final' => false],
                         ['label' => 'Resident Engineer',  'name' => 'assigned_resident_engineer_id',   'users' => $residentEngineers,   'step' => 3, 'final' => false],
-                        ['label' => 'MTQA',               'name' => 'assigned_mtqa_id',                'users' => $mtqas,               'step' => 4, 'final' => false],
-                        ['label' => 'Engineer IV',        'name' => 'assigned_engineer_iv_id',         'users' => $engineersIv,         'step' => 5, 'final' => false],
-                        ['label' => 'Engineer III',       'name' => 'assigned_engineer_iii_id',        'users' => $engineersIii,        'step' => 6, 'final' => false],
+                        ['label' => 'Material Engineer Assigned', 'name' => 'assigned_mtqa_id',                'users' => $mtqas,               'step' => 4, 'final' => false],
+                        ['label' => 'MTQA Division Chief',        'name' => 'assigned_engineer_iv_id',         'users' => $engineersIv,         'step' => 5, 'final' => false],
+                        ['label' => 'Project Division Chief',       'name' => 'assigned_engineer_iii_id',        'users' => $engineersIii,        'step' => 6, 'final' => false],
                         ['label' => 'Provincial Engineer','name' => 'assigned_provincial_engineer_id', 'users' => $provincialEngineers, 'step' => 7, 'final' => true],
                     ];
                 @endphp
@@ -164,7 +164,7 @@
                     <div class="wr-footer-note-text">
                         <strong>Admin assigns reviewers only.</strong>
                         The <strong>Provincial Engineer</strong> makes the final approve/reject decision.
-                        After approval, <strong>MTQA</strong> is notified and can print the document.
+                        After approval, <strong>Material Engineer Assigned</strong> is notified and can print the document.
                     </div>
                 </div>
 

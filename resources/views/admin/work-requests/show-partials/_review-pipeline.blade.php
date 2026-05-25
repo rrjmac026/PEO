@@ -28,9 +28,9 @@
                 ['step' => 'site_inspector',     'label' => 'Site Inspector',      'icon' => '👷', 'assigned' => $workRequest->assignedSiteInspector,      'done_field' => $workRequest->inspected_by_site_inspector],
                 ['step' => 'surveyor',           'label' => 'Surveyor',            'icon' => '📐', 'assigned' => $workRequest->assignedSurveyor,            'done_field' => $workRequest->surveyor_name],
                 ['step' => 'resident_engineer',  'label' => 'Resident Engineer',   'icon' => '🛠️', 'assigned' => $workRequest->assignedResidentEngineer,    'done_field' => $workRequest->resident_engineer_name],
-                ['step' => 'mtqa',               'label' => 'MTQA',                'icon' => '✓',  'assigned' => $workRequest->assignedMtqa,                'done_field' => $workRequest->checked_by_mtqa],
-                ['step' => 'engineer_iv',        'label' => 'Engineer IV',         'icon' => '👨‍💼', 'assigned' => $workRequest->assignedEngineerIv,          'done_field' => $workRequest->reviewed_by],
-                ['step' => 'engineer_iii',       'label' => 'Engineer III',        'icon' => '👨‍💼', 'assigned' => $workRequest->assignedEngineerIii,         'done_field' => $workRequest->recommending_approval_by],
+                ['step' => 'mtqa',               'label' => 'Material Engineer Assigned',                'icon' => '✓',  'assigned' => $workRequest->assignedMtqa,                'done_field' => $workRequest->checked_by_mtqa],
+                ['step' => 'engineer_iv',        'label' => 'MTQA Division Chief',         'icon' => '👨‍💼', 'assigned' => $workRequest->assignedEngineerIv,          'done_field' => $workRequest->reviewed_by],
+                ['step' => 'engineer_iii',       'label' => 'Project Division Chief',        'icon' => '👨‍💼', 'assigned' => $workRequest->assignedEngineerIii,         'done_field' => $workRequest->recommending_approval_by],
                 ['step' => 'provincial_engineer','label' => 'Provincial Engineer', 'icon' => '👔', 'assigned' => $workRequest->assignedProvincialEngineer,  'done_field' => $workRequest->approved_by, 'is_final' => true],
             ];
         @endphp
@@ -138,13 +138,13 @@
                     <strong>by {{ $workRequest->approved_by }}</strong>
                 </p>
 
-                {{-- MTQA print notice when approved --}}
+                {{-- Material Engineer Assigned print notice when approved --}}
                 @if($workRequest->status === 'approved')
                     <div style="margin-top:12px; padding:10px 14px; border-radius:6px;
                                 background:rgba(79,141,255,0.08); border:1px solid rgba(79,141,255,0.2);
                                 font-size:12px; color:var(--wr-accent);">
                         <i class="fas fa-print mr-2"></i>
-                        <strong>MTQA</strong> has been notified and can now print this work request.
+                        <strong>Material Engineer Assigned</strong> has been notified and can now print this work request.
                     </div>
                 @endif
             </div>
