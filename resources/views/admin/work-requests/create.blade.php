@@ -11,25 +11,25 @@
         </div>
     </x-slot>
 
-    @include('admin.work-requests.partials.styles')
+    @include('admin.work-requests.create-and-edit-partials.styles')
 
     <div class="py-8 wr-wrap">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
 
-            @include('admin.work-requests.partials.progress')
+            @include('admin.work-requests.create-and-edit-partials.progress')
 
             <div class="wr-card">
                 <div class="wr-card-body">
                     <form id="wr-form" action="{{ route('admin.work-requests.store') }}" method="POST" novalidate>
                         @csrf
 
-                        @include('admin.work-requests.partials.step-1')
-                        @include('admin.work-requests.partials.step-2')
-                        @include('admin.work-requests.partials.step-3')
-                        @include('admin.work-requests.partials.step-4')
-                        @include('admin.work-requests.partials.step-5')
-                        @include('admin.work-requests.partials.step-6')
-                        @include('admin.work-requests.partials.step-7')
+                        @include('admin.work-requests.create-and-edit-partials.step-1')
+                        @include('admin.work-requests.create-and-edit-partials.step-2')
+                        @include('admin.work-requests.create-and-edit-partials.step-3')
+                        @include('admin.work-requests.create-and-edit-partials.step-4')
+                        @include('admin.work-requests.create-and-edit-partials.step-5')
+                        @include('admin.work-requests.create-and-edit-partials.step-6')
+                        @include('admin.work-requests.create-and-edit-partials.step-7')
 
                     </form>
                 </div>
@@ -42,6 +42,6 @@
         Draft saved
     </div>
 
-    @include('admin.work-requests.partials.scripts')
+    @include('admin.work-requests.create-and-edit-partials.scripts')
 
 </x-app-layout>
