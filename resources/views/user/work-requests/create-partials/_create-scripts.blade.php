@@ -211,6 +211,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const dateEl = document.getElementById('requested_work_start_date');
-        if (dateEl) dateEl.min = new Date().toISOString().split('T')[0];
+        if (dateEl) {
+            dateEl.min = new Date().toISOString().split('T')[0];
+
+            dateEl.addEventListener('change', () => {
+                if (!dateEl.value) return;
+
+                const picked = new Date(dateEl.value + 'T00:00:00');
+                picked.setDate(picked.getDate() + 4); // skip 3 days, land on the 4th
+                dateEl.value = picked.toISOString().split('T')[0];
+            });
+        }
     });
 </script>
