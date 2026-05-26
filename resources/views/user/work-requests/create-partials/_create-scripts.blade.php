@@ -211,15 +211,28 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const dateEl = document.getElementById('requested_work_start_date');
+        const hintEl = document.getElementById('wr-date-hint');
+
         if (dateEl) {
             dateEl.min = new Date().toISOString().split('T')[0];
 
             dateEl.addEventListener('change', () => {
-                if (!dateEl.value) return;
+                if (!dateEl.value) {
+                    if (hintEl) hintEl.style.display = 'none';
+                    return;
+                }
 
-                const picked = new Date(dateEl.value + 'T00:00:00');
-                picked.setDate(picked.getDate() + 4); // skip 3 days, land on the 4th
-                dateEl.value = picked.toISOString().split('T')[0];
+                const filed = new Date(dateEl.value + 'T00:00:00');
+                const earliest = new Date(dateEl.value + 'T00:00:00');
+                earliest.setDate(earliest.getDate() + 4); // +3 blocked days, lands on 4th
+
+                dateEl.value = earliest.toISOString().split('T')[0];
+
+                if (hintEl) {
+                    const fmt = d => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                    hintEl.innerHTML = `📋 Filed <strong>${fmt(filed)}</strong> — 3-day processing period applied. Earliest start: <strong>${fmt(earliest)}</strong>`;
+                    hintEl.style.display = 'block';
+                }
             });
         }
     });

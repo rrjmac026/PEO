@@ -26,6 +26,8 @@
                         value="{{ old('requested_work_start_date') }}"
                         class="{{ $errors->has('requested_work_start_date') ? 'wr-error' : '' }}">
                 </div>
+                
+                <p class="wr-field-hint" id="wr-date-hint" style="display:none; color: var(--wr-accent2); font-style: normal; font-size: 12px;"></p>
                 <p class="wr-err-msg {{ $errors->has('requested_work_start_date') ? 'show' : '' }}" id="err-requested_work_start_date">
                     ⚠ {{ $errors->first('requested_work_start_date', 'Start date is required.') }}
                 </p>
