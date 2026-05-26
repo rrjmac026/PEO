@@ -1,59 +1,115 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PEO Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Overview
 
-## About Laravel
+This repository is a Laravel 12 application built for a Provincial Engineer's Office (PEO) workflow. It manages:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Contractor work requests
+- Concrete pouring approvals and reporting
+- Memo creation, delivery, and read tracking
+- Role-based reviewing and approval workflows
+- PDF generation for reports and printable forms
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The app is organized into three main user domains:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Admin**: receive work requests, assign reviewers, manage employees/users, review concrete pouring records, and generate reports.
+- **Contractor**: submit work requests, upload concrete pouring records, view memos, and track status.
+- **Reviewer**: review and inspect work requests and concrete pourings, make decisions, and approve final requests.
 
-## Learning Laravel
+## What this codebase is about
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+This project is a specialized Laravel application for civil construction administration. It supports an approval workflow that includes:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Work request submission and contractor intake
+- Multi-step review by site inspectors, surveyors, resident engineers, MTQA, Engineer IV, Engineer III, and Provincial Engineer
+- Concrete pouring logging with bulk approval/disapproval, reports, calendar view, and printable records
+- Memo management for sending notices and attachments to users
+- Role-based permissions and notification handling
 
-## Laravel Sponsors
+## Key components
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- `app/Models/WorkRequest.php`: defines the full review pipeline for contractor work requests and their approval status.
+- `app/Models/ConcretePouring.php`: stores concrete pouring records, approvals, and logs.
+- `app/Models/Memo.php`: handles memo content, recipient tracking, and read state.
+- `routes/web.php`: defines the admin, contractor, and reviewer routes.
+- `app/Http/Controllers/*`: implements CRUD operations, assignments, review steps, reports, and PDF exports.
+- `resources/views/`: contains Blade templates for the user interface and printable documents.
 
-### Premium Partners
+## Technology stack
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- PHP 8.2
+- Laravel 12
+- Tailwind CSS + Alpine.js
+- Vite for frontend asset building
+- `phpoffice/phpspreadsheet` for Excel export support
+- `setasign/fpdf` and `setasign/fpdi` for PDF generation
+- `puppeteer` for optional frontend PDF tooling
 
-## Contributing
+## Setup
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Install PHP dependencies:
 
-## Code of Conduct
+```bash
+composer install
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. Copy environment file:
 
-## Security Vulnerabilities
+```bash
+cp .env.example .env
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3. Generate app key:
+
+```bash
+php artisan key:generate
+```
+
+4. Run database migrations:
+
+```bash
+php artisan migrate --force
+```
+
+5. Install frontend dependencies:
+
+```bash
+npm install
+```
+
+6. Build frontend assets:
+
+```bash
+npm run build
+```
+
+You can also use the provided script:
+
+```bash
+composer run setup
+```
+
+## Local development
+
+Start the backend and frontend development server:
+
+```bash
+php artisan serve
+npm run dev
+```
+
+If using the `dev` script:
+
+```bash
+npm run dev
+```
+
+## Notes
+
+- The application uses role-based middleware to separate admin, contractor, and reviewer functionality.
+- Reports can be exported to PDF and Excel.
+- Work requests and concrete pourings include detailed approval logs and status tracking.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project uses the MIT license.
