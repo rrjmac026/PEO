@@ -13,9 +13,30 @@
             </div>
             <div class="wrd-info-item">
                 <span class="wrd-info-label">Work Start Date</span>
-                <span class="wrd-info-value {{ !$workRequest->requested_work_start_date ? 'empty' : '' }}">
-                    {{ $workRequest->requested_work_start_date?->format('M d, Y') ?? 'Not set' }}
-                </span>
+                @if($workRequest->requested_work_start_date)
+                    <span class="wrd-info-value">
+                        {{ $workRequest->requested_work_start_date->format('M d, Y') }}
+                    </span>
+                    <span style="
+                        display: inline-flex; align-items: center; gap: 5px;
+                        margin-top: 5px;
+                        font-size: 11px;
+                        color: var(--wr-muted);
+                        background: var(--wr-surface2);
+                        border: 1px solid var(--wr-border);
+                        border-radius: 6px;
+                        padding: 4px 10px;
+                        font-family: 'Inter', sans-serif;
+                    ">
+                        📋 Filed {{ $workRequest->created_at->format('M d, Y') }}
+                        &nbsp;·&nbsp;
+                        🚫 Blocked {{ $workRequest->created_at->copy()->addDay()->format('M d') }}–{{ $workRequest->created_at->copy()->addDays(3)->format('M d') }}
+                        &nbsp;·&nbsp;
+                        ✅ Starts {{ $workRequest->requested_work_start_date->format('M d, Y') }}
+                    </span>
+                @else
+                    <span class="wrd-info-value empty">Not set</span>
+                @endif
             </div>
             <div class="wrd-info-item">
                 <span class="wrd-info-label">Start Time</span>
