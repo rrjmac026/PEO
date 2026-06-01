@@ -48,14 +48,14 @@
     };
 
     // ── Overall filler (most-recent save) ──────────────────────────────
-    $filler         = $concretePouring->checklistFilledBy ?? null; // relation, or fall back:
+    $filler = $concretePouring->checklistFilledBy ?? null;
     if (!$filler && $concretePouring->checklist_filled_by_user_id) {
         $filler = \App\Models\User::find($concretePouring->checklist_filled_by_user_id);
     }
-    $hasBeenFilled  = !is_null($filler);
-    $filledAt       = $concretePouring->checklist_filled_at
-                        ? \Illuminate\Support\Carbon::parse($concretePouring->checklist_filled_at)
-                        : null;
+    $hasBeenFilled   = !is_null($filler);
+    $filledAt        = $concretePouring->checklist_filled_at
+                         ? \Illuminate\Support\Carbon::parse($concretePouring->checklist_filled_at)
+                         : null;
     $fillerRoleColor = $filler ? $getRoleStyle($filler->role) : $getRoleStyle(null);
     $fillerRoleLabel = $fillerRoleColor['label'];
 
@@ -65,6 +65,7 @@
     $currentRoleLabel = $currentRoleColor['label'];
 @endphp
 
+@if($concretePouring->status === 'approved')
 <div class="cp-card">
     <div class="cp-card-head">
         <div class="cp-card-head-icon green"><i class="fas fa-tasks"></i></div>
@@ -122,22 +123,13 @@
                     @endif
                 </div>
             </div>
-        @elseif($concretePouring->status === 'approved')
+        @else
             <div style="display:flex; align-items:center; gap:10px; padding:12px 16px;
                         background:rgba(217,119,6,0.06); border:1px solid rgba(217,119,6,0.25);
                         border-radius:10px; margin-bottom:16px;">
                 <i class="fas fa-hourglass-half" style="color:#d97706; font-size:14px; flex-shrink:0;"></i>
                 <span style="font-size:13px; color:#d97706; font-weight:500;">
                     Awaiting checklist review by assigned ME/MTQA or Resident Engineer.
-                </span>
-            </div>
-        @else
-            <div style="display:flex; align-items:center; gap:10px; padding:12px 16px;
-                        background:var(--cp-surface2); border:1px solid var(--cp-border);
-                        border-radius:10px; margin-bottom:16px;">
-                <i class="fas fa-lock" style="color:var(--cp-muted); font-size:14px; flex-shrink:0;"></i>
-                <span style="font-size:13px; color:var(--cp-muted);">
-                    Checklist will be filled after the request is approved.
                 </span>
             </div>
         @endif
@@ -185,10 +177,10 @@
                                 <div style="flex:1; min-width:0;">
                                     <div style="font-size:13px;">{{ $label }}</div>
                                     @if($itemUser && !$isMine)
-                                        {{-- Another reviewer touched this item --}}
                                         <div style="margin-top:3px;">
-                                            <span style="font-size:10px; font-weight:600; padding:1px 6px;
-                                                        border-radius:20px; white-space:nowrap;
+                                            <span style="font-size:10px; font-weight:600; padding:2px 6px;
+                                                        border-radius:6px; display:inline-block;
+                                                        word-break:break-word; line-height:1.4;
                                                         background:{{ $roleStyle['bg'] }};
                                                         color:{{ $roleStyle['color'] }};
                                                         border:1px solid {{ $roleStyle['border'] }};">
@@ -197,7 +189,6 @@
                                             </span>
                                         </div>
                                     @elseif($itemUser && $isMine && $concretePouring->$field)
-                                        {{-- Current user checked this themselves --}}
                                         <div style="margin-top:3px; font-size:10px; color:var(--cp-muted);">
                                             <i class="fas fa-check" style="font-size:8px; margin-right:2px; color:#059669;"></i>
                                             You checked this
@@ -233,8 +224,9 @@
                             <div style="font-size:13px;">{{ $label }}</div>
                             @if($concretePouring->$field && $itemUser)
                                 <div style="margin-top:3px;">
-                                    <span style="font-size:10px; font-weight:600; padding:1px 6px;
-                                                border-radius:20px; white-space:nowrap;
+                                    <span style="font-size:10px; font-weight:600; padding:2px 6px;
+                                                border-radius:6px; display:inline-block;
+                                                word-break:break-word; line-height:1.4;
                                                 background:{{ $roleStyle['bg'] }};
                                                 color:{{ $roleStyle['color'] }};
                                                 border:1px solid {{ $roleStyle['border'] }};">
@@ -243,10 +235,10 @@
                                     </span>
                                 </div>
                             @elseif(!$concretePouring->$field && $itemUser)
-                                {{-- Someone explicitly unchecked this --}}
                                 <div style="margin-top:3px;">
-                                    <span style="font-size:10px; font-weight:600; padding:1px 6px;
-                                                border-radius:20px; white-space:nowrap;
+                                    <span style="font-size:10px; font-weight:600; padding:2px 6px;
+                                                border-radius:6px; display:inline-block;
+                                                word-break:break-word; line-height:1.4;
                                                 background:rgba(220,38,38,0.07);
                                                 color:#dc2626;
                                                 border:1px solid rgba(220,38,38,0.2);">
@@ -263,6 +255,7 @@
 
     </div>
 </div>
+@endif
 
 <style>
     .cp-checklist-fill-grid {
