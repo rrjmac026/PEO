@@ -364,4 +364,14 @@
             </div>
         </div>
     </div>
+    @push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const dateEl = document.getElementById('requested_work_start_date');
+        if (dateEl) {
+            dateEl.min = new Date().toISOString().split('T')[0];
+        }
+    });
+</script>
+@endpush
 </x-app-layout>
