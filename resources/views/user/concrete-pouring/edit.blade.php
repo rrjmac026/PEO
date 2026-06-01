@@ -144,14 +144,38 @@
                             <p class="cp-section-title">Assign Reviewers</p>
                             <p class="cp-section-sub">
                                 Update reviewer assignments. Changes take effect immediately.
-                                Pipeline: <strong>Resident Engineer → Provincial Engineer → ME/MTQA (Final Decision)</strong>.
+                                Pipeline: <strong>Resident Engineer → ME/MTQA → Provincial Engineer (Final Decision)</strong>.
                             </p>
 
                             @php
                                 $reviewerSlots = [
-                                    ['step'=>1,'label'=>'Resident Engineer',  'name'=>'resident_engineer_user_id','users'=>$residentEngineers,  'color'=>'#dbeafe','text'=>'#2563eb','final'=>false],
-                                    ['step'=>2,'label'=>'Provincial Engineer','name'=>'noted_by_user_id',         'users'=>$provincialEngineers,'color'=>'#fef3c7','text'=>'#d97706','final'=>false],
-                                    ['step'=>3,'label'=>'ME / MTQA',          'name'=>'me_mtqa_user_id',           'users'=>$mtqas,             'color'=>'#dcfce7','text'=>'#16a34a','final'=>true],
+                                    [
+                                        'step'  => 1,
+                                        'label' => 'Resident Engineer',
+                                        'name'  => 'resident_engineer_user_id',
+                                        'users' => $residentEngineers,
+                                        'color' => '#dbeafe',
+                                        'text'  => '#2563eb',
+                                        'final' => false,
+                                    ],
+                                    [
+                                        'step'  => 2,
+                                        'label' => 'ME / MTQA',
+                                        'name'  => 'me_mtqa_user_id',
+                                        'users' => $mtqas,
+                                        'color' => '#fef3c7',
+                                        'text'  => '#d97706',
+                                        'final' => false,
+                                    ],
+                                    [
+                                        'step'  => 3,
+                                        'label' => 'Provincial Engineer',
+                                        'name'  => 'noted_by_user_id',
+                                        'users' => $provincialEngineers,
+                                        'color' => '#dcfce7',
+                                        'text'  => '#16a34a',
+                                        'final' => true,
+                                    ],
                                 ];
                             @endphp
 
@@ -195,7 +219,9 @@
                                             display:flex; align-items:flex-start; gap:10px;">
                                     <i class="fas fa-info-circle" style="color:#16a34a; margin-top:2px; flex-shrink:0;"></i>
                                     <p style="font-size:13px; color:#166534; margin:0;">
-                                        The <strong>ME/MTQA</strong> reviewer makes the final decision.
+                                        The <strong>Provincial Engineer</strong> reviewer makes the final
+                                        <strong>Approve</strong> or <strong>Disapprove</strong> decision.
+                                        You must assign at least one reviewer.
                                     </p>
                                 </div>
                             </div>

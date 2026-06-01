@@ -91,7 +91,6 @@
     @php
         $activeTab = request('tab', 'queue');
 
-        // Count badges per tab
         $countQueue       = $concretePourings->total();
         $countPending     = $allPending->count();
         $countApproved    = $allApproved->count();
@@ -108,9 +107,7 @@
                 </div>
             @endif
 
-            {{-- ══════════════════════════════════════
-                 TAB NAV
-            ══════════════════════════════════════ --}}
+            {{-- TAB NAV --}}
             <div class="rv-tabs">
                 <a href="{{ route('reviewer.concrete-pouring.index', ['tab' => 'queue']) }}"
                    class="rv-tab tab-all {{ $activeTab === 'queue' ? 'active' : '' }}">
@@ -149,9 +146,7 @@
                 </a>
             </div>
 
-            {{-- ══════════════════════════════════════
-                 TAB: MY QUEUE (awaiting my turn)
-            ══════════════════════════════════════ --}}
+            {{-- TAB: MY QUEUE --}}
             @if($activeTab === 'queue')
                 <div>
                     <h2 class="rv-section-heading">
@@ -182,8 +177,8 @@
                                     @forelse($concretePourings as $cp)
                                         @php
                                             $reDone   = !is_null($cp->re_date);
-                                            $peDone   = !is_null($cp->noted_date);
                                             $mtqaDone = !is_null($cp->me_mtqa_date);
+                                            $peDone   = !is_null($cp->noted_date);
                                         @endphp
                                         <tr>
                                             <td>
@@ -199,13 +194,13 @@
                                             <td>{{ $cp->contractor }}</td>
                                             <td>{{ $cp->pouring_datetime?->format('M d, Y') ?? '—' }}</td>
                                             <td>
-                                                {{-- Mini pipeline progress bar --}}
-                                                <div class="rv-pipeline" title="RE → PE → MTQA">
+                                                {{-- Pipeline: RE → MTQA → PE --}}
+                                                <div class="rv-pipeline" title="RE → MTQA → PE">
                                                     <div class="rv-pip-step {{ $reDone ? 'done' : ($cp->current_review_step === 'resident_engineer' ? 'active' : 'waiting') }}"></div>
-                                                    <div class="rv-pip-step {{ $peDone ? 'done' : ($cp->current_review_step === 'provincial_engineer' ? 'active' : 'waiting') }}"></div>
                                                     <div class="rv-pip-step {{ $mtqaDone ? 'done' : ($cp->current_review_step === 'mtqa' ? 'active' : 'waiting') }}"></div>
+                                                    <div class="rv-pip-step {{ $peDone ? 'done' : ($cp->current_review_step === 'provincial_engineer' ? 'active' : 'waiting') }}"></div>
                                                 </div>
-                                                <p class="text-xs mt-1" style="color:var(--cp-muted)">RE → PE → MTQA</p>
+                                                <p class="text-xs mt-1" style="color:var(--cp-muted)">RE → MTQA → PE</p>
                                             </td>
                                             <td>
                                                 <span class="text-xs font-semibold px-2.5 py-1 rounded-full
@@ -253,9 +248,7 @@
                 </div>
             @endif
 
-            {{-- ══════════════════════════════════════
-                 TAB: PENDING (all in-review, not yet decided)
-            ══════════════════════════════════════ --}}
+            {{-- TAB: PENDING --}}
             @if($activeTab === 'pending')
                 <div>
                     <h2 class="rv-section-heading">
@@ -286,8 +279,8 @@
                                     @forelse($allPending as $cp)
                                         @php
                                             $reDone   = !is_null($cp->re_date);
-                                            $peDone   = !is_null($cp->noted_date);
                                             $mtqaDone = !is_null($cp->me_mtqa_date);
+                                            $peDone   = !is_null($cp->noted_date);
                                         @endphp
                                         <tr>
                                             <td>
@@ -305,13 +298,13 @@
                                             <td>
                                                 <div class="rv-pipeline">
                                                     <div class="rv-pip-step {{ $reDone ? 'done' : ($cp->current_review_step === 'resident_engineer' ? 'active' : 'waiting') }}"></div>
-                                                    <div class="rv-pip-step {{ $peDone ? 'done' : ($cp->current_review_step === 'provincial_engineer' ? 'active' : 'waiting') }}"></div>
                                                     <div class="rv-pip-step {{ $mtqaDone ? 'done' : ($cp->current_review_step === 'mtqa' ? 'active' : 'waiting') }}"></div>
+                                                    <div class="rv-pip-step {{ $peDone ? 'done' : ($cp->current_review_step === 'provincial_engineer' ? 'active' : 'waiting') }}"></div>
                                                 </div>
                                                 <p class="text-xs mt-1" style="color:var(--cp-muted)">
                                                     {{ $reDone ? '✓' : '○' }} RE &nbsp;
-                                                    {{ $peDone ? '✓' : '○' }} PE &nbsp;
-                                                    {{ $mtqaDone ? '✓' : '○' }} MTQA
+                                                    {{ $mtqaDone ? '✓' : '○' }} MTQA &nbsp;
+                                                    {{ $peDone ? '✓' : '○' }} PE
                                                 </p>
                                             </td>
                                             <td>
@@ -350,9 +343,7 @@
                 </div>
             @endif
 
-            {{-- ══════════════════════════════════════
-                 TAB: APPROVED
-            ══════════════════════════════════════ --}}
+            {{-- TAB: APPROVED --}}
             @if($activeTab === 'approved')
                 <div>
                     <h2 class="rv-section-heading">
@@ -373,7 +364,7 @@
                                         <th>Location</th>
                                         <th>Contractor</th>
                                         <th>Pouring Date</th>
-                                        <th>Approved By (MTQA)</th>
+                                        <th>Approved By (PE)</th>
                                         <th>Decision Date</th>
                                         <th>Remarks</th>
                                         <th class="text-center">Action</th>
@@ -395,15 +386,15 @@
                                             <td>{{ $cp->contractor }}</td>
                                             <td>{{ $cp->pouring_datetime?->format('M d, Y') ?? '—' }}</td>
                                             <td>
-                                                <span class="font-medium text-sm">{{ $cp->meMtqaChecker?->name ?? '—' }}</span>
+                                                <span class="font-medium text-sm">{{ $cp->notedByEngineer?->name ?? '—' }}</span>
                                             </td>
                                             <td class="text-xs" style="color:var(--cp-muted)">
-                                                {{ $cp->me_mtqa_date?->format('M d, Y') ?? '—' }}
+                                                {{ $cp->noted_date?->format('M d, Y') ?? '—' }}
                                             </td>
                                             <td>
-                                                @if($cp->me_mtqa_remarks)
-                                                    <span class="text-xs" style="color:var(--cp-muted)" title="{{ $cp->me_mtqa_remarks }}">
-                                                        {{ Str::limit($cp->me_mtqa_remarks, 40) }}
+                                                @if($cp->approval_remarks)
+                                                    <span class="text-xs" style="color:var(--cp-muted)" title="{{ $cp->approval_remarks }}">
+                                                        {{ Str::limit($cp->approval_remarks, 40) }}
                                                     </span>
                                                 @else
                                                     <span class="text-xs" style="color:var(--cp-muted)">—</span>
@@ -433,9 +424,7 @@
                 </div>
             @endif
 
-            {{-- ══════════════════════════════════════
-                 TAB: DISAPPROVED
-            ══════════════════════════════════════ --}}
+            {{-- TAB: DISAPPROVED --}}
             @if($activeTab === 'disapproved')
                 <div>
                     <h2 class="rv-section-heading">
@@ -456,7 +445,7 @@
                                         <th>Location</th>
                                         <th>Contractor</th>
                                         <th>Pouring Date</th>
-                                        <th>Disapproved By (MTQA)</th>
+                                        <th>Disapproved By (PE)</th>
                                         <th>Decision Date</th>
                                         <th>Reason</th>
                                         <th class="text-center">Action</th>
@@ -478,15 +467,15 @@
                                             <td>{{ $cp->contractor }}</td>
                                             <td>{{ $cp->pouring_datetime?->format('M d, Y') ?? '—' }}</td>
                                             <td>
-                                                <span class="font-medium text-sm">{{ $cp->meMtqaChecker?->name ?? '—' }}</span>
+                                                <span class="font-medium text-sm">{{ $cp->notedByEngineer?->name ?? '—' }}</span>
                                             </td>
                                             <td class="text-xs" style="color:var(--cp-muted)">
-                                                {{ $cp->me_mtqa_date?->format('M d, Y') ?? '—' }}
+                                                {{ $cp->noted_date?->format('M d, Y') ?? '—' }}
                                             </td>
                                             <td>
-                                                @if($cp->me_mtqa_remarks)
-                                                    <span class="text-xs" style="color:var(--cp-muted)" title="{{ $cp->me_mtqa_remarks }}">
-                                                        {{ Str::limit($cp->me_mtqa_remarks, 40) }}
+                                                @if($cp->approval_remarks)
+                                                    <span class="text-xs" style="color:var(--cp-muted)" title="{{ $cp->approval_remarks }}">
+                                                        {{ Str::limit($cp->approval_remarks, 40) }}
                                                     </span>
                                                 @else
                                                     <span class="text-xs" style="color:var(--cp-muted)">—</span>
@@ -516,9 +505,7 @@
                 </div>
             @endif
 
-            {{-- ══════════════════════════════════════
-                 TAB: MY HISTORY (completed by me)
-            ══════════════════════════════════════ --}}
+            {{-- TAB: MY HISTORY --}}
             @if($activeTab === 'completed')
                 <div>
                     <h2 class="rv-section-heading">
@@ -551,10 +538,10 @@
                                             $myStep = null;
                                             if ($cp->resident_engineer_user_id == $user->id && !is_null($cp->re_date)) {
                                                 $myStep = 'Step 1 — RE Review';
-                                            } elseif ($cp->noted_by_user_id == $user->id && !is_null($cp->noted_date)) {
-                                                $myStep = 'Step 2 — PE Note';
                                             } elseif ($cp->me_mtqa_user_id == $user->id && !is_null($cp->me_mtqa_date)) {
-                                                $myStep = 'Step 3 — MTQA Final';
+                                                $myStep = 'Step 2 — MTQA Review';
+                                            } elseif ($cp->noted_by_user_id == $user->id && !is_null($cp->noted_date)) {
+                                                $myStep = 'Step 3 — PE Final Decision';
                                             }
                                         @endphp
                                         <tr>
@@ -574,8 +561,8 @@
                                                 @if($myStep)
                                                     <span class="text-xs font-semibold px-2.5 py-1 rounded-full
                                                         @if(str_contains($myStep,'RE')) step-re
-                                                        @elseif(str_contains($myStep,'PE')) step-pe
-                                                        @else step-mtqa @endif">
+                                                        @elseif(str_contains($myStep,'MTQA')) step-mtqa
+                                                        @else step-pe @endif">
                                                         {{ $myStep }}
                                                     </span>
                                                 @else

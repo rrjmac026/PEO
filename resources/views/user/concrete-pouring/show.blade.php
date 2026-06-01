@@ -130,49 +130,49 @@
             </div>
 
             @if($concretePouring->checklistFilledBy)
-    @php
-        $filler = $concretePouring->checklistFilledBy;
-        $fillerRoleLabel = match($filler->role) {
-            'mtqa'              => 'ME/MTQA',
-            'resident_engineer' => 'Resident Engineer',
-            default             => ucfirst(str_replace('_', ' ', $filler->role)),
-        };
-        $fillerRoleColor = match($filler->role) {
-            'mtqa'              => ['bg'=>'rgba(234,88,12,0.1)',  'color'=>'#ea580c', 'border'=>'rgba(234,88,12,0.3)'],
-            'resident_engineer' => ['bg'=>'rgba(37,99,235,0.1)', 'color'=>'#2563eb', 'border'=>'rgba(37,99,235,0.3)'],
-            default             => ['bg'=>'rgba(100,116,139,0.1)','color'=>'#64748b','border'=>'rgba(100,116,139,0.3)'],
-        };
-    @endphp
-    <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;
-                background:rgba(5,150,105,0.06); border:1px solid rgba(5,150,105,0.25);
-                border-radius:10px; margin-bottom:16px; flex-wrap:wrap;">
-        <div style="width:36px; height:36px; border-radius:50%;
-                    background:rgba(5,150,105,0.15); border:1.5px solid rgba(5,150,105,0.4);
-                    display:flex; align-items:center; justify-content:center;
-                    font-size:15px; color:#059669; flex-shrink:0;">
-            <i class="fas fa-user-check"></i>
-        </div>
-        <div style="flex:1; min-width:0;">
-            <div style="font-size:13px; font-weight:700; color:var(--cp-text); margin-bottom:2px;">
-                Checked by {{ $filler->name }}
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px;
-                             background:{{ $fillerRoleColor['bg'] }};
-                             color:{{ $fillerRoleColor['color'] }};
-                             border:1px solid {{ $fillerRoleColor['border'] }};">
-                    {{ $fillerRoleLabel }}
-                </span>
-                @if($concretePouring->checklist_filled_at)
-                    <span style="font-size:12px; color:var(--cp-muted);">
-                        <i class="fas fa-clock" style="margin-right:3px; font-size:10px;"></i>
-                        {{ $concretePouring->checklist_filled_at->format('M d, Y · H:i') }}
-                    </span>
-                @endif
-            </div>
-        </div>
-    </div>
-@endif
+                @php
+                    $filler = $concretePouring->checklistFilledBy;
+                    $fillerRoleLabel = match($filler->role) {
+                        'mtqa'              => 'ME/MTQA',
+                        'resident_engineer' => 'Resident Engineer',
+                        default             => ucfirst(str_replace('_', ' ', $filler->role)),
+                    };
+                    $fillerRoleColor = match($filler->role) {
+                        'mtqa'              => ['bg'=>'rgba(234,88,12,0.1)',  'color'=>'#ea580c', 'border'=>'rgba(234,88,12,0.3)'],
+                        'resident_engineer' => ['bg'=>'rgba(37,99,235,0.1)', 'color'=>'#2563eb', 'border'=>'rgba(37,99,235,0.3)'],
+                        default             => ['bg'=>'rgba(100,116,139,0.1)','color'=>'#64748b','border'=>'rgba(100,116,139,0.3)'],
+                    };
+                @endphp
+                <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;
+                            background:rgba(5,150,105,0.06); border:1px solid rgba(5,150,105,0.25);
+                            border-radius:10px; margin-bottom:16px; flex-wrap:wrap;">
+                    <div style="width:36px; height:36px; border-radius:50%;
+                                background:rgba(5,150,105,0.15); border:1.5px solid rgba(5,150,105,0.4);
+                                display:flex; align-items:center; justify-content:center;
+                                font-size:15px; color:#059669; flex-shrink:0;">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:13px; font-weight:700; color:var(--cp-text); margin-bottom:2px;">
+                            Checked by {{ $filler->name }}
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px;
+                                         background:{{ $fillerRoleColor['bg'] }};
+                                         color:{{ $fillerRoleColor['color'] }};
+                                         border:1px solid {{ $fillerRoleColor['border'] }};">
+                                {{ $fillerRoleLabel }}
+                            </span>
+                            @if($concretePouring->checklist_filled_at)
+                                <span style="font-size:12px; color:var(--cp-muted);">
+                                    <i class="fas fa-clock" style="margin-right:3px; font-size:10px;"></i>
+                                    {{ $concretePouring->checklist_filled_at->format('M d, Y · H:i') }}
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- Checklist --}}
             @php
@@ -219,7 +219,6 @@
                         <p class="text-xs mt-1" style="color:var(--cp-muted)">{{ $concretePouring->checklist_progress }}% complete</p>
                     </div>
                     @php
-                        // Build per-item checker map from logs (latest entry per field wins)
                         $itemCheckers = [];
                         foreach ($concretePouring->checklistLogs as $log) {
                             if (!isset($itemCheckers[$log->field])) {
@@ -254,7 +253,6 @@
                                     <div style="font-size:13px;">{{ $label }}</div>
 
                                     @if($concretePouring->$field && $itemUser)
-                                        {{-- Checked — show who checked it --}}
                                         <div style="margin-top:4px;">
                                             <span style="font-size:10px; font-weight:600; padding:2px 6px;
                                                         border-radius:6px; display:inline-block;
@@ -267,7 +265,6 @@
                                             </span>
                                         </div>
                                     @elseif(!$concretePouring->$field && $itemUser)
-                                        {{-- Explicitly unchecked by someone --}}
                                         <div style="margin-top:4px;">
                                             <span style="font-size:10px; font-weight:600; padding:2px 6px;
                                                         border-radius:6px; display:inline-block;
@@ -295,6 +292,7 @@
                 </div>
                 <div class="cp-card-body">
                     <div class="cp-timeline">
+
                         {{-- Step 1 — Resident Engineer --}}
                         @php
                             $reDone   = !is_null($concretePouring->re_date);
@@ -311,9 +309,7 @@
                             </div>
                             <div style="flex:1">
                                 <div class="cp-tl-label">Step 1 — Resident Engineer Review</div>
-                                <div class="cp-tl-name">
-                                    {{ $concretePouring->residentEngineer?->name ?? 'Not assigned' }}
-                                </div>
+                                <div class="cp-tl-name">{{ $concretePouring->residentEngineer?->name ?? 'Not assigned' }}</div>
                                 @if($concretePouring->re_date)
                                     <div class="cp-tl-date">Reviewed: {{ $concretePouring->re_date->format('M d, Y') }}</div>
                                 @endif
@@ -332,41 +328,7 @@
                             </div>
                         </div>
 
-                        {{-- Step 2 — Provincial Engineer --}}
-                        @php
-                            $peDone   = !is_null($concretePouring->noted_date);
-                            $peActive = $concretePouring->current_review_step === 'provincial_engineer';
-                        @endphp
-                        <div class="cp-timeline-item">
-                            <div class="cp-tl-icon-wrap">
-                                <div class="cp-tl-icon {{ $peDone ? 'done' : ($peActive ? 'active' : 'waiting') }}">
-                                    @if($peDone) <i class="fas fa-check"></i>
-                                    @elseif($peActive) <i class="fas fa-clock"></i>
-                                    @else <i class="fas fa-circle"></i>
-                                    @endif
-                                </div>
-                            </div>
-                            <div style="flex:1">
-                                <div class="cp-tl-label">Step 2 — Noted by Provincial Engineer</div>
-                                <div class="cp-tl-name">
-                                    {{ $concretePouring->notedByEngineer?->name ?? 'Not assigned' }}
-                                </div>
-                                @if($concretePouring->noted_date)
-                                    <div class="cp-tl-date">Noted: {{ $concretePouring->noted_date->format('M d, Y') }}</div>
-                                @endif
-                            </div>
-                            <div>
-                                @if($peDone)
-                                    <span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Done</span>
-                                @elseif($peActive)
-                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
-                                @else
-                                    <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Step 3 — ME/MTQA Final Decision --}}
+                        {{-- Step 2 — ME/MTQA --}}
                         @php
                             $mtqaDone   = !is_null($concretePouring->me_mtqa_date);
                             $mtqaActive = $concretePouring->current_review_step === 'mtqa';
@@ -381,22 +343,59 @@
                                 </div>
                             </div>
                             <div style="flex:1">
-                                <div class="cp-tl-label">Step 3 — ME / MTQA Final Decision</div>
-                                
-                                <div class="cp-tl-name">
-                                    @if($concretePouring->status === 'approved')
-                                        Approved by {{ $concretePouring->meMtqaChecker?->name ?? '—' }}
-                                    @elseif($concretePouring->status === 'disapproved')
-                                        Disapproved by {{ $concretePouring->meMtqaChecker?->name ?? '—' }}
-                                    @else
-                                        {{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}
-                                    @endif
-                                </div>
+                                <div class="cp-tl-label">Step 2 — ME/MTQA Review</div>
+                                <div class="cp-tl-name">{{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}</div>
                                 @if($concretePouring->me_mtqa_date)
-                                    <div class="cp-tl-date">Decided: {{ $concretePouring->me_mtqa_date->format('M d, Y') }}</div>
+                                    <div class="cp-tl-date">Reviewed: {{ $concretePouring->me_mtqa_date->format('M d, Y') }}</div>
                                 @endif
                                 @if($concretePouring->me_mtqa_remarks)
                                     <div class="cp-tl-remark">"{{ $concretePouring->me_mtqa_remarks }}"</div>
+                                @endif
+                            </div>
+                            <div>
+                                @if($mtqaDone)
+                                    <span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Done</span>
+                                @elseif($mtqaActive)
+                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
+                                @else
+                                    <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Step 3 — Provincial Engineer (Final) --}}
+                        @php
+                            $peDone   = !is_null($concretePouring->noted_date);
+                            $peActive = $concretePouring->current_review_step === 'provincial_engineer';
+                        @endphp
+                        <div class="cp-timeline-item">
+                            <div class="cp-tl-icon-wrap">
+                                <div class="cp-tl-icon {{ $peDone ? 'done' : ($peActive ? 'active' : 'waiting') }}">
+                                    @if($peDone) <i class="fas fa-check"></i>
+                                    @elseif($peActive) <i class="fas fa-clock"></i>
+                                    @else <i class="fas fa-circle"></i>
+                                    @endif
+                                </div>
+                            </div>
+                            <div style="flex:1">
+                                <div class="cp-tl-label" style="display:flex;align-items:center;gap:8px;">
+                                    Step 3 — Provincial Engineer Final Decision
+                                    <span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:1px 8px;font-weight:700;">FINAL</span>
+                                </div>
+                                <div class="cp-tl-name">
+                                    @if($concretePouring->status === 'approved')
+                                        Approved by {{ $concretePouring->notedByEngineer?->name ?? '—' }}
+                                    @elseif($concretePouring->status === 'disapproved')
+                                        Disapproved by {{ $concretePouring->notedByEngineer?->name ?? '—' }}
+                                    @else
+                                        {{ $concretePouring->notedByEngineer?->name ?? 'Not assigned' }}
+                                    @endif
+                                </div>
+                                @if($concretePouring->noted_date)
+                                    <div class="cp-tl-date">Decided: {{ $concretePouring->noted_date->format('M d, Y') }}</div>
+                                @endif
+                                @if($concretePouring->approval_remarks)
+                                    <div class="cp-tl-remark">"{{ $concretePouring->approval_remarks }}"</div>
                                 @endif
                             </div>
                             <div>
@@ -404,7 +403,7 @@
                                     <span class="cp-badge approved" style="font-size:11px;padding:3px 8px">Approved</span>
                                 @elseif($concretePouring->status === 'disapproved')
                                     <span class="cp-badge disapproved" style="font-size:11px;padding:3px 8px">Disapproved</span>
-                                @elseif($mtqaActive)
+                                @elseif($peActive)
                                     <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
                                 @else
                                     <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
