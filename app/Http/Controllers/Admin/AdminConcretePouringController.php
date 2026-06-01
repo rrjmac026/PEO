@@ -64,7 +64,7 @@ class AdminConcretePouringController extends Controller
         $concretePouring->load([
             'workRequest', 'requestedBy', 'meMtqaChecker',
             'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
-            'logs.user',
+            'logs.user', 'checklistLogs.user', 'checklistFilledBy',
         ]);
 
         $isMyTurn = false; // Admin is read-only; no action forms shown

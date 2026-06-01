@@ -45,7 +45,10 @@
 
             @include('reviewer.concrete-pouring.partials._hero')
             @include('reviewer.concrete-pouring.partials._project-info')
-            @include('reviewer.concrete-pouring.partials._checklist')
+            @include('reviewer.concrete-pouring.partials._checklist-fill', [
+                'concretePouring'  => $concretePouring,
+                'canFillChecklist' => false,
+            ])
             @include('reviewer.concrete-pouring.partials._pipeline')
 
             {{-- Admin-only: Logs section --}}
