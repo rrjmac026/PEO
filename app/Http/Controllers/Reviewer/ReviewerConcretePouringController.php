@@ -93,11 +93,12 @@ class ReviewerConcretePouringController extends Controller
         $concretePouring->load([
             'workRequest', 'requestedBy', 'meMtqaChecker',
             'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
+            'checklistFilledBy',
+            'checklistLogs.user',   // ← add this
         ]);
 
         $isMyTurn = $this->isCurrentReviewer($concretePouring, $user);
 
-        // Only MTQA or Resident Engineer can fill the checklist, and only after approval
         $canFillChecklist = $concretePouring->status === 'approved'
             && in_array($user->role, ['mtqa', 'resident_engineer'])
             && (
@@ -144,16 +145,17 @@ class ReviewerConcretePouringController extends Controller
             $newValue = $request->boolean($field);
             $data[$field] = $newValue;
 
-            // Log every field this user touched
-            ConcretePouringChecklistLog::create([
-                'concrete_pouring_id' => $concretePouring->id,
-                'user_id'             => $user->id,
-                'field'               => $field,
-                'checked'             => $newValue,
-            ]);
+            // ✅ Only log if the value actually changed
+            if ((bool) $concretePouring->$field !== $newValue) {
+                ConcretePouringChecklistLog::create([
+                    'concrete_pouring_id' => $concretePouring->id,
+                    'user_id'             => $user->id,
+                    'field'               => $field,
+                    'checked'             => $newValue,
+                ]);
+            }
         }
 
-        // Still track overall filler (most recent saver)
         $data['checklist_filled_by_user_id'] = $user->id;
         $data['checklist_filled_at']         = now();
 
