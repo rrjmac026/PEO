@@ -218,13 +218,69 @@
                         </div>
                         <p class="text-xs mt-1" style="color:var(--cp-muted)">{{ $concretePouring->checklist_progress }}% complete</p>
                     </div>
+                    @php
+                        // Build per-item checker map from logs (latest entry per field wins)
+                        $itemCheckers = [];
+                        foreach ($concretePouring->checklistLogs as $log) {
+                            if (!isset($itemCheckers[$log->field])) {
+                                $itemCheckers[$log->field] = [
+                                    'user'    => $log->user,
+                                    'checked' => $log->checked,
+                                ];
+                            }
+                        }
+
+                        $getRoleStyle = function (?string $role): array {
+                            return match ($role) {
+                                'mtqa'              => ['label' => 'ME/MTQA',           'bg' => 'rgba(234,88,12,0.1)',   'color' => '#ea580c', 'border' => 'rgba(234,88,12,0.3)'],
+                                'resident_engineer' => ['label' => 'Resident Engineer', 'bg' => 'rgba(37,99,235,0.1)',  'color' => '#2563eb', 'border' => 'rgba(37,99,235,0.3)'],
+                                default             => ['label' => ucfirst(str_replace('_', ' ', $role ?? '')), 'bg' => 'rgba(100,116,139,0.1)', 'color' => '#64748b', 'border' => 'rgba(100,116,139,0.3)'],
+                            };
+                        };
+                    @endphp
                     <div class="cp-checklist-grid">
                         @foreach($checklistItems as $field => $label)
-                            <div class="cp-check-item {{ $concretePouring->$field ? 'checked' : 'unchecked' }}">
-                                <span class="cp-check-icon">
+                            @php
+                                $itemInfo  = $itemCheckers[$field] ?? null;
+                                $itemUser  = $itemInfo['user'] ?? null;
+                                $roleStyle = $itemUser ? $getRoleStyle($itemUser->role) : [];
+                            @endphp
+                            <div class="cp-check-item {{ $concretePouring->$field ? 'checked' : 'unchecked' }}"
+                                style="align-items: flex-start;">
+                                <span class="cp-check-icon" style="flex-shrink:0; margin-top:1px;">
                                     {{ $concretePouring->$field ? '✅' : '⬜' }}
                                 </span>
-                                <span>{{ $label }}</span>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:13px;">{{ $label }}</div>
+
+                                    @if($concretePouring->$field && $itemUser)
+                                        {{-- Checked — show who checked it --}}
+                                        <div style="margin-top:4px;">
+                                            <span style="font-size:10px; font-weight:600; padding:2px 6px;
+                                                        border-radius:6px; display:inline-block;
+                                                        word-break:break-word; line-height:1.4;
+                                                        background:{{ $roleStyle['bg'] }};
+                                                        color:{{ $roleStyle['color'] }};
+                                                        border:1px solid {{ $roleStyle['border'] }};">
+                                                <i class="fas fa-user" style="font-size:8px; margin-right:2px;"></i>
+                                                {{ $itemUser->name }} · {{ $roleStyle['label'] }}
+                                            </span>
+                                        </div>
+                                    @elseif(!$concretePouring->$field && $itemUser)
+                                        {{-- Explicitly unchecked by someone --}}
+                                        <div style="margin-top:4px;">
+                                            <span style="font-size:10px; font-weight:600; padding:2px 6px;
+                                                        border-radius:6px; display:inline-block;
+                                                        word-break:break-word; line-height:1.4;
+                                                        background:rgba(220,38,38,0.07);
+                                                        color:#dc2626;
+                                                        border:1px solid rgba(220,38,38,0.2);">
+                                                <i class="fas fa-times" style="font-size:8px; margin-right:2px;"></i>
+                                                Unchecked by {{ $itemUser->name }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     </div>
