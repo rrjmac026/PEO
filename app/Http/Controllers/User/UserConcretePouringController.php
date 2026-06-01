@@ -147,6 +147,8 @@ class UserConcretePouringController extends Controller
         $concretePouring->load([
             'workRequest', 'requestedBy', 'meMtqaChecker',
             'residentEngineer', 'approver', 'disapprover', 'notedByEngineer',
+            'checklistFilledBy',
+            'checklistLogs.user', // ← add this
         ]);
 
         return view('user.concrete-pouring.show', compact('concretePouring'));

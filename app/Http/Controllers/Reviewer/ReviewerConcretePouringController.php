@@ -113,12 +113,10 @@ class ReviewerConcretePouringController extends Controller
     {
         $user = Auth::user();
 
-        // Only approved requests can have the checklist filled
         if ($concretePouring->status !== 'approved') {
             abort(403, 'Checklist can only be filled after the request is approved.');
         }
 
-        // Only assigned MTQA or RE can fill it
         if (!in_array($user->role, ['mtqa', 'resident_engineer'])) {
             abort(403, 'You are not authorized to fill the checklist.');
         }
@@ -142,8 +140,21 @@ class ReviewerConcretePouringController extends Controller
 
         $data = [];
         foreach ($checklistFields as $field) {
-            $data[$field] = $request->boolean($field);
+            $newValue = $request->boolean($field);
+            $data[$field] = $newValue;
+
+            // Log every field this user touched
+            ConcretePouringChecklistLog::create([
+                'concrete_pouring_id' => $concretePouring->id,
+                'user_id'             => $user->id,
+                'field'               => $field,
+                'checked'             => $newValue,
+            ]);
         }
+
+        // Still track overall filler (most recent saver)
+        $data['checklist_filled_by_user_id'] = $user->id;
+        $data['checklist_filled_at']         = now();
 
         $concretePouring->update($data);
 

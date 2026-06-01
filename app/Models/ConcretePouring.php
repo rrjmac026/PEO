@@ -69,6 +69,8 @@ class ConcretePouring extends Model
         'plumbing_layout',
         'rebars_installation',
         'falseworks_formworks',
+        'checklist_filled_by_user_id',
+        'checklist_filled_at',
 
         // ── Review Pipeline ──────────────────────────────────────────────────
         'current_review_step',
@@ -131,6 +133,7 @@ class ConcretePouring extends Model
         'plumbing_layout'                 => 'boolean',
         'rebars_installation'             => 'boolean',
         'falseworks_formworks'            => 'boolean',
+        'checklist_filled_at'             => 'datetime',
     ];
 
     // =========================================================================
@@ -396,5 +399,16 @@ class ConcretePouring extends Model
             'rebar_sizes_spacing', 'plumbing_layout', 'rebars_installation',
             'falseworks_formworks',
         ];
+    }
+
+    public function checklistFilledBy()
+    {
+        return $this->belongsTo(User::class, 'checklist_filled_by_user_id');
+    }
+
+    public function checklistLogs()
+    {
+        return $this->hasMany(ConcretePouringChecklistLog::class, 'concrete_pouring_id')
+                    ->latest();
     }
 }

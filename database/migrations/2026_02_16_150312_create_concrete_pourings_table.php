@@ -26,7 +26,8 @@ return new class extends Migration
             $table->string('location');
             $table->string('contractor');
             $table->string('part_of_structure');
-            $table->decimal('estimated_volume', 10, 2)->comment('In cubic meters');
+            $table->decimal('estimated_volume', 10, 2)
+                ->comment('In cubic meters');
             $table->string('station_limits_section')->nullable();
             $table->dateTime('pouring_datetime');
 
@@ -58,51 +59,82 @@ return new class extends Migration
             $table->boolean('rebars_installation')->default(false);
             $table->boolean('falseworks_formworks')->default(false);
 
+            // ── Checklist Completion Tracking ────────────────────────────────
+            $table->foreignId('checklist_filled_by_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
+            $table->timestamp('checklist_filled_at')
+                ->nullable();
+
             // ── Review Pipeline ──────────────────────────────────────────────
-            // Mirrors WorkRequest pipeline columns
-            $table->string('current_review_step')->nullable()
+            $table->string('current_review_step')
+                ->nullable()
                 ->comment('null=unassigned, mtqa, resident_engineer, provincial_engineer, admin_final');
+
             $table->foreignId('assigned_by_admin_id')
                 ->nullable()
                 ->constrained('users')
                 ->onDelete('set null');
+
             $table->timestamp('assigned_at')->nullable();
 
             // ── ME/MTQA Review ───────────────────────────────────────────────
             $table->foreignId('me_mtqa_user_id')
-                ->nullable()->constrained('users')->onDelete('set null');
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
             $table->text('me_mtqa_remarks')->nullable();
             $table->date('me_mtqa_date')->nullable();
             $table->text('me_mtqa_signature')->nullable();
 
             // ── Resident Engineer Review ─────────────────────────────────────
             $table->foreignId('resident_engineer_user_id')
-                ->nullable()->constrained('users')->onDelete('set null');
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
             $table->text('re_remarks')->nullable();
             $table->date('re_date')->nullable();
             $table->text('re_signature')->nullable();
 
             // ── Noted by (Provincial Engineer) ───────────────────────────────
             $table->foreignId('noted_by_user_id')
-                ->nullable()->constrained('users')->onDelete('set null');
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
             $table->date('noted_date')->nullable();
             $table->text('noted_by_signature')->nullable();
 
             // ── Final Approval / Disapproval ─────────────────────────────────
-            $table->enum('status', ['requested', 'approved', 'disapproved'])->default('requested');
+            $table->enum('status', [
+                'requested',
+                'approved',
+                'disapproved'
+            ])->default('requested');
+
             $table->text('approval_remarks')->nullable();
 
             $table->foreignId('approved_by_user_id')
-                ->nullable()->constrained('users')->onDelete('set null');
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
             $table->date('approved_date')->nullable();
 
             $table->foreignId('disapproved_by_user_id')
-                ->nullable()->constrained('users')->onDelete('set null');
+                ->nullable()
+                ->constrained('users')
+                ->onDelete('set null');
+
             $table->date('disapproved_date')->nullable();
 
             $table->timestamps();
 
-            // ── Indexes ───────────────────────────────────────────────────────
+            // ── Indexes ──────────────────────────────────────────────────────
             $table->index('work_request_id');
             $table->index('contract_number');
             $table->index('current_review_step');
@@ -111,6 +143,7 @@ return new class extends Migration
             $table->index('contractor');
             $table->index('status');
             $table->index('pouring_datetime');
+            $table->index('checklist_filled_by_user_id');
         });
     }
 

@@ -38,7 +38,6 @@
     <div style="flex:1">
         <div class="cp-tl-label" style="display:flex;align-items:center;gap:8px;">
             Step 2 — ME/MTQA Review
-            <span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:1px 8px;font-weight:700;letter-spacing:0.3px;">FINAL</span>
         </div>
         <div class="cp-tl-name">{{ $concretePouring->meMtqaChecker?->name ?? 'Not assigned' }}</div>
 

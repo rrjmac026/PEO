@@ -129,6 +129,51 @@
                 </div>
             </div>
 
+            @if($concretePouring->checklistFilledBy)
+    @php
+        $filler = $concretePouring->checklistFilledBy;
+        $fillerRoleLabel = match($filler->role) {
+            'mtqa'              => 'ME/MTQA',
+            'resident_engineer' => 'Resident Engineer',
+            default             => ucfirst(str_replace('_', ' ', $filler->role)),
+        };
+        $fillerRoleColor = match($filler->role) {
+            'mtqa'              => ['bg'=>'rgba(234,88,12,0.1)',  'color'=>'#ea580c', 'border'=>'rgba(234,88,12,0.3)'],
+            'resident_engineer' => ['bg'=>'rgba(37,99,235,0.1)', 'color'=>'#2563eb', 'border'=>'rgba(37,99,235,0.3)'],
+            default             => ['bg'=>'rgba(100,116,139,0.1)','color'=>'#64748b','border'=>'rgba(100,116,139,0.3)'],
+        };
+    @endphp
+    <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;
+                background:rgba(5,150,105,0.06); border:1px solid rgba(5,150,105,0.25);
+                border-radius:10px; margin-bottom:16px; flex-wrap:wrap;">
+        <div style="width:36px; height:36px; border-radius:50%;
+                    background:rgba(5,150,105,0.15); border:1.5px solid rgba(5,150,105,0.4);
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:15px; color:#059669; flex-shrink:0;">
+            <i class="fas fa-user-check"></i>
+        </div>
+        <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:700; color:var(--cp-text); margin-bottom:2px;">
+                Checked by {{ $filler->name }}
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px;
+                             background:{{ $fillerRoleColor['bg'] }};
+                             color:{{ $fillerRoleColor['color'] }};
+                             border:1px solid {{ $fillerRoleColor['border'] }};">
+                    {{ $fillerRoleLabel }}
+                </span>
+                @if($concretePouring->checklist_filled_at)
+                    <span style="font-size:12px; color:var(--cp-muted);">
+                        <i class="fas fa-clock" style="margin-right:3px; font-size:10px;"></i>
+                        {{ $concretePouring->checklist_filled_at->format('M d, Y · H:i') }}
+                    </span>
+                @endif
+            </div>
+        </div>
+    </div>
+@endif
+
             {{-- Checklist --}}
             @php
                 $checklistItems = [
@@ -281,6 +326,7 @@
                             </div>
                             <div style="flex:1">
                                 <div class="cp-tl-label">Step 3 — ME / MTQA Final Decision</div>
+                                
                                 <div class="cp-tl-name">
                                     @if($concretePouring->status === 'approved')
                                         Approved by {{ $concretePouring->meMtqaChecker?->name ?? '—' }}
