@@ -2,9 +2,9 @@
 {{-- Variables expected: $concretePouring, $canFillChecklist --}}
 
 @php
+    // ── Per-item checker map (latest log entry per field) ──────────────
     $itemCheckers = [];
     foreach ($concretePouring->checklistLogs as $log) {
-        // checklistLogs is ordered latest first, so first occurrence = most recent
         if (!isset($itemCheckers[$log->field])) {
             $itemCheckers[$log->field] = [
                 'user'    => $log->user,
@@ -14,14 +14,55 @@
         }
     }
 
-    // Helper closure to get role label + color for any user
-    $getRoleStyle = function(?string $role): array {
-        return match($role) {
-            'mtqa'              => ['label' => 'ME/MTQA',           'bg' => 'rgba(234,88,12,0.1)',    'color' => '#ea580c', 'border' => 'rgba(234,88,12,0.3)'],
-            'resident_engineer' => ['label' => 'Resident Engineer', 'bg' => 'rgba(37,99,235,0.1)',   'color' => '#2563eb', 'border' => 'rgba(37,99,235,0.3)'],
+    // ── Checklist items map ─────────────────────────────────────────────
+    $checklistItems = [
+        'concrete_vibrator'               => 'Concrete Vibrator',
+        'field_density_test'              => 'Field Density Test',
+        'protective_covering_materials'   => 'Protective Covering Materials',
+        'beam_cylinder_molds'             => 'Beam / Cylinder Molds',
+        'warning_signs_barricades'        => 'Warning Signs & Barricades',
+        'curing_materials'                => 'Curing Materials',
+        'concrete_saw'                    => 'Concrete Saw',
+        'slump_cones'                     => 'Slump Cones',
+        'concrete_block_spacer'           => 'Concrete Block Spacer',
+        'plumbness'                       => 'Plumbness',
+        'finishing_tools_equipment'       => 'Finishing Tools & Equipment',
+        'quality_of_materials'            => 'Quality of Materials',
+        'line_grade_alignment'            => 'Line, Grade & Alignment',
+        'lighting_system'                 => 'Lighting System',
+        'required_construction_equipment' => 'Required Construction Equipment',
+        'electrical_layout'               => 'Electrical Layout',
+        'rebar_sizes_spacing'             => 'Rebar Sizes & Spacing',
+        'plumbing_layout'                 => 'Plumbing Layout',
+        'rebars_installation'             => 'Rebars Installation',
+        'falseworks_formworks'            => 'Falseworks / Formworks',
+    ];
+
+    // ── Role label + colour helper ──────────────────────────────────────
+    $getRoleStyle = function (?string $role): array {
+        return match ($role) {
+            'mtqa'              => ['label' => 'ME/MTQA',           'bg' => 'rgba(234,88,12,0.1)',   'color' => '#ea580c', 'border' => 'rgba(234,88,12,0.3)'],
+            'resident_engineer' => ['label' => 'Resident Engineer', 'bg' => 'rgba(37,99,235,0.1)',  'color' => '#2563eb', 'border' => 'rgba(37,99,235,0.3)'],
             default             => ['label' => ucfirst(str_replace('_', ' ', $role ?? '')), 'bg' => 'rgba(100,116,139,0.1)', 'color' => '#64748b', 'border' => 'rgba(100,116,139,0.3)'],
         };
     };
+
+    // ── Overall filler (most-recent save) ──────────────────────────────
+    $filler         = $concretePouring->checklistFilledBy ?? null; // relation, or fall back:
+    if (!$filler && $concretePouring->checklist_filled_by_user_id) {
+        $filler = \App\Models\User::find($concretePouring->checklist_filled_by_user_id);
+    }
+    $hasBeenFilled  = !is_null($filler);
+    $filledAt       = $concretePouring->checklist_filled_at
+                        ? \Illuminate\Support\Carbon::parse($concretePouring->checklist_filled_at)
+                        : null;
+    $fillerRoleColor = $filler ? $getRoleStyle($filler->role) : $getRoleStyle(null);
+    $fillerRoleLabel = $fillerRoleColor['label'];
+
+    // ── Current authenticated user's role style ─────────────────────────
+    $currentUser      = Auth::user();
+    $currentRoleColor = $getRoleStyle($currentUser->role ?? null);
+    $currentRoleLabel = $currentRoleColor['label'];
 @endphp
 
 <div class="cp-card">

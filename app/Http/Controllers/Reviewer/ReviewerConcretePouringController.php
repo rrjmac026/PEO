@@ -7,6 +7,7 @@ use App\Models\ConcretePouring;
 use App\Models\ConcretePouringLog;
 use App\Services\ConcretePouringNotificationService;
 use Illuminate\Http\Request;
+use App\Models\ConcretePouringChecklistLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
