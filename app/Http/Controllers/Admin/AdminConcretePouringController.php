@@ -113,8 +113,8 @@ class AdminConcretePouringController extends Controller
 
         $stepToCol = [
             'resident_engineer'   => 'resident_engineer_user_id',
-            'provincial_engineer' => 'noted_by_user_id',
-            'mtqa'                => 'me_mtqa_user_id',
+            'mtqa'                => 'me_mtqa_user_id',           // ← step 2
+            'provincial_engineer' => 'noted_by_user_id',          // ← step 3 / final
         ];
 
         $firstStep = null;

@@ -84,36 +84,36 @@
             @csrf
 
             @php
-                // New order: RE (1) → PE (2) → MTQA final decision (3)
+                
                 $slots = [
-                    [
-                        'label'   => 'Resident Engineer',
-                        'name'    => 'resident_engineer_user_id',
-                        'users'   => $residentEngineers,
-                        'step'    => 1,
-                        'current' => $concretePouring->resident_engineer_user_id,
-                        'color'   => '#dbeafe',   // blue tint
-                        'text'    => '#2563eb',
-                    ],
-                    [
-                        'label'   => 'Provincial Engineer',
-                        'name'    => 'noted_by_user_id',
-                        'users'   => $provincialEngineers,
-                        'step'    => 2,
-                        'current' => $concretePouring->noted_by_user_id,
-                        'color'   => '#fef3c7',   // amber tint
-                        'text'    => '#d97706',
-                    ],
-                    [
-                        'label'   => 'ME/MTQA (Final Decision)',
-                        'name'    => 'me_mtqa_user_id',
-                        'users'   => $mtqas,
-                        'step'    => 3,
-                        'current' => $concretePouring->me_mtqa_user_id,
-                        'color'   => '#dcfce7',   // green tint — marks it as the decision step
-                        'text'    => '#16a34a',
-                    ],
-                ];
+                [
+                    'label'   => 'Resident Engineer',
+                    'name'    => 'resident_engineer_user_id',
+                    'users'   => $residentEngineers,
+                    'step'    => 1,
+                    'current' => $concretePouring->resident_engineer_user_id,
+                    'color'   => '#dbeafe',
+                    'text'    => '#2563eb',
+                ],
+                [
+                    'label'   => 'ME / MTQA',
+                    'name'    => 'me_mtqa_user_id',
+                    'users'   => $mtqas,
+                    'step'    => 2,
+                    'current' => $concretePouring->me_mtqa_user_id,
+                    'color'   => '#fef3c7',
+                    'text'    => '#d97706',
+                ],
+                [
+                    'label'   => 'Provincial Engineer (Final Decision)',
+                    'name'    => 'noted_by_user_id',
+                    'users'   => $provincialEngineers,
+                    'step'    => 3,
+                    'current' => $concretePouring->noted_by_user_id,
+                    'color'   => '#dcfce7',
+                    'text'    => '#16a34a',
+                ],
+            ];
             @endphp
 
             @foreach($slots as $slot)
@@ -151,8 +151,8 @@
             {{-- Note explaining the new flow --}}
             <div class="flex items-start gap-3 px-6 py-4" style="background: #f0fdf4; border-top: 1px solid #bbf7d0;">
                 <i class="fas fa-info-circle text-green-600 mt-0.5"></i>
-                <p style="font-size: 13px; color: #166534; margin: 0;">
-                    The <strong>ME/MTQA</strong> reviewer will be the last step and will have the authority to
+                <p style="font-size:13px; color:#166534; margin:0;">
+                    The <strong>Provincial Engineer</strong> reviewer will be the last step and will have the authority to
                     <strong>Approve</strong> or <strong>Disapprove</strong> this concrete pouring request.
                 </p>
             </div>

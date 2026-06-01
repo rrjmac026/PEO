@@ -9,8 +9,8 @@
     <div class="cp-card-body">
         <div class="cp-timeline">
             @include('reviewer.concrete-pouring.partials._step-resident-engineer')
-            @include('reviewer.concrete-pouring.partials._step-provincial-engineer')
             @include('reviewer.concrete-pouring.partials._step-mtqa')
+            @include('reviewer.concrete-pouring.partials._step-provincial-engineer')
         </div>
     </div>
 </div>

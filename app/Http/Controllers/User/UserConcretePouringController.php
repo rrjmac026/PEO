@@ -88,8 +88,8 @@ class UserConcretePouringController extends Controller
         // Determine first review step (same logic as AdminConcretePouringController::assign)
         $stepToCol = [
             'resident_engineer'   => 'resident_engineer_user_id',
-            'provincial_engineer' => 'noted_by_user_id',
-            'mtqa'                => 'me_mtqa_user_id',
+            'mtqa'                => 'me_mtqa_user_id',           // ← step 2
+            'provincial_engineer' => 'noted_by_user_id',          // ← step 3 / final
         ];
 
         $firstStep = null;
@@ -215,8 +215,8 @@ class UserConcretePouringController extends Controller
         // Recalculate first step
         $stepToCol = [
             'resident_engineer'   => 'resident_engineer_user_id',
-            'provincial_engineer' => 'noted_by_user_id',
-            'mtqa'                => 'me_mtqa_user_id',
+            'mtqa'                => 'me_mtqa_user_id',           // ← step 2
+            'provincial_engineer' => 'noted_by_user_id',          // ← step 3 / final
         ];
 
         $firstStep = null;

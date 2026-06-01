@@ -14,14 +14,14 @@ class ReviewerConcretePouringController extends Controller
 {
     const REVIEW_STEPS = [
         'resident_engineer'   => 'resident_engineer_user_id',
-        'provincial_engineer' => 'noted_by_user_id',
-        'mtqa'                => 'me_mtqa_user_id',
+        'mtqa'                => 'me_mtqa_user_id',           // ← moved up
+        'provincial_engineer' => 'noted_by_user_id',          // ← now final
     ];
 
     const REVIEW_STEP_LABELS = [
         'resident_engineer'   => 'Resident Engineer',
-        'provincial_engineer' => 'Provincial Engineer',
-        'mtqa'                => 'ME/MTQA (Final Decision)',
+        'mtqa'                => 'ME/MTQA',
+        'provincial_engineer' => 'Provincial Engineer (Final Decision)', // ← now final
     ];
 
     // =========================================================================
@@ -120,7 +120,8 @@ class ReviewerConcretePouringController extends Controller
             're_signature'  => $this->resolveSignatureValue($request->re_signature, 're_' . $concretePouring->id),
         ]);
 
-        $nextStep = $concretePouring->noted_by_user_id ? 'provincial_engineer' : 'mtqa';
+        // Next step: mtqa (if assigned), else provincial_engineer
+        $nextStep = $concretePouring->me_mtqa_user_id ? 'mtqa' : 'provincial_engineer';
         $concretePouring->update(['current_review_step' => $nextStep]);
 
         $concretePouring->addLog(ConcretePouringLog::EVENT_RE_REVIEWED, [
@@ -141,9 +142,12 @@ class ReviewerConcretePouringController extends Controller
         $this->authorizeStep($concretePouring, 'provincial_engineer');
 
         $request->validate([
+            'decision'           => 'required|in:approved,disapproved',
             'provincial_remarks' => 'nullable|string|max:2000',
             'noted_by_signature' => 'nullable|string',
         ]);
+
+        $oldStatus = $concretePouring->status;
 
         $concretePouring->update([
             'noted_by'           => Auth::id(),
@@ -152,54 +156,20 @@ class ReviewerConcretePouringController extends Controller
             'noted_by_signature' => $this->resolveSignatureValue($request->noted_by_signature, 'pe_' . $concretePouring->id),
         ]);
 
-        $concretePouring->update(['current_review_step' => 'mtqa']);
-
-        $concretePouring->addLog(ConcretePouringLog::EVENT_PE_NOTED, [
-            'description' => 'Provincial Engineer submitted note. Forwarded to ME/MTQA for final decision.',
-            'note'        => $request->provincial_remarks,
-            'review_step' => 'provincial_engineer',
-            'status_from' => $concretePouring->status,
-            'status_to'   => $concretePouring->status,
-        ]);
-
-        ConcretePouringNotificationService::stepAdvanced($concretePouring, 'provincial_engineer');
-
-        return back()->with('success', 'Your Provincial Engineer note has been submitted. Request forwarded to ME/MTQA for final decision.');
-    }
-
-    public function storeMtqaReview(Request $request, ConcretePouring $concretePouring)
-    {
-        $this->authorizeStep($concretePouring, 'mtqa');
-
-        $request->validate([
-            'decision'          => 'required|in:approved,disapproved',
-            'me_mtqa_remarks'   => 'nullable|string|max:2000',
-            'me_mtqa_signature' => 'nullable|string',
-        ]);
-
-        $oldStatus = $concretePouring->status;
-
-        $concretePouring->update([
-            'me_mtqa_checked_by' => Auth::id(),
-            'me_mtqa_date'       => now(),
-            'me_mtqa_remarks'    => $request->me_mtqa_remarks,
-            'me_mtqa_signature'  => $this->resolveSignatureValue($request->me_mtqa_signature, 'mtqa_' . $concretePouring->id),
-        ]);
-
         if ($request->decision === 'approved') {
-            $concretePouring->approve(Auth::user(), $request->me_mtqa_remarks);
+            $concretePouring->approve(Auth::user(), $request->provincial_remarks);
             ConcretePouringNotificationService::approved($concretePouring);
         } else {
-            $concretePouring->disapprove(Auth::user(), $request->me_mtqa_remarks);
+            $concretePouring->disapprove(Auth::user(), $request->provincial_remarks);
             ConcretePouringNotificationService::disapproved($concretePouring);
         }
 
         $concretePouring->update(['current_review_step' => null]);
 
-        $concretePouring->addLog(ConcretePouringLog::EVENT_MTQA_DECIDED, [
-            'description' => 'ME/MTQA made final decision: ' . ucfirst($request->decision) . '.',
-            'note'        => $request->me_mtqa_remarks,
-            'review_step' => 'mtqa',
+        $concretePouring->addLog(ConcretePouringLog::EVENT_PE_NOTED, [
+            'description' => 'Provincial Engineer made final decision: ' . ucfirst($request->decision) . '.',
+            'note'        => $request->provincial_remarks,
+            'review_step' => 'provincial_engineer',
             'status_from' => $oldStatus,
             'status_to'   => $request->decision,
         ]);
@@ -209,6 +179,36 @@ class ReviewerConcretePouringController extends Controller
         return redirect()
             ->route('reviewer.concrete-pouring.index')
             ->with('success', "Concrete pouring request has been {$label} successfully.");
+    }
+
+    public function storeMtqaReview(Request $request, ConcretePouring $concretePouring)
+    {
+        $this->authorizeStep($concretePouring, 'mtqa');
+
+        $request->validate([
+            'me_mtqa_remarks'   => 'nullable|string|max:2000',
+            'me_mtqa_signature' => 'nullable|string',
+        ]);
+
+        $concretePouring->update([
+            'me_mtqa_checked_by' => Auth::id(),
+            'me_mtqa_date'       => now(),
+            'me_mtqa_remarks'    => $request->me_mtqa_remarks,
+            'me_mtqa_signature'  => $this->resolveSignatureValue($request->me_mtqa_signature, 'mtqa_' . $concretePouring->id),
+            'current_review_step' => 'provincial_engineer',
+        ]);
+
+        $concretePouring->addLog(ConcretePouringLog::EVENT_MTQA_DECIDED, [
+            'description' => 'ME/MTQA submitted review. Forwarded to Provincial Engineer for final decision.',
+            'note'        => $request->me_mtqa_remarks,
+            'review_step' => 'mtqa',
+            'status_from' => $concretePouring->status,
+            'status_to'   => $concretePouring->status,
+        ]);
+
+        ConcretePouringNotificationService::stepAdvanced($concretePouring, 'mtqa');
+
+        return back()->with('success', 'Your ME/MTQA review has been submitted. Request forwarded to Provincial Engineer for final decision.');
     }
 
     // =========================================================================
