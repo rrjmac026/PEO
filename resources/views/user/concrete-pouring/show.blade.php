@@ -153,7 +153,9 @@
                     'rebars_installation'             => 'Rebars Installation',
                     'falseworks_formworks'            => 'Falseworks / Formworks',
                 ];
-                $checkedCount = collect(array_keys($checklistItems))->filter(fn($f) => $concretePouring->$f)->count();
+                $checkedCount = collect(array_keys($checklistItems))
+                    ->filter(fn($f) => $concretePouring->$f)
+                    ->count();
             @endphp
             <div class="cp-card">
                 <div class="cp-card-head">

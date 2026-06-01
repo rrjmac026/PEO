@@ -299,6 +299,8 @@ Route::prefix('reviewer')->name('reviewer.')
 
         Route::get('/',                  [ReviewerConcretePouringController::class, 'index'])->name('index');
         Route::get('/{concretePouring}', [ReviewerConcretePouringController::class, 'show'])->name('show');
+        Route::post('/{concretePouring}/checklist', [ReviewerConcretePouringController::class, 'storeChecklist'])
+        ->name('store-checklist');
 
         Route::post('/{concretePouring}/mtqa-review',
             [ReviewerConcretePouringController::class, 'storeMtqaReview'])

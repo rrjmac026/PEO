@@ -88,7 +88,6 @@ class ReviewerConcretePouringController extends Controller
         if (!$this->userIsAssignedAnywhere($concretePouring, $user)) {
             abort(403, 'You are not assigned to this concrete pouring request.');
         }
-        
 
         $concretePouring->load([
             'workRequest', 'requestedBy', 'meMtqaChecker',
@@ -97,7 +96,63 @@ class ReviewerConcretePouringController extends Controller
 
         $isMyTurn = $this->isCurrentReviewer($concretePouring, $user);
 
-        return view('reviewer.concrete-pouring.show', compact('concretePouring', 'isMyTurn'));
+        // Only MTQA or Resident Engineer can fill the checklist, and only after approval
+        $canFillChecklist = $concretePouring->status === 'approved'
+            && in_array($user->role, ['mtqa', 'resident_engineer'])
+            && (
+                $concretePouring->me_mtqa_user_id == $user->id
+                || $concretePouring->resident_engineer_user_id == $user->id
+            );
+
+        return view('reviewer.concrete-pouring.show', compact(
+            'concretePouring', 'isMyTurn', 'canFillChecklist'
+        ));
+    }
+
+    public function storeChecklist(Request $request, ConcretePouring $concretePouring)
+    {
+        $user = Auth::user();
+
+        // Only approved requests can have the checklist filled
+        if ($concretePouring->status !== 'approved') {
+            abort(403, 'Checklist can only be filled after the request is approved.');
+        }
+
+        // Only assigned MTQA or RE can fill it
+        if (!in_array($user->role, ['mtqa', 'resident_engineer'])) {
+            abort(403, 'You are not authorized to fill the checklist.');
+        }
+
+        if (
+            $concretePouring->me_mtqa_user_id != $user->id
+            && $concretePouring->resident_engineer_user_id != $user->id
+        ) {
+            abort(403, 'You are not assigned to this concrete pouring request.');
+        }
+
+        $checklistFields = [
+            'concrete_vibrator', 'field_density_test', 'protective_covering_materials',
+            'beam_cylinder_molds', 'warning_signs_barricades', 'curing_materials',
+            'concrete_saw', 'slump_cones', 'concrete_block_spacer', 'plumbness',
+            'finishing_tools_equipment', 'quality_of_materials', 'line_grade_alignment',
+            'lighting_system', 'required_construction_equipment', 'electrical_layout',
+            'rebar_sizes_spacing', 'plumbing_layout', 'rebars_installation',
+            'falseworks_formworks',
+        ];
+
+        $data = [];
+        foreach ($checklistFields as $field) {
+            $data[$field] = $request->boolean($field);
+        }
+
+        $concretePouring->update($data);
+
+        $concretePouring->addLog(ConcretePouringLog::EVENT_UPDATED, [
+            'description' => 'Checklist updated by ' . $user->name . ' (' . $user->role . ') after approval.',
+            'review_step' => null,
+        ]);
+
+        return back()->with('success', 'Checklist saved successfully!');
     }
 
     // =========================================================================

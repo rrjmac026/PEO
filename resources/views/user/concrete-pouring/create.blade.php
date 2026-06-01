@@ -164,48 +164,6 @@
                             </div>
                         </div>
 
-                        {{-- ── Section 2: Checklist ── --}}
-                        <div class="cp-form-section">
-                            <p class="cp-section-title">Pre-Pouring Checklist</p>
-                            <p class="cp-section-sub">Check all items that have been verified and are ready.</p>
-
-                            @php
-                                $checklistItems = [
-                                    'concrete_vibrator'               => 'Concrete Vibrator',
-                                    'field_density_test'              => 'Field Density Test',
-                                    'protective_covering_materials'   => 'Protective Covering Materials',
-                                    'beam_cylinder_molds'             => 'Beam / Cylinder Molds',
-                                    'warning_signs_barricades'        => 'Warning Signs & Barricades',
-                                    'curing_materials'                => 'Curing Materials',
-                                    'concrete_saw'                    => 'Concrete Saw',
-                                    'slump_cones'                     => 'Slump Cones',
-                                    'concrete_block_spacer'           => 'Concrete Block Spacer',
-                                    'plumbness'                       => 'Plumbness',
-                                    'finishing_tools_equipment'       => 'Finishing Tools & Equipment',
-                                    'quality_of_materials'            => 'Quality of Materials',
-                                    'line_grade_alignment'            => 'Line, Grade & Alignment',
-                                    'lighting_system'                 => 'Lighting System',
-                                    'required_construction_equipment' => 'Required Construction Equipment',
-                                    'electrical_layout'               => 'Electrical Layout',
-                                    'rebar_sizes_spacing'             => 'Rebar Sizes & Spacing',
-                                    'plumbing_layout'                 => 'Plumbing Layout',
-                                    'rebars_installation'             => 'Rebars Installation',
-                                    'falseworks_formworks'            => 'Falseworks / Formworks',
-                                ];
-                            @endphp
-
-                            <div class="cp-checklist-check">
-                                @foreach($checklistItems as $field => $label)
-                                    <label class="cp-check-label">
-                                        <input type="checkbox" name="{{ $field }}" value="1"
-                                               {{ old($field) ? 'checked' : '' }}>
-                                        <span class="cp-check-box"><i class="fas fa-check"></i></span>
-                                        {{ $label }}
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-
                         {{-- ── Section 3: Assign Reviewers ── --}}
                         <div class="cp-form-section">
                             <p class="cp-section-title">Assign Reviewers</p>

@@ -75,12 +75,7 @@ class UserConcretePouringController extends Controller
             'resident_engineer_user_id' => 'nullable|exists:users,id',
             'noted_by_user_id'          => 'nullable|exists:users,id',
             'me_mtqa_user_id'           => 'nullable|exists:users,id',
-            ...$this->checklistRules(),
         ]);
-
-        foreach ($this->checklistFields() as $field) {
-            $validated[$field] = $request->boolean($field);
-        }
 
         $validated['requested_by_user_id'] = Auth::id();
         $validated['status']               = 'requested';
@@ -205,12 +200,7 @@ class UserConcretePouringController extends Controller
             'resident_engineer_user_id' => 'nullable|exists:users,id',
             'noted_by_user_id'          => 'nullable|exists:users,id',
             'me_mtqa_user_id'           => 'nullable|exists:users,id',
-            ...$this->checklistRules(),
         ]);
-
-        foreach ($this->checklistFields() as $field) {
-            $validated[$field] = $request->boolean($field);
-        }
 
         // Recalculate first step
         $stepToCol = [

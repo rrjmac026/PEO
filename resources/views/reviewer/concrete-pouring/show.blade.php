@@ -35,7 +35,10 @@
 
             @include('reviewer.concrete-pouring.partials._hero')
             @include('reviewer.concrete-pouring.partials._project-info')
-            @include('reviewer.concrete-pouring.partials._checklist')
+            @include('reviewer.concrete-pouring.partials._checklist-fill', [
+                'concretePouring' => $concretePouring,
+                'canFillChecklist' => $canFillChecklist,
+            ])
             @include('reviewer.concrete-pouring.partials._pipeline')
 
             {{-- Not my turn notice --}}
