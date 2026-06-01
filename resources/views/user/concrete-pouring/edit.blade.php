@@ -181,6 +181,68 @@
                             </div>
                         </div>
 
+                        {{-- ── Assign / Update Reviewers ── --}}
+                        <div class="cp-form-section">
+                            <p class="cp-section-title">Assign Reviewers</p>
+                            <p class="cp-section-sub">
+                                Update reviewer assignments. Changes take effect immediately.
+                                Pipeline: <strong>Resident Engineer → Provincial Engineer → ME/MTQA (Final Decision)</strong>.
+                            </p>
+
+                            @php
+                                $reviewerSlots = [
+                                    ['step'=>1,'label'=>'Resident Engineer',  'name'=>'resident_engineer_user_id','users'=>$residentEngineers,  'color'=>'#dbeafe','text'=>'#2563eb','final'=>false],
+                                    ['step'=>2,'label'=>'Provincial Engineer','name'=>'noted_by_user_id',         'users'=>$provincialEngineers,'color'=>'#fef3c7','text'=>'#d97706','final'=>false],
+                                    ['step'=>3,'label'=>'ME / MTQA',          'name'=>'me_mtqa_user_id',           'users'=>$mtqas,             'color'=>'#dcfce7','text'=>'#16a34a','final'=>true],
+                                ];
+                            @endphp
+
+                            <div style="border:1px solid var(--cp-border); border-radius:10px; overflow:hidden;">
+                                @foreach($reviewerSlots as $slot)
+                                    <div style="display:flex; align-items:center; gap:16px; padding:14px 18px;
+                                                {{ !$loop->last ? 'border-bottom:1px solid var(--cp-border);' : '' }}">
+                                        <div style="width:32px; height:32px; border-radius:50%;
+                                                    background:{{ $slot['color'] }}; color:{{ $slot['text'] }};
+                                                    font-size:12px; font-weight:700; flex-shrink:0;
+                                                    display:flex; align-items:center; justify-content:center;">
+                                            {{ $slot['step'] }}
+                                        </div>
+                                        <div style="width:200px; flex-shrink:0;">
+                                            <div style="font-size:14px; font-weight:500; color:var(--cp-text);">
+                                                {{ $slot['label'] }}
+                                                @if($slot['final'])
+                                                    <span style="font-size:11px; background:#dcfce7; color:#16a34a;
+                                                                border-radius:20px; padding:1px 8px; margin-left:4px; font-weight:600;">FINAL</span>
+                                                @endif
+                                            </div>
+                                            <div style="font-size:12px; color:var(--cp-muted);">Leave blank to skip</div>
+                                        </div>
+                                        <div style="flex:1;">
+                                            <select name="{{ $slot['name'] }}" class="cp-select">
+                                                <option value="">— Skip this step —</option>
+                                                @foreach($slot['users'] as $u)
+                                                    <option value="{{ $u->id }}"
+                                                        {{ old($slot['name'], $concretePouring->{$slot['name']}) == $u->id ? 'selected' : '' }}>
+                                                        {{ $u->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error($slot['name'])
+                                                <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                @endforeach
+                                <div style="padding:12px 18px; background:#f0fdf4; border-top:1px solid #bbf7d0;
+                                            display:flex; align-items:flex-start; gap:10px;">
+                                    <i class="fas fa-info-circle" style="color:#16a34a; margin-top:2px; flex-shrink:0;"></i>
+                                    <p style="font-size:13px; color:#166534; margin:0;">
+                                        The <strong>ME/MTQA</strong> reviewer makes the final decision.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex justify-end gap-3">
                             <a href="{{ route('user.concrete-pouring.show', $concretePouring) }}"
                                class="px-5 py-2.5 bg-gray-500 text-white text-sm font-semibold rounded-lg hover:bg-gray-600 transition">

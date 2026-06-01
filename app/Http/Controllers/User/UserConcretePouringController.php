@@ -49,21 +49,32 @@ class UserConcretePouringController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('user.concrete-pouring.create', compact('workRequest', 'approvedWorkRequests'));
+        $residentEngineers   = \App\Models\User::where('role', 'resident_engineer')->orderBy('name')->get();
+        $provincialEngineers = \App\Models\User::where('role', 'provincial_engineer')->orderBy('name')->get();
+        $mtqas               = \App\Models\User::where('role', 'mtqa')->orderBy('name')->get();
+
+        return view('user.concrete-pouring.create', compact(
+            'workRequest', 'approvedWorkRequests',
+            'residentEngineers', 'provincialEngineers', 'mtqas'
+        ));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'work_request_id'        => 'nullable|exists:work_requests,id',
-            'contract_number'       => 'nullable|string|max:50|unique:concrete_pourings,contract_number',
-            'project_name'           => 'required|string|max:255',
-            'location'               => 'required|string|max:255',
-            'contractor'             => 'required|string|max:255',
-            'part_of_structure'      => 'required|string|max:255',
-            'estimated_volume'       => 'required|numeric|min:0|max:9999.99',
-            'station_limits_section' => 'nullable|string|max:255',
-            'pouring_datetime'       => 'required|date|after:now',
+            'work_request_id'           => 'nullable|exists:work_requests,id',
+            'contract_number'           => 'nullable|string|max:50|unique:concrete_pourings,contract_number',
+            'project_name'              => 'required|string|max:255',
+            'location'                  => 'required|string|max:255',
+            'contractor'                => 'required|string|max:255',
+            'part_of_structure'         => 'required|string|max:255',
+            'estimated_volume'          => 'required|numeric|min:0|max:9999.99',
+            'station_limits_section'    => 'nullable|string|max:255',
+            'pouring_datetime'          => 'required|date|after:now',
+            // Reviewer assignments
+            'resident_engineer_user_id' => 'nullable|exists:users,id',
+            'noted_by_user_id'          => 'nullable|exists:users,id',
+            'me_mtqa_user_id'           => 'nullable|exists:users,id',
             ...$this->checklistRules(),
         ]);
 
@@ -74,18 +85,64 @@ class UserConcretePouringController extends Controller
         $validated['requested_by_user_id'] = Auth::id();
         $validated['status']               = 'requested';
 
+        // Determine first review step (same logic as AdminConcretePouringController::assign)
+        $stepToCol = [
+            'resident_engineer'   => 'resident_engineer_user_id',
+            'provincial_engineer' => 'noted_by_user_id',
+            'mtqa'                => 'me_mtqa_user_id',
+        ];
+
+        $firstStep = null;
+        foreach ($stepToCol as $step => $col) {
+            if (!empty($validated[$col])) {
+                $firstStep = $step;
+                break;
+            }
+        }
+
+        if ($firstStep) {
+            $validated['current_review_step']  = $firstStep;
+            $validated['assigned_by_admin_id'] = Auth::id(); // contractor acts as assigner
+            $validated['assigned_at']          = now();
+        }
+
         $concretePouring = ConcretePouring::create($validated);
 
+        // Build assignment log description
+        $assignedLabels = [];
+        if (!empty($validated['resident_engineer_user_id'])) {
+            $u = \App\Models\User::find($validated['resident_engineer_user_id']);
+            if ($u) $assignedLabels[] = "Resident Engineer: {$u->name}";
+        }
+        if (!empty($validated['noted_by_user_id'])) {
+            $u = \App\Models\User::find($validated['noted_by_user_id']);
+            if ($u) $assignedLabels[] = "Provincial Engineer: {$u->name}";
+        }
+        if (!empty($validated['me_mtqa_user_id'])) {
+            $u = \App\Models\User::find($validated['me_mtqa_user_id']);
+            if ($u) $assignedLabels[] = "ME/MTQA: {$u->name}";
+        }
+
         $concretePouring->addLog(ConcretePouringLog::EVENT_SUBMITTED, [
-            'description' => 'Concrete pouring request submitted by contractor.',
+            'description' => 'Concrete pouring request submitted by contractor.'
+                . ($assignedLabels ? ' Reviewers: ' . implode(', ', $assignedLabels) . '.' : ''),
             'status_to'   => 'requested',
         ]);
 
-        ConcretePouringNotificationService::submitted($concretePouring);
+        if ($firstStep) {
+            $concretePouring->addLog(ConcretePouringLog::EVENT_ASSIGNED, [
+                'description' => 'Reviewers assigned by contractor. ' . implode(', ', $assignedLabels) . '. First step: ' . $firstStep . '.',
+                'review_step' => $firstStep,
+            ]);
+            ConcretePouringNotificationService::assigned($concretePouring);
+        } else {
+            ConcretePouringNotificationService::submitted($concretePouring);
+        }
 
         return redirect()
             ->route('user.concrete-pouring.show', $concretePouring)
-            ->with('success', 'Concrete pouring request submitted successfully! Awaiting admin assignment.');
+            ->with('success', 'Concrete pouring request submitted successfully!'
+                . ($firstStep ? ' Reviewers have been notified.' : ' Awaiting reviewer assignment.'));
     }
 
     public function show(ConcretePouring $concretePouring)
@@ -104,43 +161,76 @@ class UserConcretePouringController extends Controller
     {
         $this->authorizeOwner($concretePouring);
 
-        if ($concretePouring->status !== 'requested' || !is_null($concretePouring->me_mtqa_user_id)) {
+        if ($concretePouring->status !== 'requested' || !is_null($concretePouring->re_date)) {
             return redirect()
                 ->route('user.concrete-pouring.show', $concretePouring)
-                ->with('error', 'This request can no longer be edited once reviewers have been assigned.');
+                ->with('error', 'This request can no longer be edited once a review has been submitted.');
         }
+
+        $residentEngineers   = \App\Models\User::where('role', 'resident_engineer')->orderBy('name')->get();
+        $provincialEngineers = \App\Models\User::where('role', 'provincial_engineer')->orderBy('name')->get();
+        $mtqas               = \App\Models\User::where('role', 'mtqa')->orderBy('name')->get();
 
         $approvedWorkRequests = WorkRequest::where('contractor_name', Auth::user()->name)
             ->where('status', WorkRequest::STATUS_APPROVED)
             ->orderByDesc('created_at')
             ->get();
 
-        return view('user.concrete-pouring.edit', compact('concretePouring', 'approvedWorkRequests'));
+        return view('user.concrete-pouring.edit', compact(
+            'concretePouring', 'approvedWorkRequests',
+            'residentEngineers', 'provincialEngineers', 'mtqas'
+        ));
     }
 
     public function update(Request $request, ConcretePouring $concretePouring)
     {
         $this->authorizeOwner($concretePouring);
 
-        if ($concretePouring->status !== 'requested' || !is_null($concretePouring->me_mtqa_user_id)) {
-            return back()->with('error', 'This request can no longer be edited once reviewers have been assigned.');
+        // Block edit if already in review (any reviewer has acted)
+        if ($concretePouring->status !== 'requested' || !is_null($concretePouring->re_date)) {
+            return back()->with('error', 'This request can no longer be edited once a review has been submitted.');
         }
 
         $validated = $request->validate([
-            'work_request_id'        => 'nullable|exists:work_requests,id',
-            'contract_number'       => 'nullable|string|max:50|unique:concrete_pourings,contract_number,' . $concretePouring->id,
-            'project_name'           => 'required|string|max:255',
-            'location'               => 'required|string|max:255',
-            'contractor'             => 'required|string|max:255',
-            'part_of_structure'      => 'required|string|max:255',
-            'estimated_volume'       => 'required|numeric|min:0|max:9999.99',
-            'station_limits_section' => 'nullable|string|max:255',
-            'pouring_datetime'       => 'required|date',
+            'work_request_id'           => 'nullable|exists:work_requests,id',
+            'contract_number'           => 'nullable|string|max:50|unique:concrete_pourings,contract_number,' . $concretePouring->id,
+            'project_name'              => 'required|string|max:255',
+            'location'                  => 'required|string|max:255',
+            'contractor'                => 'required|string|max:255',
+            'part_of_structure'         => 'required|string|max:255',
+            'estimated_volume'          => 'required|numeric|min:0|max:9999.99',
+            'station_limits_section'    => 'nullable|string|max:255',
+            'pouring_datetime'          => 'required|date',
+            // Reviewer assignments
+            'resident_engineer_user_id' => 'nullable|exists:users,id',
+            'noted_by_user_id'          => 'nullable|exists:users,id',
+            'me_mtqa_user_id'           => 'nullable|exists:users,id',
             ...$this->checklistRules(),
         ]);
 
         foreach ($this->checklistFields() as $field) {
             $validated[$field] = $request->boolean($field);
+        }
+
+        // Recalculate first step
+        $stepToCol = [
+            'resident_engineer'   => 'resident_engineer_user_id',
+            'provincial_engineer' => 'noted_by_user_id',
+            'mtqa'                => 'me_mtqa_user_id',
+        ];
+
+        $firstStep = null;
+        foreach ($stepToCol as $step => $col) {
+            if (!empty($validated[$col])) {
+                $firstStep = $step;
+                break;
+            }
+        }
+
+        $validated['current_review_step'] = $firstStep;
+        if ($firstStep && is_null($concretePouring->assigned_at)) {
+            $validated['assigned_by_admin_id'] = Auth::id();
+            $validated['assigned_at']          = now();
         }
 
         $changes = $concretePouring->buildChanges($validated);

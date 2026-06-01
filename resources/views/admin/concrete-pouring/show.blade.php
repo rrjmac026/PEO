@@ -11,10 +11,11 @@
                 Concrete Pouring — Detail
             </h2>
             <div class="flex items-center gap-2 flex-wrap">
-                <a href="{{ route('admin.concrete-pouring.assign-form', $concretePouring) }}"
-                   class="inline-flex items-center px-4 py-2 bg-blue-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition">
-                    <i class="fas fa-user-plus mr-2"></i> Assign Reviewers
-                </a>
+                @if(is_null($concretePouring->current_review_step))
+                    <a href="{{ route('admin.concrete-pouring.assign-form', $concretePouring) }}" ...>
+                        <i class="fas fa-user-plus mr-2"></i> Assign Reviewers
+                    </a>
+                @endif
                 <a href="{{ route('admin.concrete-pouring.print', $concretePouring) }}"
                    target="_blank"
                    class="inline-flex items-center px-4 py-2 bg-gray-500 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-600 transition">
