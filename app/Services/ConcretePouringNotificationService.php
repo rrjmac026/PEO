@@ -15,13 +15,8 @@ use Illuminate\Support\Facades\Mail;
 
 class ConcretePouringNotificationService
 {
-    /**
-     * Contractor submitted a new Concrete Pouring request.
-     * → Notify: contractor (confirmation) + all admins (action needed).
-     */
     public static function submitted(ConcretePouring $cp): void
     {
-        // Contractor confirmation
         Notification::send(
             $cp->requested_by_user_id,
             'concrete_pouring',
@@ -31,7 +26,6 @@ class ConcretePouringNotificationService
             $cp
         );
 
-        // All admins — in-app + email
         $admins = User::where('role', 'admin')->get();
         if ($admins->isEmpty()) return;
 
@@ -46,7 +40,7 @@ class ConcretePouringNotificationService
 
         foreach ($admins as $admin) {
             try {
-                Mail::to($admin->email)->queue(new ConcretePouringSubmittedMail($cp));
+                Mail::to($admin->email)->send(new ConcretePouringSubmittedMail($cp));
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringSubmittedMail failed', [
                     'to'    => $admin->email,
@@ -56,10 +50,6 @@ class ConcretePouringNotificationService
         }
     }
 
-    /**
-     * Contractor updated their Concrete Pouring request.
-     * → Notify: contractor (confirmation) only.
-     */
     public static function updated(ConcretePouring $cp): void
     {
         Notification::send(
@@ -70,15 +60,8 @@ class ConcretePouringNotificationService
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
-        // No email on update — in-app only, same as before.
     }
 
-    /**
-     * Contractor deleted their Concrete Pouring request.
-     * → Notify: contractor (confirmation) only.
-     *
-     * Pass $contractorId separately since the record will be deleted before this runs.
-     */
     public static function deleted(int $contractorId, string $contractNumber, string $projectName): void
     {
         Notification::send(
@@ -89,16 +72,10 @@ class ConcretePouringNotificationService
             route('user.concrete-pouring.index'),
             null
         );
-        // No email on delete — record is gone, no model to pass to a Mailable.
     }
 
-    /**
-     * Admin assigned reviewers to a Concrete Pouring request.
-     * → Notify: contractor (under review) + each assigned reviewer (queued or active turn).
-     */
     public static function assigned(ConcretePouring $cp): void
     {
-        // Notify contractor that review has started
         Notification::send(
             $cp->requested_by_user_id,
             'concrete_pouring',
@@ -123,7 +100,6 @@ class ConcretePouringNotificationService
 
             $isFirst = $cp->current_review_step === $step;
 
-            // In-app notification
             if ($isFirst) {
                 Notification::send(
                     $userId,
@@ -144,9 +120,8 @@ class ConcretePouringNotificationService
                 );
             }
 
-            // Email notification
             try {
-                Mail::to($reviewer->email)->queue(
+                Mail::to($reviewer->email)->send(
                     new ConcretePouringAssignedMail($cp, $meta['label'], $isFirst)
                 );
             } catch (\Throwable $e) {
@@ -159,10 +134,6 @@ class ConcretePouringNotificationService
         }
     }
 
-    /**
-     * A reviewer signed and submitted their step.
-     * → Notify: all admins + every OTHER assigned reviewer (not the signer).
-     */
     public static function signatureSubmitted(
         ConcretePouring $cp,
         string          $roleLabel,
@@ -170,7 +141,6 @@ class ConcretePouringNotificationService
     ): void {
         $message = "{$roleLabel} has signed and submitted their review for concrete pouring request {$cp->contract_number} ({$cp->project_name}).";
 
-        // All admins — in-app only (no dedicated mail for this event)
         $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
         if (!empty($adminIds)) {
             Notification::send(
@@ -183,7 +153,6 @@ class ConcretePouringNotificationService
             );
         }
 
-        // Every OTHER assigned reviewer — in-app only
         $reviewerCols = [
             'resident_engineer_user_id' => 'Resident Engineer',
             'noted_by_user_id'          => 'Provincial Engineer',
@@ -205,15 +174,10 @@ class ConcretePouringNotificationService
         }
     }
 
-    /**
-     * Review step advanced to the next reviewer.
-     * → Notify next reviewer: in-app + email.
-     */
     public static function stepAdvanced(ConcretePouring $cp, string $completedStep = ''): void
     {
         $nextStep = $cp->current_review_step;
 
-        // No next step — MTQA has made the final decision; nothing to notify here.
         if (is_null($nextStep)) {
             return;
         }
@@ -247,7 +211,6 @@ class ConcretePouringNotificationService
             ? "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) has completed all reviews and is awaiting your final decision as {$nextLabel}."
             : "It is now your turn as {$nextLabel} to review concrete pouring request {$cp->contract_number} ({$cp->project_name}).";
 
-        // In-app notification
         Notification::send(
             $cp->$col,
             'concrete_pouring',
@@ -257,12 +220,10 @@ class ConcretePouringNotificationService
             $cp
         );
 
-        // Email notification
         try {
-            Mail::to($nextReviewer->email)->queue(
+            Mail::to($nextReviewer->email)->send(
                 new ConcretePouringStepAdvancedMail(
                     $cp,
-                    // completedByName — resolve from the completed step's assigned user
                     self::resolveReviewerName($cp, $completedStep),
                     $completedStep,
                     $nextLabel
@@ -276,14 +237,8 @@ class ConcretePouringNotificationService
         }
     }
 
-    /**
-     * Provincial Engineer submitted their note — pipeline goes to MTQA.
-     * → Notify: all admins + MTQA reviewer.
-     * (This is now handled by stepAdvanced(); kept for backwards compat.)
-     */
     public static function readyForDecision(ConcretePouring $cp): void
     {
-        // All admins — in-app only
         $adminIds = User::where('role', 'admin')->pluck('id')->toArray();
         if (!empty($adminIds)) {
             Notification::send(
@@ -296,7 +251,6 @@ class ConcretePouringNotificationService
             );
         }
 
-        // MTQA reviewer — in-app only (stepAdvanced() already sends the email)
         if ($cp->me_mtqa_user_id) {
             Notification::send(
                 $cp->me_mtqa_user_id,
@@ -309,15 +263,10 @@ class ConcretePouringNotificationService
         }
     }
 
-    /**
-     * Concrete Pouring request approved.
-     * → Notify: contractor + all assigned reviewers (in-app + email).
-     */
     public static function approved(ConcretePouring $cp): void
     {
         $remarksNote = $cp->approval_remarks ? " Remarks: {$cp->approval_remarks}" : '';
 
-        // Contractor — in-app
         Notification::send(
             $cp->requested_by_user_id,
             'concrete_pouring',
@@ -327,11 +276,10 @@ class ConcretePouringNotificationService
             $cp
         );
 
-        // Contractor — email
         $contractor = User::find($cp->requested_by_user_id);
         if ($contractor) {
             try {
-                Mail::to($contractor->email)->queue(new ConcretePouringApprovedMail($cp));
+                Mail::to($contractor->email)->send(new ConcretePouringApprovedMail($cp));
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringApprovedMail (contractor) failed', [
                     'to'    => $contractor->email,
@@ -340,7 +288,6 @@ class ConcretePouringNotificationService
             }
         }
 
-        // All assigned reviewers — in-app + email
         self::notifyAllReviewers(
             $cp,
             '✅ Concrete Pouring Request Approved',
@@ -349,15 +296,10 @@ class ConcretePouringNotificationService
         );
     }
 
-    /**
-     * Concrete Pouring request disapproved.
-     * → Notify: contractor + all assigned reviewers (in-app + email).
-     */
     public static function disapproved(ConcretePouring $cp): void
     {
         $remarksNote = $cp->approval_remarks ? " Remarks: {$cp->approval_remarks}" : '';
 
-        // Contractor — in-app
         Notification::send(
             $cp->requested_by_user_id,
             'concrete_pouring',
@@ -367,11 +309,10 @@ class ConcretePouringNotificationService
             $cp
         );
 
-        // Contractor — email
         $contractor = User::find($cp->requested_by_user_id);
         if ($contractor) {
             try {
-                Mail::to($contractor->email)->queue(new ConcretePouringDisapprovedMail($cp));
+                Mail::to($contractor->email)->send(new ConcretePouringDisapprovedMail($cp));
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringDisapprovedMail (contractor) failed', [
                     'to'    => $contractor->email,
@@ -380,7 +321,6 @@ class ConcretePouringNotificationService
             }
         }
 
-        // All assigned reviewers — in-app + email
         self::notifyAllReviewers(
             $cp,
             '❌ Concrete Pouring Request Disapproved',
@@ -389,12 +329,6 @@ class ConcretePouringNotificationService
         );
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
-
-    /**
-     * Send in-app + email to all assigned reviewers (RE, PE, MTQA).
-     * $mailInstance is already constructed so all three share one object.
-     */
     private static function notifyAllReviewers(
         ConcretePouring $cp,
         string          $title,
@@ -421,7 +355,7 @@ class ConcretePouringNotificationService
         $reviewers = User::whereIn('id', $reviewerIds)->get();
         foreach ($reviewers as $reviewer) {
             try {
-                Mail::to($reviewer->email)->queue($mailInstance);
+                Mail::to($reviewer->email)->send($mailInstance);
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringReviewerMail failed', [
                     'to'    => $reviewer->email,
@@ -432,9 +366,6 @@ class ConcretePouringNotificationService
         }
     }
 
-    /**
-     * Resolve the display name of the user assigned to a given review step.
-     */
     private static function resolveReviewerName(ConcretePouring $cp, string $step): string
     {
         $stepToCol = [
