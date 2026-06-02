@@ -18,7 +18,7 @@ return new class extends Migration
                 ->onDelete('set null');
 
             // ── Contract Number ─────────────────────────────────────────────
-            $table->string('contract_number')->nullable()->unique()
+            $table->string('contract_number')->nullable()
                 ->comment('e.g. CP-2025-0001 — auto-generated or set by admin');
 
             // ── Project Information ──────────────────────────────────────────

@@ -71,7 +71,7 @@ class UserConcretePouringController extends Controller
     {
         $validated = $request->validate([
             'work_request_id'           => 'nullable|exists:work_requests,id',
-            'contract_number'           => 'nullable|string|max:50|unique:concrete_pourings,contract_number',
+            'contract_number'           => 'nullable|string|max:50',
             'project_name'              => 'required|string|max:255',
             'location'                  => 'required|string|max:255',
             'contractor'                => 'required|string|max:255',
@@ -198,7 +198,7 @@ class UserConcretePouringController extends Controller
 
         $validated = $request->validate([
             'work_request_id'           => 'nullable|exists:work_requests,id',
-            'contract_number'           => 'nullable|string|max:50|unique:concrete_pourings,contract_number,' . $concretePouring->id,
+            'contract_number'           => 'nullable|string|max:50,' . $concretePouring->id,
             'project_name'              => 'required|string|max:255',
             'location'                  => 'required|string|max:255',
             'contractor'                => 'required|string|max:255',
