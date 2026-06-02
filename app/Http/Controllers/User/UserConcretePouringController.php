@@ -49,12 +49,20 @@ class UserConcretePouringController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // ── Existing contract numbers for the combobox ──────────────
+        $contractNumbers = ConcretePouring::whereNotNull('contract_number')
+            ->where('contract_number', '!=', '')
+            ->distinct()
+            ->orderBy('contract_number')
+            ->pluck('contract_number')
+            ->values();
+
         $residentEngineers   = \App\Models\User::where('role', 'resident_engineer')->orderBy('name')->get();
         $provincialEngineers = \App\Models\User::where('role', 'provincial_engineer')->orderBy('name')->get();
         $mtqas               = \App\Models\User::where('role', 'mtqa')->orderBy('name')->get();
 
         return view('user.concrete-pouring.create', compact(
-            'workRequest', 'approvedWorkRequests',
+            'workRequest', 'approvedWorkRequests', 'contractNumbers',
             'residentEngineers', 'provincialEngineers', 'mtqas'
         ));
     }

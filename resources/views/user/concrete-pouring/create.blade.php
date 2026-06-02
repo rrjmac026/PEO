@@ -49,6 +49,117 @@
                 padding-bottom: 28px; margin-bottom: 28px;
             }
             .cp-form-section:last-child { border-bottom: none; }
+
+            /* ── Contract Number Combobox ───────────────────────────────── */
+            #cpRefField { position: relative; }
+
+            .cp-ref-trigger {
+                display: flex; align-items: center; gap: 10px;
+                width: 100%; height: 44px; padding: 0 14px;
+                background: var(--cp-surface2);
+                border: 1.5px solid var(--cp-border);
+                border-radius: 8px;
+                cursor: pointer; user-select: none;
+                transition: border-color .18s, box-shadow .18s;
+                box-sizing: border-box;
+                color: var(--cp-text);
+            }
+            .cp-ref-trigger:hover { border-color: #06b6d4; }
+            .cp-ref-trigger.open {
+                border-color: #06b6d4;
+                box-shadow: 0 0 0 3px rgba(6,182,212,0.15);
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+            .cp-ref-trigger-icon {
+                font-size: 14px; font-weight: 700;
+                color: var(--cp-muted); flex-shrink: 0; line-height: 1;
+            }
+            .cp-ref-display {
+                flex: 1; font-size: 14px;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                color: var(--cp-text);
+            }
+            .cp-ref-placeholder { color: var(--cp-muted) !important; }
+
+            .cp-ref-clear-btn {
+                background: none; border: none; cursor: pointer;
+                color: var(--cp-muted); font-size: 13px;
+                width: 22px; height: 22px; border-radius: 50%;
+                display: inline-flex; align-items: center; justify-content: center;
+                padding: 0; transition: background .12s, color .12s; line-height: 1;
+            }
+            .cp-ref-clear-btn:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+
+            /* ── Dropdown panel ── */
+            .cp-ref-dropdown {
+                display: none;
+                position: absolute; left: 0; right: 0; top: 100%; z-index: 300;
+                background: var(--cp-surface2);
+                border: 1.5px solid #06b6d4; border-top: none;
+                border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+                box-shadow: 0 8px 28px rgba(0,0,0,.2);
+                overflow: hidden;
+            }
+            .cp-ref-dropdown.open { display: block; }
+
+            /* ── Search row ── */
+            .cp-ref-search-wrap {
+                display: flex; align-items: center; gap: 10px;
+                padding: 10px 14px;
+                background: var(--cp-surface);
+                border-bottom: 1px solid var(--cp-border);
+            }
+            .cp-ref-search-input {
+                flex: 1; border: none; outline: none;
+                background: transparent;
+                font-size: 14px; color: var(--cp-text);
+                font-family: inherit; padding: 0;
+            }
+            .cp-ref-search-input::placeholder { color: var(--cp-muted); }
+
+            /* ── Options list ── */
+            .cp-ref-list { max-height: 220px; overflow-y: auto; padding: 4px 0; }
+            .cp-ref-list::-webkit-scrollbar { width: 4px; }
+            .cp-ref-list::-webkit-scrollbar-thumb { background: var(--cp-border); border-radius: 99px; }
+
+            .cp-ref-item {
+                display: flex; align-items: center; gap: 10px;
+                padding: 10px 16px; font-size: 14px;
+                color: var(--cp-text); cursor: pointer; transition: background .1s;
+            }
+            .cp-ref-item:hover, .cp-ref-item.cp-ref-focused {
+                background: rgba(6,182,212,.1); color: #06b6d4;
+            }
+            .cp-ref-item.cp-ref-selected {
+                background: rgba(6,182,212,.18); color: #0891b2; font-weight: 600;
+            }
+            .cp-ref-item-hash {
+                font-size: 11px; font-weight: 700;
+                color: var(--cp-muted); flex-shrink: 0;
+            }
+            .cp-ref-item:hover .cp-ref-item-hash,
+            .cp-ref-item.cp-ref-focused .cp-ref-item-hash,
+            .cp-ref-item.cp-ref-selected .cp-ref-item-hash { color: inherit; opacity: .6; }
+
+            .cp-ref-empty {
+                padding: 18px 16px; text-align: center;
+                font-size: 13px; color: var(--cp-muted);
+            }
+
+            /* ── Footer "add custom" ── */
+            .cp-ref-footer {
+                display: flex; align-items: center; gap: 10px;
+                padding: 10px 16px; font-size: 13px; font-weight: 500;
+                color: #06b6d4; cursor: pointer;
+                border-top: 1px solid var(--cp-border);
+                transition: background .1s;
+            }
+            .cp-ref-footer:hover { background: rgba(6,182,212,.08); }
+
+            /* ── Custom free-text input ── */
+            .cp-ref-custom-wrap { display: none; margin-top: 8px; }
+            .cp-ref-custom-wrap.visible { display: block; }
         </style>
     @endpush
 
@@ -108,6 +219,70 @@
                                 </div>
                             @endif
 
+                            {{-- ── Contract Number Combobox (full width, above the grid) ── --}}
+                            <div id="cpRefField" class="mb-4">
+                                <label class="cp-label">
+                                    Contract Number
+                                    <span style="color:var(--cp-muted);font-weight:400;font-size:.8em;">
+                                        (optional — auto-generated if blank)
+                                    </span>
+                                </label>
+
+                                {{-- Trigger --}}
+                                <div class="cp-ref-trigger" id="cpRefTrigger"
+                                     onclick="cpRefToggle()" role="combobox"
+                                     aria-haspopup="listbox" aria-expanded="false" tabindex="0"
+                                     onkeydown="if(event.key==='Enter'||event.key===' ')cpRefToggle()">
+                                    <span class="cp-ref-trigger-icon">#</span>
+                                    <span id="cpRefDisplay" class="cp-ref-display cp-ref-placeholder">
+                                        Select or search a contract number
+                                    </span>
+                                    <span style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                        <button type="button" id="cpRefClearBtn" class="cp-ref-clear-btn"
+                                                onclick="cpRefClear(event)" title="Clear" style="display:none;">✕</button>
+                                        <svg style="width:16px;height:16px;color:var(--cp-muted);transition:transform .2s;flex-shrink:0;"
+                                             id="cpRefChevron" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                </div>
+
+                                {{-- Dropdown --}}
+                                <div class="cp-ref-dropdown" id="cpRefDropdown" role="listbox">
+                                    <div class="cp-ref-search-wrap">
+                                        <svg style="width:15px;height:15px;color:var(--cp-muted);flex-shrink:0;" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <input type="text" id="cpRefSearchInput" class="cp-ref-search-input"
+                                               placeholder="Search contract numbers…" autocomplete="off"
+                                               oninput="cpRefFilter(this.value)" onkeydown="cpRefKey(event)">
+                                    </div>
+                                    <div class="cp-ref-list" id="cpRefList"></div>
+                                    <div class="cp-ref-footer" onclick="cpRefEnableCustom()">
+                                        <span style="font-size:16px;font-weight:700;line-height:1;">+</span>
+                                        <span id="cpRefAddLabel">Enter a custom contract number</span>
+                                    </div>
+                                </div>
+
+                                {{-- Custom free-text input --}}
+                                <div class="cp-ref-custom-wrap" id="cpRefCustomWrap">
+                                    <input type="text" id="cpRefCustomInput" class="cp-input"
+                                           placeholder="e.g. CP-2026-0001" maxlength="50"
+                                           oninput="cpRefOnCustomInput(this.value)">
+                                </div>
+
+                                {{-- Hidden field submitted with the form --}}
+                                <input type="hidden" name="contract_number" id="cpRefHidden" value="{{ old('contract_number') }}">
+
+                                @error('contract_number')
+                                    <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                                <p style="font-size:11px;color:var(--cp-muted);margin-top:5px;font-style:italic;">
+                                    Pick from existing CP contract numbers, or type a new one. Leave blank to auto-generate.
+                                </p>
+                            </div>
+
+                            {{-- ── Two-column grid for the rest ── --}}
                             <div class="cp-form-grid cp-form-two">
                                 <div>
                                     <label class="cp-label">Project Name <span class="text-red-500">*</span></label>
@@ -116,19 +291,6 @@
                                            class="cp-input @error('project_name') border-red-500 @enderror"
                                            placeholder="e.g. Davao-Cotabato Road">
                                     @error('project_name')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
-                                </div>
-                                {{-- Contract Number --}}
-                                <div class="cp-form-grid cp-form-two mb-4">
-                                    <div>
-                                        <label class="cp-label">Contract Number <span style="color:var(--cp-muted)">(optional — auto-generated if blank)</span></label>
-                                        <input type="text" name="contract_number"
-                                            value="{{ old('contract_number') }}"
-                                            class="cp-input @error('contract_number') border-red-500 @enderror"
-                                            placeholder="e.g. CN-2026-0001">
-                                        @error('contract_number')
-                                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
-                                        @enderror
-                                    </div>
                                 </div>
                                 <div>
                                     <label class="cp-label">Location <span class="text-red-500">*</span></label>
@@ -177,7 +339,7 @@
                             </div>
                         </div>
 
-                        {{-- ── Section 3: Assign Reviewers ── --}}
+                        {{-- ── Section 2: Assign Reviewers ── --}}
                         <div class="cp-form-section">
                             <p class="cp-section-title">Assign Reviewers</p>
                             <p class="cp-section-sub">
@@ -187,61 +349,58 @@
 
                             @php
                                 $reviewerSlots = [
-                                [
-                                    'step'  => 1,
-                                    'label' => 'Resident Engineer',
-                                    'name'  => 'resident_engineer_user_id',
-                                    'users' => $residentEngineers,
-                                    'color' => '#dbeafe',
-                                    'text'  => '#2563eb',
-                                    'final' => false,
-                                ],
-                                [
-                                    'step'  => 2,
-                                    'label' => 'ME / MTQA',
-                                    'name'  => 'me_mtqa_user_id',
-                                    'users' => $mtqas,
-                                    'color' => '#fef3c7',
-                                    'text'  => '#d97706',
-                                    'final' => false,
-                                ],
-                                [
-                                    'step'  => 3,
-                                    'label' => 'Provincial Engineer',
-                                    'name'  => 'noted_by_user_id',
-                                    'users' => $provincialEngineers,
-                                    'color' => '#dcfce7',
-                                    'text'  => '#16a34a',
-                                    'final' => true,  // ← now final
-                                ],
-                            ];
+                                    [
+                                        'step'  => 1,
+                                        'label' => 'Resident Engineer',
+                                        'name'  => 'resident_engineer_user_id',
+                                        'users' => $residentEngineers,
+                                        'color' => '#dbeafe',
+                                        'text'  => '#2563eb',
+                                        'final' => false,
+                                    ],
+                                    [
+                                        'step'  => 2,
+                                        'label' => 'ME / MTQA',
+                                        'name'  => 'me_mtqa_user_id',
+                                        'users' => $mtqas,
+                                        'color' => '#fef3c7',
+                                        'text'  => '#d97706',
+                                        'final' => false,
+                                    ],
+                                    [
+                                        'step'  => 3,
+                                        'label' => 'Provincial Engineer',
+                                        'name'  => 'noted_by_user_id',
+                                        'users' => $provincialEngineers,
+                                        'color' => '#dcfce7',
+                                        'text'  => '#16a34a',
+                                        'final' => true,
+                                    ],
+                                ];
                             @endphp
 
-                            <div style="border: 1px solid var(--cp-border); border-radius: 10px; overflow: hidden;">
+                            <div style="border:1px solid var(--cp-border);border-radius:10px;overflow:hidden;">
                                 @foreach($reviewerSlots as $slot)
-                                    <div style="display:flex; align-items:center; gap:16px; padding:14px 18px;
-                                                {{ !$loop->last ? 'border-bottom: 1px solid var(--cp-border);' : '' }}">
-                                        {{-- Step bubble --}}
-                                        <div style="width:32px; height:32px; border-radius:50%;
-                                                    background:{{ $slot['color'] }}; color:{{ $slot['text'] }};
-                                                    font-size:12px; font-weight:700; flex-shrink:0;
-                                                    display:flex; align-items:center; justify-content:center;">
+                                    <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;
+                                                {{ !$loop->last ? 'border-bottom:1px solid var(--cp-border);' : '' }}">
+                                        <div style="width:32px;height:32px;border-radius:50%;
+                                                    background:{{ $slot['color'] }};color:{{ $slot['text'] }};
+                                                    font-size:12px;font-weight:700;flex-shrink:0;
+                                                    display:flex;align-items:center;justify-content:center;">
                                             {{ $slot['step'] }}
                                         </div>
-                                        {{-- Label --}}
-                                        <div style="width:200px; flex-shrink:0;">
-                                            <div style="font-size:14px; font-weight:500; color:var(--cp-text);">
+                                        <div style="width:200px;flex-shrink:0;">
+                                            <div style="font-size:14px;font-weight:500;color:var(--cp-text);">
                                                 {{ $slot['label'] }}
                                                 @if($slot['final'])
-                                                    <span style="font-size:11px; background:#dcfce7; color:#16a34a;
-                                                                border-radius:20px; padding:1px 8px; margin-left:4px; font-weight:600;">
+                                                    <span style="font-size:11px;background:#dcfce7;color:#16a34a;
+                                                                 border-radius:20px;padding:1px 8px;margin-left:4px;font-weight:600;">
                                                         FINAL
                                                     </span>
                                                 @endif
                                             </div>
-                                            <div style="font-size:12px; color:var(--cp-muted);">Leave blank to skip</div>
+                                            <div style="font-size:12px;color:var(--cp-muted);">Leave blank to skip</div>
                                         </div>
-                                        {{-- Select --}}
                                         <div style="flex:1;">
                                             <select name="{{ $slot['name'] }}" class="cp-select">
                                                 <option value="">— Skip this step —</option>
@@ -259,11 +418,10 @@
                                     </div>
                                 @endforeach
 
-                                {{-- Info note --}}
-                                <div style="padding:12px 18px; background:#f0fdf4; border-top:1px solid #bbf7d0;
-                                            display:flex; align-items:flex-start; gap:10px;">
-                                    <i class="fas fa-info-circle" style="color:#16a34a; margin-top:2px; flex-shrink:0;"></i>
-                                    <p style="font-size:13px; color:#166534; margin:0;">
+                                <div style="padding:12px 18px;background:#f0fdf4;border-top:1px solid #bbf7d0;
+                                            display:flex;align-items:flex-start;gap:10px;">
+                                    <i class="fas fa-info-circle" style="color:#16a34a;margin-top:2px;flex-shrink:0;"></i>
+                                    <p style="font-size:13px;color:#166534;margin:0;">
                                         The <strong>Provincial Engineer</strong> reviewer makes the final
                                         <strong>Approve</strong> or <strong>Disapprove</strong> decision.
                                         You must assign at least one reviewer.
@@ -288,4 +446,171 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+    (function () {
+        'use strict';
+
+        const ALL_CP_REFS = @json($contractNumbers ?? []);
+        let _sel = null, _custom = false, _filtered = [], _focusIdx = -1;
+        const $ = id => document.getElementById(id);
+
+        // ── Render list ───────────────────────────────────────────────────────
+        function render(query) {
+            const q = (query || '').trim().toLowerCase();
+            _filtered = q
+                ? ALL_CP_REFS.filter(r => r.toLowerCase().includes(q))
+                : [...ALL_CP_REFS];
+            _focusIdx = -1;
+
+            const list = $('cpRefList');
+
+            if (!_filtered.length) {
+                list.innerHTML = '<div class="cp-ref-empty">No matches found</div>';
+                $('cpRefAddLabel').textContent = q
+                    ? `Use "${query.trim()}" as custom`
+                    : 'Enter a custom contract number';
+                return;
+            }
+
+            list.innerHTML = _filtered.map((r, i) => {
+                const sel = r === _sel ? ' cp-ref-selected' : '';
+                const esc = r.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                return `<div class="cp-ref-item${sel}" data-val="${esc}">
+                            <span class="cp-ref-item-hash">#</span>${r}
+                        </div>`;
+            }).join('');
+
+            list.querySelectorAll('.cp-ref-item').forEach(el =>
+                el.addEventListener('click', () => cpRefSelect(el.dataset.val))
+            );
+            $('cpRefAddLabel').textContent = 'Enter a custom contract number';
+        }
+
+        // ── Open / close ──────────────────────────────────────────────────────
+        window.cpRefToggle = function () {
+            const dd = $('cpRefDropdown'), tr = $('cpRefTrigger');
+            if (dd.classList.contains('open')) { cpRefClose(); return; }
+            dd.classList.add('open');
+            tr.classList.add('open');
+            tr.setAttribute('aria-expanded', 'true');
+            $('cpRefChevron').style.transform = 'rotate(180deg)';
+            $('cpRefSearchInput').value = '';
+            render('');
+            setTimeout(() => $('cpRefSearchInput').focus(), 40);
+        };
+
+        function cpRefClose() {
+            $('cpRefDropdown').classList.remove('open');
+            $('cpRefTrigger').classList.remove('open');
+            $('cpRefTrigger').setAttribute('aria-expanded', 'false');
+            $('cpRefChevron').style.transform = '';
+        }
+
+        document.addEventListener('click', e => {
+            if ($('cpRefField') && !$('cpRefField').contains(e.target)) cpRefClose();
+        });
+
+        // ── Select existing ───────────────────────────────────────────────────
+        window.cpRefSelect = function (val) {
+            _sel = val; _custom = false;
+            $('cpRefHidden').value = val;
+            const d = $('cpRefDisplay');
+            d.textContent = val;
+            d.classList.remove('cp-ref-placeholder');
+            $('cpRefClearBtn').style.display = 'inline-flex';
+            $('cpRefCustomWrap').classList.remove('visible');
+            $('cpRefCustomInput').value = '';
+            cpRefClose();
+        };
+
+        // ── Clear ─────────────────────────────────────────────────────────────
+        window.cpRefClear = function (e) {
+            e.stopPropagation();
+            _sel = null; _custom = false;
+            $('cpRefHidden').value = '';
+            const d = $('cpRefDisplay');
+            d.textContent = 'Select or search a contract number';
+            d.classList.add('cp-ref-placeholder');
+            $('cpRefClearBtn').style.display = 'none';
+            $('cpRefCustomWrap').classList.remove('visible');
+            $('cpRefCustomInput').value = '';
+        };
+
+        // ── Filter ────────────────────────────────────────────────────────────
+        window.cpRefFilter = function (q) { render(q); };
+
+        // ── Enable custom input ───────────────────────────────────────────────
+        window.cpRefEnableCustom = function () {
+            const q = ($('cpRefSearchInput').value || '').trim();
+            _custom = true; _sel = null;
+            const d = $('cpRefDisplay');
+            $('cpRefClearBtn').style.display = 'inline-flex';
+            $('cpRefCustomWrap').classList.add('visible');
+            const inp = $('cpRefCustomInput');
+            if (q) {
+                inp.value = q;
+                $('cpRefHidden').value = q;
+                d.textContent = q;
+            } else {
+                d.textContent = 'Custom contract number';
+            }
+            d.classList.remove('cp-ref-placeholder');
+            cpRefClose();
+            setTimeout(() => inp.focus(), 40);
+        };
+
+        // ── Custom input live sync ────────────────────────────────────────────
+        window.cpRefOnCustomInput = function (val) {
+            $('cpRefHidden').value = val;
+            const d = $('cpRefDisplay');
+            d.textContent = val || 'Custom contract number';
+            d.classList.toggle('cp-ref-placeholder', !val);
+        };
+
+        // ── Keyboard navigation ───────────────────────────────────────────────
+        window.cpRefKey = function (e) {
+            const items = document.querySelectorAll('#cpRefList .cp-ref-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                _focusIdx = Math.min(_focusIdx + 1, items.length - 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                _focusIdx = Math.max(_focusIdx - 1, 0);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                _focusIdx >= 0 && _filtered[_focusIdx]
+                    ? cpRefSelect(_filtered[_focusIdx])
+                    : cpRefEnableCustom();
+                return;
+            } else if (e.key === 'Escape') {
+                cpRefClose(); return;
+            }
+            items.forEach((el, i) => el.classList.toggle('cp-ref-focused', i === _focusIdx));
+            if (items[_focusIdx]) items[_focusIdx].scrollIntoView({ block: 'nearest' });
+        };
+
+        // ── Restore old() value on validation failure ─────────────────────────
+        document.addEventListener('DOMContentLoaded', function () {
+            const oldVal = @json(old('contract_number') ?? '');
+            if (!oldVal) return;
+
+            if (ALL_CP_REFS.includes(oldVal)) {
+                cpRefSelect(oldVal);
+            } else {
+                _custom = true;
+                $('cpRefHidden').value = oldVal;
+                const d = $('cpRefDisplay');
+                d.textContent = oldVal;
+                d.classList.remove('cp-ref-placeholder');
+                $('cpRefClearBtn').style.display = 'inline-flex';
+                $('cpRefCustomWrap').classList.add('visible');
+                $('cpRefCustomInput').value = oldVal;
+            }
+        });
+    })();
+    </script>
+    @endpush
+
 </x-app-layout>
