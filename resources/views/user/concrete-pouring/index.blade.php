@@ -133,7 +133,7 @@
                     <table class="cp-table">
                         <thead>
                             <tr>
-                                <th>Reference</th>
+                                <th>Contract No.</th>
                                 <th>Project</th>
                                 <th>Location</th>
                                 <th>Part of Structure</th>
@@ -148,7 +148,7 @@
                                 <tr>
                                     <td>
                                         <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                                            {{ $cp->reference_number }}
+                                            {{ $cp->contract_number ?? '—' }}
                                         </span>
                                     </td>
                                     <td>

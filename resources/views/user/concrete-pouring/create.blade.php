@@ -117,6 +117,19 @@
                                            placeholder="e.g. Davao-Cotabato Road">
                                     @error('project_name')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                                 </div>
+                                {{-- Contract Number --}}
+                                <div class="cp-form-grid cp-form-two mb-4">
+                                    <div>
+                                        <label class="cp-label">Contract Number <span style="color:var(--cp-muted)">(optional — auto-generated if blank)</span></label>
+                                        <input type="text" name="contract_number"
+                                            value="{{ old('contract_number') }}"
+                                            class="cp-input @error('contract_number') border-red-500 @enderror"
+                                            placeholder="e.g. CN-2026-0001">
+                                        @error('contract_number')
+                                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="cp-label">Location <span class="text-red-500">*</span></label>
                                     <input type="text" name="location"

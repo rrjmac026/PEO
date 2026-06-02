@@ -24,7 +24,7 @@ class ConcretePouring extends Model
             if (empty($model->contract_number)) {
                 $year  = now()->format('Y');
                 $count = static::whereYear('created_at', $year)->count() + 1;
-                $model->contract_number = sprintf('CN-%s-%04d', $year, $count);
+                $model->contract_number = sprintf('CP-%s-%04d', $year, $count);
             }
         });
     }

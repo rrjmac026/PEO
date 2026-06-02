@@ -94,7 +94,7 @@ class ReviewerConcretePouringController extends Controller
             'workRequest', 'requestedBy', 'meMtqaChecker',
             'residentEngineer', 'notedByEngineer', 'approver', 'disapprover',
             'checklistFilledBy',
-            'checklistLogs.user',   // ← add this
+            'checklistLogs.user',
         ]);
 
         $isMyTurn = $this->isCurrentReviewer($concretePouring, $user);
