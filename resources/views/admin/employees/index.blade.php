@@ -158,15 +158,15 @@
         padding: 2px 8px; border-radius: 6px;
     }
 
-    /* ── Department badge ── */
-    .em-dept-badge {
+    /* ── Position badge ── */
+    .em-position-badge {
         display: inline-flex; align-items: center; gap: 5px;
         padding: 3px 10px; border-radius: 20px;
         font-size: 12px; font-weight: 600; border: 1px solid;
-        /* light */
         color: #1d4ed8; border-color: #93c5fd; background: #eff6ff;
+        max-width: 220px; overflow: hidden; text-overflow: ellipsis;
     }
-    .dark .em-dept-badge {
+    .dark .em-position-badge {
         color: #60a5fa; border-color: rgba(96,165,250,.3); background: rgba(96,165,250,.1);
     }
 
@@ -177,19 +177,15 @@
         font-size: 13px; border: 1px solid; cursor: pointer;
         transition: all .15s; text-decoration: none; background: none;
     }
-    /* light */
     .em-action-btn.view   { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
     .em-action-btn.edit   { color: #b45309; border-color: #fde68a; background: #fffbeb; }
     .em-action-btn.delete { color: #dc2626; border-color: #fca5a5; background: #fff1f2; }
-    /* light hover */
     .em-action-btn.view:hover   { background: #dbeafe; border-color: #93c5fd; }
     .em-action-btn.edit:hover   { background: #fef3c7; border-color: #fcd34d; }
     .em-action-btn.delete:hover { background: #fee2e2; border-color: #f87171; }
-    /* dark */
     .dark .em-action-btn.view   { color: #60a5fa; border-color: rgba(96,165,250,.3);   background: rgba(96,165,250,.1); }
     .dark .em-action-btn.edit   { color: #fbbf24; border-color: rgba(251,191,36,.3);   background: rgba(251,191,36,.1); }
     .dark .em-action-btn.delete { color: #f87171; border-color: rgba(248,113,113,.3);  background: rgba(248,113,113,.1); }
-    /* dark hover */
     .dark .em-action-btn.view:hover   { background: rgba(96,165,250,.2);  border-color: rgba(96,165,250,.5); }
     .dark .em-action-btn.edit:hover   { background: rgba(251,191,36,.2);  border-color: rgba(251,191,36,.5); }
     .dark .em-action-btn.delete:hover { background: rgba(248,113,113,.2); border-color: rgba(248,113,113,.5); }
@@ -254,12 +250,29 @@
         </div>
     @endif
 
+    <!-- ── Import Errors Alert ── -->
+    @if (session('import_errors'))
+        <div class="em-alert error">
+            <div>
+                <div style="font-weight:700; margin-bottom:6px;">Some rows were skipped during import:</div>
+                <ul>
+                    @foreach (session('import_errors') as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            <button class="em-alert-close" onclick="this.closest('.em-alert').remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    @endif
+
     <!-- ── Search Bar ── -->
     <div class="em-search-wrap">
         <form method="GET" action="{{ route('admin.employees.index') }}" class="flex gap-2 flex-1">
             <input type="text"
                    name="search"
-                   placeholder="Search by name, ID, position, or department…"
+                   placeholder="Search by name, ID number, position…"
                    value="{{ request('search') }}"
                    class="em-input">
             <button type="submit" class="em-btn em-btn-dark">
@@ -281,10 +294,10 @@
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Employee ID</th>
-                            <th>Position</th>
-                            <th>Department</th>
-                            <th>Phone</th>
+                            <th>ID Number</th>
+                            <th>Position Title</th>
+                            <th>Phone Number</th>
+                            <th>Email Address</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -295,32 +308,36 @@
                                 <td>
                                     <div class="flex items-center gap-3">
                                         <div class="em-avatar">
-                                            {{ strtoupper(substr($employee->user->name, 0, 1)) }}
+                                            {{ strtoupper(substr($employee->full_name ?: ($employee->user->name ?? '?'), 0, 1)) }}
                                         </div>
                                         <div>
-                                            <div class="em-emp-name">{{ $employee->user->name }}</div>
-                                            <div class="em-emp-email">{{ $employee->user->email }}</div>
+                                            <div class="em-emp-name">{{ $employee->full_name ?: $employee->user->name }}</div>
+                                            <div class="em-emp-email">{{ $employee->user->email ?? '—' }}</div>
                                         </div>
                                     </div>
                                 </td>
 
-                                <!-- Employee ID -->
+                                <!-- ID Number -->
                                 <td>
-                                    <span class="em-id-chip">{{ $employee->employee_number }}</span>
+                                    <span class="em-id-chip">{{ $employee->id_number ?? '—' }}</span>
                                 </td>
 
-                                <!-- Position -->
-                                <td style="color: var(--em-text-sec);">{{ $employee->position }}</td>
-
-                                <!-- Department -->
+                                <!-- Position Title -->
                                 <td>
-                                    <span class="em-dept-badge">{{ $employee->department }}</span>
+                                    @if ($employee->position_title)
+                                        <span class="em-position-badge" title="{{ $employee->position_title }}">
+                                            {{ $employee->position_title }}
+                                        </span>
+                                    @else
+                                        <span class="muted">—</span>
+                                    @endif
                                 </td>
 
-                                <!-- Phone -->
-                                <td class="muted">
-                                    {{ $employee->phone ?? '—' }}
-                                </td>
+                                <!-- Phone Number -->
+                                <td class="muted">{{ $employee->phone_number ?? '—' }}</td>
+
+                                <!-- Email Address -->
+                                <td class="muted">{{ $employee->email_address ?? '—' }}</td>
 
                                 <!-- Actions -->
                                 <td>
