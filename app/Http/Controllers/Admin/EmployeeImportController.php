@@ -256,6 +256,28 @@ class EmployeeImportController extends Controller
         $idNumber = $this->sanitizeId($row['id_number'] ?? null)
             ?: ('IMP-' . Str::upper(Str::random(8)));
 
+        // Primary check: skip exact ID number duplicates silently
+        if (Employee::where('id_number', $idNumber)->exists()) {
+            return false;
+        }
+
+        // Secondary check: same first + last name, flag for human review
+        $firstName = Str::title(trim($row['first_name'] ?? ''));
+        $lastName  = Str::title(trim($row['last_name']  ?? ''));
+
+        if ($firstName && $lastName) {
+            $nameExists = Employee::where('first_name', $firstName)
+                ->where('last_name', $lastName)
+                ->exists();
+
+            if ($nameExists) {
+                throw new \Exception(
+                    "Possible duplicate: {$firstName} {$lastName} already exists with a different ID. " .
+                    "Verify and merge manually if needed."
+                );
+            }
+        }
+
         // Skip duplicates
         if (Employee::where('id_number', $idNumber)->exists()) {
             return false;
@@ -370,7 +392,7 @@ class EmployeeImportController extends Controller
 
     private function resolveRole(?string $positionTitle): string
     {
-        if (!$positionTitle) return 'employee';
+        if (!$positionTitle) return 'staff';
 
         $lower = mb_strtolower(trim($positionTitle));
 
@@ -380,6 +402,6 @@ class EmployeeImportController extends Controller
             }
         }
 
-        return 'employee'; // fallback if no match
+        return 'staff'; // fallback — can log in but no reviewer/contractor access
     }
 }
