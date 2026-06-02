@@ -4,7 +4,7 @@
 
 @section('content')
     <!-- Header -->
-    <div class="mb-8">
+    <div class="mb-8 max-w-3xl mx-auto">
         <div class="flex items-center gap-4">
             <a href="{{ route('admin.employees.index') }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition ease-in-out duration-150">
                 <i class="fas fa-arrow-left"></i> Back
@@ -16,7 +16,7 @@
 
     <!-- Error Messages -->
     @if ($errors->any())
-        <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <div class="mb-6 max-w-3xl mx-auto p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
             <h3 class="text-red-800 dark:text-red-400 font-semibold mb-2">
                 <i class="fas fa-exclamation-circle mr-2"></i>Validation Errors
             </h3>
@@ -29,7 +29,7 @@
     @endif
 
     <!-- Form Container -->
-    <div class="max-w-3xl">
+    <div class="max-w-3xl mx-auto">
         <form action="{{ route('admin.employees.store') }}" method="POST">
             @csrf
 
