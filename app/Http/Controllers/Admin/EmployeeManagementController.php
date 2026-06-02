@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 
 class EmployeeManagementController extends Controller
 {
-    // 📌 Display all employees
     public function index(Request $request)
     {
         $query = Employee::with('user');
@@ -23,26 +22,40 @@ class EmployeeManagementController extends Controller
         return view('admin.employees.index', compact('employees'));
     }
 
-    // 📌 Show create form
     public function create()
     {
-        $users = User::doesntHave('employee')->get(); 
-        // prevents assigning multiple employees to one user
-
+        $users = User::doesntHave('employee')->get();
         return view('admin.employees.create', compact('users'));
     }
 
-    // 📌 Store new employee
     public function store(Request $request)
     {
         $request->validate([
-            'user_id'         => 'required|exists:users,id|unique:employees,user_id',
-            'employee_number' => 'required|string|unique:employees,employee_number',
-            'position'        => 'required|string|max:255',
-            'department'      => 'required|string|max:255',
-            'phone'           => 'nullable|string|max:20',
-            'office'          => 'nullable|string|max:255',
-            'signature_path'  => 'nullable|string',
+            'user_id'        => 'nullable|exists:users,id|unique:employees,user_id',
+            'id_number'      => 'required|string|unique:employees,id_number',
+            'position_title' => 'required|string|max:255',
+            'department'     => 'nullable|string|max:255',
+            'first_name'     => 'required|string|max:255',
+            'last_name'      => 'required|string|max:255',
+            'middle_name'    => 'nullable|string|max:255',
+            'email_address'  => 'nullable|email|max:255',
+            'date_of_birth'  => 'nullable|date',
+            'blood_type'     => 'nullable|string|max:10',
+            'height_cm'      => 'nullable|numeric',
+            'weight_kg'      => 'nullable|numeric',
+            'home_address'   => 'nullable|string',
+            'phone_number'   => 'nullable|string|max:20',
+            'emergency_contact_no' => 'nullable|string|max:20',
+            'tin'            => 'nullable|string|max:50',
+            'pagibig_no'     => 'nullable|string|max:50',
+            'philhealth'     => 'nullable|string|max:50',
+            'gsis_no'        => 'nullable|string|max:50',
+            'hmo_organization' => 'nullable|string|max:255',
+            'hmo_number'     => 'nullable|string|max:100',
+            'eligibility'    => 'nullable|string',
+            'licence_number' => 'nullable|string|max:100',
+            'office'         => 'nullable|string|max:255',
+            'signature_path' => 'nullable|string',
         ]);
 
         Employee::create($request->all());
@@ -51,15 +64,12 @@ class EmployeeManagementController extends Controller
                          ->with('success', 'Employee created successfully.');
     }
 
-    // 📌 Show single employee
     public function show(Employee $employee)
     {
         $employee->load('user');
-
         return view('admin.employees.show', compact('employee'));
     }
 
-    // 📌 Show edit form
     public function edit(Employee $employee)
     {
         $users = User::doesntHave('employee')
@@ -69,17 +79,34 @@ class EmployeeManagementController extends Controller
         return view('admin.employees.edit', compact('employee', 'users'));
     }
 
-    // 📌 Update employee
     public function update(Request $request, Employee $employee)
     {
         $request->validate([
-            'user_id'         => 'required|exists:users,id|unique:employees,user_id,' . $employee->id,
-            'employee_number' => 'required|string|unique:employees,employee_number,' . $employee->id,
-            'position'        => 'required|string|max:255',
-            'department'      => 'required|string|max:255',
-            'phone'           => 'nullable|string|max:20',
-            'office'          => 'nullable|string|max:255',
-            'signature_path'  => 'nullable|string',
+            'user_id'        => 'nullable|exists:users,id|unique:employees,user_id,' . $employee->id,
+            'id_number'      => 'required|string|unique:employees,id_number,' . $employee->id,
+            'position_title' => 'required|string|max:255',
+            'department'     => 'nullable|string|max:255',
+            'first_name'     => 'required|string|max:255',
+            'last_name'      => 'required|string|max:255',
+            'middle_name'    => 'nullable|string|max:255',
+            'email_address'  => 'nullable|email|max:255',
+            'date_of_birth'  => 'nullable|date',
+            'blood_type'     => 'nullable|string|max:10',
+            'height_cm'      => 'nullable|numeric',
+            'weight_kg'      => 'nullable|numeric',
+            'home_address'   => 'nullable|string',
+            'phone_number'   => 'nullable|string|max:20',
+            'emergency_contact_no' => 'nullable|string|max:20',
+            'tin'            => 'nullable|string|max:50',
+            'pagibig_no'     => 'nullable|string|max:50',
+            'philhealth'     => 'nullable|string|max:50',
+            'gsis_no'        => 'nullable|string|max:50',
+            'hmo_organization' => 'nullable|string|max:255',
+            'hmo_number'     => 'nullable|string|max:100',
+            'eligibility'    => 'nullable|string',
+            'licence_number' => 'nullable|string|max:100',
+            'office'         => 'nullable|string|max:255',
+            'signature_path' => 'nullable|string',
         ]);
 
         $employee->update($request->all());
@@ -88,7 +115,6 @@ class EmployeeManagementController extends Controller
                          ->with('success', 'Employee updated successfully.');
     }
 
-    // 📌 Delete employee
     public function destroy(Employee $employee)
     {
         $employee->delete();

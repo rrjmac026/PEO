@@ -216,9 +216,14 @@
                 <h1 class="em-page-title">Employees</h1>
                 <p class="em-page-sub">Manage and view all employees</p>
             </div>
-            <a href="{{ route('admin.employees.create') }}" class="em-btn em-btn-indigo">
-                <i class="fas fa-plus"></i> Add Employee
-            </a>
+            <div class="flex gap-2 flex-wrap">
+                <a href="{{ route('admin.employees.import.form') }}" class="em-btn em-btn-secondary">
+                    <i class="fas fa-file-import"></i> Import
+                </a>
+                <a href="{{ route('admin.employees.create') }}" class="em-btn em-btn-indigo">
+                    <i class="fas fa-plus"></i> Add Employee
+                </a>
+            </div>
         </div>
     </div>
 

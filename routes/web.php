@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\MemoController;
 use App\Http\Controllers\User\UserMemoController;
 use App\Http\Controllers\Reviewer\ReviewerMemoController;
 use App\Http\Controllers\Admin\AdminReportsController;
+use App\Http\Controllers\Admin\EmployeeImportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
@@ -75,6 +76,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/users/{user}/resend-credentials', [UserManagementController::class, 'resendCredentials'])
     ->name('users.resend-credentials');
     Route::resource('users', UserManagementController::class);
+
+    Route::get ('employees/import', [EmployeeImportController::class, 'showImportForm'])->name('employees.import.form');
+    Route::post('employees/import', [EmployeeImportController::class, 'import'])->name('employees.import');
     Route::resource('employees', EmployeeManagementController::class);
 
     

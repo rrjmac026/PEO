@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 
 class Employee extends Model
 {
@@ -12,37 +11,83 @@ class Employee extends Model
 
     protected $fillable = [
         'user_id',
-        'employee_number',
-        'position',
+
+        // Personal
+        'first_name',
+        'last_name',
+        'middle_name',
+        'email_address',
+        'date_of_birth',
+        'blood_type',
+        'height_cm',
+        'weight_kg',
+        'home_address',
+        'phone_number',
+        'emergency_contact_no',
+
+        // Government IDs
+        'id_number',
+        'tin',
+        'pagibig_no',
+        'philhealth',
+        'gsis_no',
+
+        // HMO
+        'hmo_organization',
+        'hmo_number',
+
+        // Professional
+        'eligibility',
+        'position_title',
+        'licence_number',
+
+        // System
         'department',
-        'email',
-        'phone',
         'office',
         'signature_path',
     ];
 
-    /**
-     * Search employees by name, ID, or department
-     */
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'height_cm'     => 'decimal:2',
+        'weight_kg'     => 'decimal:2',
+    ];
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+    public function getFullNameAttribute(): string
+    {
+        $parts = array_filter([
+            trim($this->first_name  ?? ''),
+            trim($this->middle_name ?? ''),
+            trim($this->last_name   ?? ''),
+        ]);
+
+        return implode(' ', $parts) ?: ($this->user?->name ?? '');
+    }
+
+    public function getNameWithPositionAttribute(): string
+    {
+        return "{$this->full_name} - {$this->position_title}";
+    }
+
+    // ── Scopes ────────────────────────────────────────────────────────────────
+
     public function scopeSearch($query, $term)
     {
-        return $query->where(function($q) use ($term) {
-            $q->where('employee_number', 'LIKE', "%{$term}%")
-            ->orWhere('department', 'LIKE', "%{$term}%")
-            ->orWhere('position', 'LIKE', "%{$term}%")
-            ->orWhereHas('user', function ($q2) use ($term) {
-                $q2->where('name', 'LIKE', "%{$term}%");
-            });
+        return $query->where(function ($q) use ($term) {
+            $q->where('id_number',      'LIKE', "%{$term}%")
+              ->orWhere('first_name',   'LIKE', "%{$term}%")
+              ->orWhere('last_name',    'LIKE', "%{$term}%")
+              ->orWhere('position_title', 'LIKE', "%{$term}%")
+              ->orWhere('department',   'LIKE', "%{$term}%")
+              ->orWhereHas('user', fn ($q2) =>
+                  $q2->where('name', 'LIKE', "%{$term}%")
+              );
         });
     }
 
-    /**
-     * Get formatted name with position
-     */
-    public function getNameWithPositionAttribute()
-    {
-        return "{$this->user?->name} - {$this->position}";
-    }
+    // ── Relationships ─────────────────────────────────────────────────────────
 
     public function user()
     {
