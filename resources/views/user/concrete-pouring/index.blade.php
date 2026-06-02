@@ -175,6 +175,12 @@
                                                style="color:var(--cp-accent)" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            {{-- Edit --}}
+                                            <a href="{{ route('user.concrete-pouring.edit', $cp) }}"
+                                            style="color:var(--cp-accent)"
+                                            title="Edit">
+                                                <i class="fas fa-pen-to-square"></i>
+                                            </a>
                                             @if($cp->status === 'requested' && is_null($cp->me_mtqa_user_id))
                                                 <a href="{{ route('user.concrete-pouring.edit', $cp) }}"
                                                    style="color:#ea580c" title="Edit">

@@ -55,10 +55,7 @@ class WorkRequestController extends Controller
     /**
      * Show form to create new work request (admin-created on behalf of contractor).
      */
-    public function create()
-    {
-        return view('admin.work-requests.create', $this->reviewerLists());
-    }
+    
 
     /**
      * Store new work request.

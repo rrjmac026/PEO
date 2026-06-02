@@ -21,7 +21,7 @@ class ConcretePouring extends Model
         parent::boot();
 
         static::creating(function (self $model) {
-            if (empty($model->reference_number)) {
+            if (empty($model->contract_number)) {
                 $year  = now()->format('Y');
                 $count = static::whereYear('created_at', $year)->count() + 1;
                 $model->contract_number = sprintf('CN-%s-%04d', $year, $count);
@@ -34,7 +34,7 @@ class ConcretePouring extends Model
         'work_request_id',
 
         // ── Reference Number ─────────────────────────────────────────────────
-        'reference_number',
+        'contract_number',
 
         // ── Project Information ──────────────────────────────────────────────
         'project_name',

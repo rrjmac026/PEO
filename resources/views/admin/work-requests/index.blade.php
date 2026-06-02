@@ -15,9 +15,6 @@
                 <h1 class="wr-page-title">Work Requests</h1>
                 <p class="wr-page-sub">Manage and track all work requests</p>
             </div>
-            <a href="{{ route('admin.work-requests.create') }}" class="wr-btn wr-btn-orange">
-                <i class="fas fa-plus-circle"></i> New Work Request
-            </a>
         </div>
     </div>
 
