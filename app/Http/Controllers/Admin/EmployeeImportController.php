@@ -50,10 +50,27 @@ class EmployeeImportController extends Controller
         'license number'                     => 'licence_number',
     ];
 
-    // Columns to skip entirely (not stored)
+    // Maps lowercase position title keywords → users.role value
+    // Order matters: more specific entries (e.g. 'engineer iv') must come
+    // before broader ones (e.g. 'engineer') to prevent wrong matches.
+    private const POSITION_ROLE_MAP = [
+        'provincial engineer' => 'provincial_engineer',
+        'engineer iv'         => 'engineeriv',
+        'engineer iii'        => 'engineeriii',
+        'resident engineer'   => 'resident_engineer',
+        'site inspector'      => 'site_inspector',
+        'surveyor'            => 'surveyor',
+        'mtqa'                => 'mtqa',
+        'contractor'          => 'contractor',
+    ];
+
+    // Columns to skip entirely (not stored).
+    // NOTE: 'email address' is intentionally NOT listed here — it is a real
+    // data column we want to import. The Google Form auto-captured submitter
+    // email appears *before* the 'first name' header and is already ignored
+    // by normalizeRows(), which only starts reading after it finds 'first name'.
     private const SKIP_COLUMNS = [
         'timestamp',
-        'email address',  // the Google Form login email — we use 'email address' column instead
         'in compliance with the data privacy act', // consent column (starts with this)
     ];
 
@@ -157,7 +174,9 @@ class EmployeeImportController extends Controller
             if ($headers === null) {
                 $lower = array_map(fn($h) => mb_strtolower(trim((string) $h)), $row);
 
-                // The real header row contains 'first name'
+                // The real header row contains 'first name'.
+                // Everything before this row (including the Google Form
+                // auto-captured email column) is safely skipped.
                 if (in_array('first name', $lower, true)) {
                     $headers = $lower;
                 }
@@ -166,7 +185,6 @@ class EmployeeImportController extends Controller
 
             $mapped = [];
             foreach ($headers as $i => $header) {
-                // Skip timestamp, consent, and the Google Form email column
                 if ($this->shouldSkip($header)) continue;
 
                 $field = $this->resolveField($header);
@@ -253,17 +271,25 @@ class EmployeeImportController extends Controller
                 ? strtolower(trim($row['email_address']))
                 : null;
 
-            // Create or reuse User account
+            $role = $this->resolveRole($row['position_title'] ?? null);
+
+            // Create or reuse User account.
+            // If the email already exists, we reuse the account as-is (role is
+            // not overwritten to avoid silently changing an existing user's access).
             $user = $email
                 ? User::firstOrCreate(
                     ['email' => $email],
-                    ['name' => $fullName, 'password' => Hash::make(Str::random(16)), 'role' => 'employee']
+                    [
+                        'name'     => $fullName,
+                        'password' => Hash::make(Str::random(16)),
+                        'role'     => $role,
+                    ]
                 )
                 : User::create([
                     'name'     => $fullName,
                     'email'    => 'import.' . Str::lower(Str::random(8)) . '@placeholder.local',
                     'password' => Hash::make(Str::random(16)),
-                    'role'     => 'employee',
+                    'role'     => $role,
                 ]);
 
             Employee::create(array_filter([
@@ -340,5 +366,20 @@ class EmployeeImportController extends Controller
         }
         $clean = preg_replace('/[^\d.]/', '', $value);
         return is_numeric($clean) ? (float) $clean : null;
+    }
+
+    private function resolveRole(?string $positionTitle): string
+    {
+        if (!$positionTitle) return 'employee';
+
+        $lower = mb_strtolower(trim($positionTitle));
+
+        foreach (self::POSITION_ROLE_MAP as $keyword => $role) {
+            if (str_contains($lower, $keyword)) {
+                return $role;
+            }
+        }
+
+        return 'employee'; // fallback if no match
     }
 }
