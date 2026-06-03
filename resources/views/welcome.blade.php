@@ -708,10 +708,7 @@
                             <i class="fas fa-tachometer-alt" style="margin-right:7px;"></i>Dashboard
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="btn-ghost">Log in</a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="btn-primary">Register</a>
-                        @endif
+                        <a href="{{ route('login') }}" class="btn-primary">Log in</a>
                     @endauth
                 </nav>
             @endif
@@ -736,7 +733,7 @@
                     The Provincial Engineering Office is committed to delivering quality engineering services and sustainable infrastructure development for the people of Bukidnon.
                 </p>
                 <div class="hero-cta">
-                    <a href="{{ route('register') }}" class="btn-hero-primary">Get Started</a>
+                    <a href="{{ route('login') }}" class="btn-hero-primary">Get Started</a>
                     <a href="#services" class="btn-hero-outline">Our Services</a>
                 </div>
             </div>

@@ -23,6 +23,7 @@ class UserManagementController extends Controller
         'engineeriv'          => 'Engineer IV',
         'engineeriii'         => 'Engineer III',
         'provincial_engineer' => 'Provincial Engineer',
+        'staff'               => 'Staff',
     ];
     public function index(Request $request)
     {
