@@ -29,12 +29,12 @@
 
                 <div class="px-6 md:px-8 pb-8">
                     <div class="flex items-end gap-4 -mt-16 mb-6">
-                        <div class="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center shadow-lg">
+                        <div class="h-32 w-32 rounded-full border-4 border-white dark:border-gray-800 bg-indigo-100 dark:bg-indigo-900 flex items-center justify-content-center shadow-lg flex items-center justify-center">
                             <span class="text-5xl font-bold text-indigo-600 dark:text-indigo-400">{{ $initial }}</span>
                         </div>
                         <div class="pb-2">
                             <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $displayName }}</h2>
-                            <p class="text-gray-500 dark:text-gray-400">{{ $employee->position }}</p>
+                            <p class="text-gray-500 dark:text-gray-400">{{ $employee->position_title ?? '—' }}</p>
                         </div>
                     </div>
 
@@ -43,39 +43,38 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
                         <div>
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Employee ID</p>
-                            <p class="text-base font-mono text-gray-900 dark:text-white">{{ $employee->employee_number ?? '—' }}</p>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">ID Number</p>
+                            <p class="text-base font-mono text-gray-900 dark:text-white">{{ $employee->id_number ?? '—' }}</p>
                         </div>
 
                         <div>
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Department</p>
-                            @if ($employee->department)
-                                <span class="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm font-semibold rounded-full">
-                                    {{ $employee->department }}
-                                </span>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Email Address</p>
+                            @php $email = $employee->email_address ?? $employee->user->email ?? null; @endphp
+                            @if ($email)
+                                <a href="mailto:{{ $email }}"
+                                   class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex items-center gap-2">
+                                    <i class="fas fa-envelope"></i>{{ $email }}
+                                </a>
                             @else
                                 <span class="text-gray-400">—</span>
                             @endif
                         </div>
 
                         <div>
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Email</p>
-                            <a href="mailto:{{ $employee->email ?? $employee->user->email }}"
-                               class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex items-center gap-2">
-                                <i class="fas fa-envelope"></i>{{ $employee->email ?? $employee->user->email }}
-                            </a>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Phone Number</p>
+                            @if ($employee->phone_number)
+                                <a href="tel:{{ $employee->phone_number }}"
+                                   class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex items-center gap-2">
+                                    <i class="fas fa-phone"></i>{{ $employee->phone_number }}
+                                </a>
+                            @else
+                                <span class="text-gray-400">—</span>
+                            @endif
                         </div>
 
                         <div>
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Phone</p>
-                            @if ($employee->phone)
-                                <a href="tel:{{ $employee->phone }}"
-                                   class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex items-center gap-2">
-                                    <i class="fas fa-phone"></i>{{ $employee->phone }}
-                                </a>
-                            @else
-                                <span class="text-gray-400">Not provided</span>
-                            @endif
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Emergency Contact No.</p>
+                            <p class="text-gray-900 dark:text-white">{{ $employee->emergency_contact_no ?? '—' }}</p>
                         </div>
 
                         <div>
@@ -99,34 +98,21 @@
                             </p>
                         </div>
 
-                        <div>
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Emergency Contact</p>
-                            <p class="text-gray-900 dark:text-white">{{ $employee->emergency_contact_no ?? '—' }}</p>
-                        </div>
-
                         <div class="md:col-span-2">
                             <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Home Address</p>
                             <p class="text-gray-900 dark:text-white">{{ $employee->home_address ?? '—' }}</p>
                         </div>
 
-                        @if ($employee->office)
-                        <div class="md:col-span-2">
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Office Location</p>
-                            <p class="text-gray-900 dark:text-white flex items-center gap-2">
-                                <i class="fas fa-building text-indigo-600 dark:text-indigo-400"></i>{{ $employee->office }}
-                            </p>
-                        </div>
-                        @endif
                     </div>
 
                     <!-- ── Section: Government IDs ── -->
                     <h3 class="text-xs font-bold uppercase tracking-widest text-indigo-500 mb-4">Government IDs</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         @foreach ([
-                            'TIN'         => $employee->tin,
-                            'Pag-IBIG'    => $employee->pagibig_no,
-                            'PhilHealth'  => $employee->philhealth_no,
-                            'GSIS'        => $employee->gsis_no,
+                            'TIN'        => $employee->tin,
+                            'Pag-IBIG'   => $employee->pagibig_no,
+                            'PhilHealth' => $employee->philhealth,
+                            'GSIS'       => $employee->gsis_no,
                         ] as $label => $value)
                         <div>
                             <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">{{ $label }}</p>
@@ -151,8 +137,8 @@
                             <p class="text-gray-900 dark:text-white">{{ $employee->eligibility ?? '—' }}</p>
                         </div>
                         <div>
-                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">License Number</p>
-                            <p class="font-mono text-gray-900 dark:text-white text-sm">{{ $employee->license_number ?? '—' }}</p>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1">Licence Number</p>
+                            <p class="font-mono text-gray-900 dark:text-white text-sm">{{ $employee->licence_number ?? '—' }}</p>
                         </div>
                     </div>
 
@@ -212,6 +198,14 @@
                         <span class="text-sm text-gray-600 dark:text-gray-400">Blood Type</span>
                         <span class="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded text-xs font-semibold">
                             {{ $employee->blood_type }}
+                        </span>
+                    </div>
+                    @endif
+                    @if ($employee->position_title)
+                    <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Position</span>
+                        <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded text-xs font-semibold text-right max-w-[140px]">
+                            {{ $employee->position_title }}
                         </span>
                     </div>
                     @endif

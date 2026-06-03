@@ -40,11 +40,6 @@ class Employee extends Model
         'eligibility',
         'position_title',
         'licence_number',
-
-        // System
-        'department',
-        'office',
-        'signature_path',
     ];
 
     protected $casts = [
