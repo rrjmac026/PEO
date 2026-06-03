@@ -79,6 +79,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     Route::get ('employees/import', [EmployeeImportController::class, 'showImportForm'])->name('employees.import.form');
     Route::post('employees/import', [EmployeeImportController::class, 'import'])->name('employees.import');
+    Route::get ('employees/import/template/excel',   [EmployeeImportController::class, 'downloadTemplateExcel'])->name('employees.import.template.excel');
+    Route::get ('employees/import/template/csv',     [EmployeeImportController::class, 'downloadTemplateCsv']) ->name('employees.import.template.csv');
     Route::resource('employees', EmployeeManagementController::class);
 
     

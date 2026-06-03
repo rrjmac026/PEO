@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
 use Smalot\PdfParser\Parser as PdfParser;
 
 class EmployeeImportController extends Controller
@@ -76,11 +80,253 @@ class EmployeeImportController extends Controller
         'in compliance with the data privacy act',
     ];
 
+    // Column headers used for both template downloads (single source of truth)
+    private const TEMPLATE_HEADERS = [
+        'First Name',
+        'Last Name',
+        'Middle Name',
+        'Email Address',
+        'Date of Birth',
+        'Blood Type',
+        'Height (cm)',
+        'Weight (kg)',
+        'Home Address (St., Brgy, Mun./City, Prov.)',
+        'Phone Number (09xxxxxxxxx)',
+        'Emergency Contact No.   (09xxxxxxxxx)',
+        'ID Number (PDS-xxxxxxxxx)',
+        'TIN (xxx-xxx-xxx)',
+        'Pag-IBIG No.',
+        'PhilHealth (15-000000000-6)',
+        'GSIS No. (10 digit no.)',
+        'HMO Organization ( ex. 1 Health Coop - FICCO )',
+        'HMO #',
+        'Eligibility (CSC, TESDA NC II, PRC, Others)',
+        'Position Title (ex. Administrative Aide VI (Clerk III), Architect III, Mason I (B), etc.)',
+        'Licence Number',
+    ];
+
     // ── Show import form ───────────────────────────────────────────────────
 
     public function showImportForm()
     {
         return view('admin.employees.import');
+    }
+
+    // ── Template downloads ─────────────────────────────────────────────────
+
+    public function downloadTemplateExcel()
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        // ── Employee Import sheet ─────────────────────────────────────────
+        $sheet    = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Employee Import');
+        $colCount = count(self::TEMPLATE_HEADERS);
+        $lastCol  = Coordinate::stringFromColumnIndex($colCount);
+
+        // Colour palette (mirrors login blade CSS variables)
+        $STONE      = '2C1E12';
+        $ORANGE     = 'E05A00';
+        $ORANGE_DRK = 'B84A00';
+        $CREAM      = 'FFF8F0';
+        $WARM_WHITE = 'FFFCF9';
+        $GRAY_SOFT  = 'F5EDE4';
+        $STONE_MID  = '6B4F3A';
+
+        $solidFill  = Fill::FILL_SOLID;
+        $thinStyle  = Border::BORDER_THIN;
+        $medStyle   = Border::BORDER_MEDIUM;
+
+        // Row 1 — title banner
+        $sheet->mergeCells("A1:{$lastCol}1");
+        $sheet->setCellValue('A1', 'Provincial Engineering Office — Employee Import Template');
+        $sheet->getStyle('A1')->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 13, 'color' => ['argb' => 'FFFFFFFF'], 'name' => 'Arial'],
+            'fill'      => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$STONE}"]],
+            'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(26);
+
+        // Row 2 — subtitle
+        $sheet->mergeCells("A2:{$lastCol}2");
+        $sheet->setCellValue('A2',
+            'Fill in each column. Column headers must remain unchanged. Rows with duplicate ID Numbers will be skipped.');
+        $sheet->getStyle('A2')->applyFromArray([
+            'font'      => ['italic' => true, 'size' => 9, 'color' => ['argb' => "FF{$STONE_MID}"], 'name' => 'Arial'],
+            'fill'      => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$GRAY_SOFT}"]],
+            'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(18);
+
+        // Row 3 — column headers
+        foreach (self::TEMPLATE_HEADERS as $i => $header) {
+            $col  = Coordinate::stringFromColumnIndex($i + 1);
+            $cell = "{$col}3";
+            $sheet->setCellValue($cell, $header);
+            $sheet->getStyle($cell)->applyFromArray([
+                'font'      => ['bold' => true, 'size' => 9, 'color' => ['argb' => 'FFFFFFFF'], 'name' => 'Arial'],
+                'fill'      => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$ORANGE}"]],
+                'alignment' => ['horizontal' => 'center', 'vertical' => 'center', 'wrapText' => true],
+                'borders'   => [
+                    'bottom' => ['borderStyle' => $medStyle, 'color' => ['argb' => "FF{$ORANGE_DRK}"]],
+                ],
+            ]);
+        }
+        $sheet->getRowDimension(3)->setRowHeight(40);
+
+        // Rows 4–5 — sample / example data
+        $samples = [
+            ['Juan','Dela Cruz','Santos','juan.delacruz@example.com','1990-05-15','O+','170','65',
+             '123 Rizal St., Brgy. Poblacion, Malaybalay City, Bukidnon',
+             '09171234567','09181234567','PDS-000000001','123-456-789',
+             '1234567890','15-000000000-6','1234567890','1 Health Coop - FICCO','HMO-001',
+             'CSC Professional','Engineer III','PRC-12345'],
+            ['Maria','Reyes','Cruz','maria.reyes@example.com','1985-08-20','A+','160','55',
+             '456 Mabini Ave., Brgy. 5, Malaybalay City, Bukidnon',
+             '09271234567','09281234567','PDS-000000002','987-654-321',
+             '0987654321','15-111111111-1','0987654321','','',
+             'TESDA NC II','Administrative Aide VI (Clerk III)',''],
+        ];
+
+        $thinBorderStyle = [
+            'borders' => [
+                'allBorders' => ['borderStyle' => $thinStyle, 'color' => ['argb' => 'FFD4B9A8']],
+            ],
+        ];
+
+        foreach ($samples as $rowOffset => $rowData) {
+            $excelRow = 4 + $rowOffset;
+            $bg       = ($excelRow % 2 === 0) ? $CREAM : $WARM_WHITE;
+            foreach ($rowData as $colOffset => $value) {
+                $col  = Coordinate::stringFromColumnIndex($colOffset + 1);
+                $cell = "{$col}{$excelRow}";
+                $sheet->setCellValue($cell, $value);
+                $sheet->getStyle($cell)->applyFromArray(array_merge($thinBorderStyle, [
+                    'font' => ['size' => 9, 'color' => ['argb' => "FF{$STONE}"], 'name' => 'Arial'],
+                    'fill' => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$bg}"]],
+                ]));
+            }
+            $sheet->getRowDimension($excelRow)->setRowHeight(16);
+        }
+
+        // Column widths (matches header content)
+        $widths = [14,14,14,28,14,10,10,10,40,16,16,18,14,14,18,16,32,12,28,52,16];
+        foreach ($widths as $i => $w) {
+            $col = Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->getColumnDimension($col)->setWidth($w);
+        }
+
+        $sheet->freezePane('A4');
+
+        // ── Instructions sheet ────────────────────────────────────────────
+        $info = $spreadsheet->createSheet();
+        $info->setTitle('Instructions');
+
+        $info->mergeCells('A1:B1');
+        $info->setCellValue('A1', 'Import Instructions');
+        $info->getStyle('A1')->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 14, 'color' => ['argb' => 'FFFFFFFF'], 'name' => 'Arial'],
+            'fill'      => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$STONE}"]],
+            'alignment' => ['horizontal' => 'center'],
+        ]);
+        $info->getRowDimension(1)->setRowHeight(28);
+
+        foreach (['A2' => 'Field', 'B2' => 'Notes'] as $cell => $label) {
+            $info->setCellValue($cell, $label);
+            $info->getStyle($cell)->applyFromArray([
+                'font'      => ['bold' => true, 'size' => 10, 'color' => ['argb' => 'FFFFFFFF'], 'name' => 'Arial'],
+                'fill'      => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$ORANGE}"]],
+                'alignment' => ['horizontal' => 'center'],
+            ]);
+        }
+
+        $instructions = [
+            ['Required columns',  'First Name, Last Name, ID Number (PDS-xxxxxxxxx), Position Title'],
+            ['Unique key',        'ID Number — rows with a duplicate ID are silently skipped'],
+            ['Date format',       'YYYY-MM-DD  (e.g. 1990-05-15) or any common date format'],
+            ['Phone numbers',     '09xxxxxxxxx — digits only, no spaces or dashes'],
+            ['Email',             'Valid email address; used to create login credentials'],
+            ['Blood Type',        'A+, A-, B+, B-, AB+, AB-, O+, O-'],
+            ['TIN',               'xxx-xxx-xxx format'],
+            ['PhilHealth',        '15-000000000-6 format'],
+            ['GSIS No.',          '10-digit number'],
+            ['Pag-IBIG',          'Numeric, no dashes'],
+            ['Position Title',    "Maps to system role. e.g. 'Engineer III', 'Site Inspector', 'MTQA'"],
+            ['File size limit',   '10 MB maximum'],
+            ['How to upload',     'Go to Admin → Employees → Import, then drop this file in the upload zone'],
+        ];
+
+        foreach ($instructions as $i => [$field, $note]) {
+            $row = $i + 3;
+            $bg  = ($row % 2 === 0) ? $CREAM : $WARM_WHITE;
+            $info->setCellValue("A{$row}", $field);
+            $info->setCellValue("B{$row}", $note);
+            foreach (['A', 'B'] as $col) {
+                $info->getStyle("{$col}{$row}")->applyFromArray([
+                    'font'    => [
+                        'bold' => ($col === 'A'), 'size' => 9,
+                        'color' => ['argb' => "FF{$STONE}"], 'name' => 'Arial',
+                    ],
+                    'fill'    => ['fillType' => $solidFill, 'startColor' => ['argb' => "FF{$bg}"]],
+                    'borders' => ['allBorders' => ['borderStyle' => $thinStyle, 'color' => ['argb' => 'FFD4B9A8']]],
+                ]);
+            }
+            $info->getRowDimension($row)->setRowHeight(16);
+        }
+
+        $info->getColumnDimension('A')->setWidth(22);
+        $info->getColumnDimension('B')->setWidth(70);
+
+        // ── Stream to browser ─────────────────────────────────────────────
+        $spreadsheet->setActiveSheetIndex(0);
+        $writer   = new XlsxWriter($spreadsheet);
+        $filename = 'employee_import_template.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type'  => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    public function downloadTemplateCsv()
+    {
+        $lines   = [];
+        // Header row
+        $lines[] = implode(',', array_map(
+            fn($h) => '"' . str_replace('"', '""', $h) . '"',
+            self::TEMPLATE_HEADERS
+        ));
+
+        // Two example rows so users can see expected format
+        $samples = [
+            ['Juan','Dela Cruz','Santos','juan.delacruz@example.com','1990-05-15','O+','170','65',
+             '123 Rizal St., Brgy. Poblacion, Malaybalay City, Bukidnon',
+             '09171234567','09181234567','PDS-000000001','123-456-789',
+             '1234567890','15-000000000-6','1234567890','1 Health Coop - FICCO','HMO-001',
+             'CSC Professional','Engineer III','PRC-12345'],
+            ['Maria','Reyes','Cruz','maria.reyes@example.com','1985-08-20','A+','160','55',
+             '456 Mabini Ave., Brgy. 5, Malaybalay City, Bukidnon',
+             '09271234567','09281234567','PDS-000000002','987-654-321',
+             '0987654321','15-111111111-1','0987654321','','',
+             'TESDA NC II','Administrative Aide VI (Clerk III)',''],
+        ];
+
+        foreach ($samples as $row) {
+            $lines[] = implode(',', array_map(
+                fn($v) => '"' . str_replace('"', '""', $v) . '"',
+                $row
+            ));
+        }
+
+        // UTF-8 BOM improves Excel compatibility on Windows
+        $csv = "\xEF\xBB\xBF" . implode("\r\n", $lines);
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="employee_import_template.csv"',
+        ]);
     }
 
     // ── Handle upload ──────────────────────────────────────────────────────

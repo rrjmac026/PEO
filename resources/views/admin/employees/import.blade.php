@@ -12,6 +12,16 @@
         --im-text-sec:  #334155;
         --im-muted:     #64748b;
         --im-shadow:    0 1px 3px rgba(0,0,0,0.08);
+
+        /* Login-page palette */
+        --peo-orange:       #E05A00;
+        --peo-orange-dark:  #B84A00;
+        --peo-orange-light: #FF8C38;
+        --peo-stone:        #2C1E12;
+        --peo-stone-mid:    #6B4F3A;
+        --peo-stone-light:  #A07858;
+        --peo-cream:        #FFF8F0;
+        --peo-gray-soft:    #F5EDE4;
     }
     .dark {
         --im-surface:   #1a1f2e;
@@ -101,6 +111,119 @@
     .im-btn-secondary { background: var(--im-surface2); border-color: var(--im-border); color: var(--im-text-sec); }
     .im-btn-secondary:hover { border-color: var(--im-muted); }
 
+    /* ── Template download card ───────────────────────────────────────────── */
+    .im-template-card {
+        background: linear-gradient(135deg, var(--peo-cream) 0%, #fff 100%);
+        border: 1px solid #E8D9CC;
+        border-radius: 12px;
+        padding: 20px 24px;
+        position: relative;
+        overflow: hidden;
+    }
+    .dark .im-template-card {
+        background: linear-gradient(135deg, rgba(44,30,18,.45) 0%, rgba(26,31,46,.9) 100%);
+        border-color: rgba(224,90,0,.25);
+    }
+
+    /* Decorative circle accent */
+    .im-template-card::before {
+        content: '';
+        position: absolute;
+        width: 180px; height: 180px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(224,90,0,.10) 0%, transparent 70%);
+        right: -40px; top: -40px;
+        pointer-events: none;
+    }
+
+    .im-template-eyebrow {
+        font-size: 10px; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; color: var(--peo-orange);
+        margin-bottom: 6px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .im-template-eyebrow::before {
+        content: '';
+        display: inline-block;
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--peo-orange);
+        animation: tpl-pulse 2s ease-in-out infinite;
+    }
+    @keyframes tpl-pulse {
+        0%,100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: .35; transform: scale(.72); }
+    }
+
+    .im-template-title {
+        font-size: 15px; font-weight: 800; color: var(--peo-stone);
+        margin-bottom: 4px; letter-spacing: -.01em;
+    }
+    .dark .im-template-title { color: var(--im-text); }
+
+    .im-template-desc {
+        font-size: 12px; color: var(--peo-stone-light);
+        line-height: 1.55; margin-bottom: 16px;
+    }
+    .dark .im-template-desc { color: var(--im-muted); }
+
+    .im-template-btns {
+        display: flex; flex-wrap: wrap; gap: 10px;
+    }
+
+    /* Excel download button  */
+    .im-tpl-btn-excel {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 18px; border-radius: 8px;
+        font-size: 13px; font-weight: 700;
+        border: 1.5px solid #86EFAC;
+        background: #F0FDF4; color: #15803D;
+        text-decoration: none;
+        transition: all .18s;
+        position: relative; z-index: 1;
+    }
+    .im-tpl-btn-excel:hover {
+        background: #DCFCE7; border-color: #4ADE80;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(21,128,61,.18);
+    }
+    .dark .im-tpl-btn-excel {
+        background: rgba(74,222,128,.10); border-color: rgba(74,222,128,.30);
+        color: #4ADE80;
+    }
+    .dark .im-tpl-btn-excel:hover {
+        background: rgba(74,222,128,.20); border-color: rgba(74,222,128,.55);
+    }
+
+    /* CSV download button */
+    .im-tpl-btn-csv {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 18px; border-radius: 8px;
+        font-size: 13px; font-weight: 700;
+        border: 1.5px solid #93C5FD;
+        background: #EFF6FF; color: #1D4ED8;
+        text-decoration: none;
+        transition: all .18s;
+        position: relative; z-index: 1;
+    }
+    .im-tpl-btn-csv:hover {
+        background: #DBEAFE; border-color: #60A5FA;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(29,78,216,.16);
+    }
+    .dark .im-tpl-btn-csv {
+        background: rgba(96,165,250,.10); border-color: rgba(96,165,250,.30);
+        color: #60A5FA;
+    }
+    .dark .im-tpl-btn-csv:hover {
+        background: rgba(96,165,250,.20); border-color: rgba(96,165,250,.55);
+    }
+
+    .im-tpl-btn-icon {
+        font-size: 16px; flex-shrink: 0;
+    }
+    .im-tpl-btn-label { line-height: 1.2; }
+    .im-tpl-btn-label span { display: block; font-size: 10px; font-weight: 500; opacity: .75; }
+
     /* Progress bar */
     .im-progress { display: none; margin-top: 16px; }
     .im-progress-bar {
@@ -164,6 +287,36 @@
 
         <!-- Upload form -->
         <div class="lg:col-span-2 space-y-6">
+
+            <!-- ── Download Template card ─────────────────────────────── -->
+            <div class="im-template-card">
+                <div class="im-template-eyebrow">Start here</div>
+                <div class="im-template-title">Download the Import Template</div>
+                <div class="im-template-desc">
+                    Use our pre-formatted template to avoid column mismatch errors.
+                    It includes two sample rows and an Instructions sheet.
+                </div>
+                <div class="im-template-btns">
+                    <a href="{{ route('admin.employees.import.template.excel') }}"
+                       class="im-tpl-btn-excel">
+                        <i class="fas fa-file-excel im-tpl-btn-icon"></i>
+                        <div class="im-tpl-btn-label">
+                            Download Excel
+                            <span>.xlsx — with formatting &amp; instructions</span>
+                        </div>
+                    </a>
+                    <a href="{{ route('admin.employees.import.template.csv') }}"
+                       class="im-tpl-btn-csv">
+                        <i class="fas fa-file-csv im-tpl-btn-icon"></i>
+                        <div class="im-tpl-btn-label">
+                            Download CSV
+                            <span>.csv — plain text, works everywhere</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ── Upload form panel ──────────────────────────────────── -->
             <div class="im-panel p-6 md:p-8">
                 <h2 class="text-lg font-bold mb-1" style="color: var(--im-text);">Upload File</h2>
                 <p class="text-sm mb-6" style="color: var(--im-muted);">
