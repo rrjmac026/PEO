@@ -3,56 +3,62 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\UserCredentialsMail;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Smalot\PdfParser\Parser as PdfParser;
 
 class EmployeeImportController extends Controller
 {
+    // Default password assigned to every imported user.
+    // They should be prompted to change it on first login.
+    private const DEFAULT_PASSWORD = 'password';
+
     // Maps lowercase Excel header → Employee fillable field
     private const COLUMN_MAP = [
-        'first name'                         => 'first_name',
-        'last name'                          => 'last_name',
-        'middle name'                        => 'middle_name',
-        'email address'                      => 'email_address',
-        'date of birth'                      => 'date_of_birth',
-        'blood type'                         => 'blood_type',
-        'height (cm)'                        => 'height_cm',
-        'weight (kg)'                        => 'weight_kg',
-        'home address (st., brgy, mun./city, prov.)' => 'home_address',
-        'home address'                       => 'home_address',
-        'phone number (09xxxxxxxxx)'         => 'phone_number',
-        'phone number'                       => 'phone_number',
-        'emergency contact no.   (09xxxxxxxxx)' => 'emergency_contact_no',
-        'emergency contact no.'              => 'emergency_contact_no',
-        'id number (pds-xxxxxxxxx)'          => 'id_number',
-        'id number'                          => 'id_number',
-        'tin (xxx-xxx-xxx)'                  => 'tin',
-        'tin'                                => 'tin',
-        'pag-ibig no.'                       => 'pagibig_no',
-        'philhealth (15-000000000-6)'        => 'philhealth',
-        'philhealth'                         => 'philhealth',
-        'gsis no. (10 digit no.)'            => 'gsis_no',
-        'gsis no.'                           => 'gsis_no',
-        'hmo organization ( ex. 1 health coop - ficco )' => 'hmo_organization',
-        'hmo organization'                   => 'hmo_organization',
-        'hmo #'                              => 'hmo_number',
-        'eligibility (csc, tesda nc ii, prc, others)' => 'eligibility',
-        'eligibility'                        => 'eligibility',
-        'position title (ex. administrative aide vi (clerk iii), architect iii, mason i (b), etc.)' => 'position_title',
-        'position title'                     => 'position_title',
-        'licence number'                     => 'licence_number',
-        'license number'                     => 'licence_number',
+        'first name'                                                                                  => 'first_name',
+        'last name'                                                                                   => 'last_name',
+        'middle name'                                                                                 => 'middle_name',
+        'email address'                                                                               => 'email_address',
+        'date of birth'                                                                               => 'date_of_birth',
+        'blood type'                                                                                  => 'blood_type',
+        'height (cm)'                                                                                 => 'height_cm',
+        'weight (kg)'                                                                                 => 'weight_kg',
+        'home address (st., brgy, mun./city, prov.)'                                                  => 'home_address',
+        'home address'                                                                                => 'home_address',
+        'phone number (09xxxxxxxxx)'                                                                  => 'phone_number',
+        'phone number'                                                                                => 'phone_number',
+        'emergency contact no.   (09xxxxxxxxx)'                                                      => 'emergency_contact_no',
+        'emergency contact no.'                                                                       => 'emergency_contact_no',
+        'id number (pds-xxxxxxxxx)'                                                                   => 'id_number',
+        'id number'                                                                                   => 'id_number',
+        'tin (xxx-xxx-xxx)'                                                                           => 'tin',
+        'tin'                                                                                         => 'tin',
+        'pag-ibig no.'                                                                                => 'pagibig_no',
+        'philhealth (15-000000000-6)'                                                                 => 'philhealth',
+        'philhealth'                                                                                  => 'philhealth',
+        'gsis no. (10 digit no.)'                                                                     => 'gsis_no',
+        'gsis no.'                                                                                    => 'gsis_no',
+        'hmo organization ( ex. 1 health coop - ficco )'                                              => 'hmo_organization',
+        'hmo organization'                                                                            => 'hmo_organization',
+        'hmo #'                                                                                       => 'hmo_number',
+        'eligibility (csc, tesda nc ii, prc, others)'                                                 => 'eligibility',
+        'eligibility'                                                                                 => 'eligibility',
+        'position title (ex. administrative aide vi (clerk iii), architect iii, mason i (b), etc.)'  => 'position_title',
+        'position title'                                                                              => 'position_title',
+        'licence number'                                                                              => 'licence_number',
+        'license number'                                                                              => 'licence_number',
     ];
 
-    // Maps lowercase position title keywords → users.role value
-    // Order matters: more specific entries (e.g. 'engineer iv') must come
-    // before broader ones (e.g. 'engineer') to prevent wrong matches.
+    // Maps lowercase position title keywords → users.role value.
+    // Order matters: more specific entries must come before broader ones.
     private const POSITION_ROLE_MAP = [
         'provincial engineer' => 'provincial_engineer',
         'engineer iv'         => 'engineeriv',
@@ -65,13 +71,9 @@ class EmployeeImportController extends Controller
     ];
 
     // Columns to skip entirely (not stored).
-    // NOTE: 'email address' is intentionally NOT listed here — it is a real
-    // data column we want to import. The Google Form auto-captured submitter
-    // email appears *before* the 'first name' header and is already ignored
-    // by normalizeRows(), which only starts reading after it finds 'first name'.
     private const SKIP_COLUMNS = [
         'timestamp',
-        'in compliance with the data privacy act', // consent column (starts with this)
+        'in compliance with the data privacy act',
     ];
 
     // ── Show import form ───────────────────────────────────────────────────
@@ -100,9 +102,12 @@ class EmployeeImportController extends Controller
                 default       => throw new \Exception("Unsupported file type: {$extension}"),
             };
 
-            [$imported, $skipped, $errors] = $this->processRows($rows);
+            [$imported, $skipped, $emailsSent, $errors] = $this->processRows($rows);
 
             $message = "Import complete: {$imported} imported, {$skipped} skipped (duplicate ID).";
+            if ($emailsSent > 0) {
+                $message .= " {$emailsSent} credential email(s) sent.";
+            }
             if ($errors) {
                 $message .= ' ' . count($errors) . ' row(s) had errors.';
             }
@@ -175,8 +180,7 @@ class EmployeeImportController extends Controller
                 $lower = array_map(fn($h) => mb_strtolower(trim((string) $h)), $row);
 
                 // The real header row contains 'first name'.
-                // Everything before this row (including the Google Form
-                // auto-captured email column) is safely skipped.
+                // Everything before it (Google Form timestamp, consent, etc.) is skipped.
                 if (in_array('first name', $lower, true)) {
                     $headers = $lower;
                 }
@@ -230,13 +234,21 @@ class EmployeeImportController extends Controller
 
     private function processRows(array $rows): array
     {
-        $imported = 0;
-        $skipped  = 0;
-        $errors   = [];
+        $imported   = 0;
+        $skipped    = 0;
+        $emailsSent = 0;
+        $errors     = [];
 
         foreach ($rows as $index => $row) {
             try {
-                $this->importRow($row, $index + 1) ? $imported++ : $skipped++;
+                [$result, $sentEmail] = $this->importRow($row, $index + 1);
+
+                if ($result) {
+                    $imported++;
+                    if ($sentEmail) $emailsSent++;
+                } else {
+                    $skipped++;
+                }
             } catch (\Exception $e) {
                 $name     = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))
                     ?: "Row " . ($index + 1);
@@ -244,10 +256,13 @@ class EmployeeImportController extends Controller
             }
         }
 
-        return [$imported, $skipped, $errors];
+        return [$imported, $skipped, $emailsSent, $errors];
     }
 
-    private function importRow(array $row, int $line): bool
+    /**
+     * @return array{bool, bool}  [wasImported, emailWasSent]
+     */
+    private function importRow(array $row, int $line): array
     {
         if (empty($row['last_name']) && empty($row['id_number'])) {
             throw new \Exception("Missing last name and ID number on line {$line}");
@@ -256,12 +271,12 @@ class EmployeeImportController extends Controller
         $idNumber = $this->sanitizeId($row['id_number'] ?? null)
             ?: ('IMP-' . Str::upper(Str::random(8)));
 
-        // Primary check: skip exact ID number duplicates silently
+        // Skip exact ID number duplicates silently
         if (Employee::where('id_number', $idNumber)->exists()) {
-            return false;
+            return [false, false];
         }
 
-        // Secondary check: same first + last name, flag for human review
+        // Same first + last name with a different ID → flag for human review
         $firstName = Str::title(trim($row['first_name'] ?? ''));
         $lastName  = Str::title(trim($row['last_name']  ?? ''));
 
@@ -278,15 +293,10 @@ class EmployeeImportController extends Controller
             }
         }
 
-        // Skip duplicates
-        if (Employee::where('id_number', $idNumber)->exists()) {
-            return false;
-        }
+        $emailSent = false;
 
-        DB::transaction(function () use ($row, $idNumber) {
-            $firstName  = Str::title(trim($row['first_name']  ?? ''));
+        DB::transaction(function () use ($row, $idNumber, $firstName, $lastName, &$emailSent) {
             $middleName = Str::title(trim($row['middle_name'] ?? ''));
-            $lastName   = Str::title(trim($row['last_name']   ?? ''));
             $fullName   = trim("{$firstName} {$middleName} {$lastName}") ?: 'Unknown';
 
             $email = filter_var($row['email_address'] ?? '', FILTER_VALIDATE_EMAIL)
@@ -296,23 +306,30 @@ class EmployeeImportController extends Controller
             $role = $this->resolveRole($row['position_title'] ?? null);
 
             // Create or reuse User account.
-            // If the email already exists, we reuse the account as-is (role is
-            // not overwritten to avoid silently changing an existing user's access).
-            $user = $email
-                ? User::firstOrCreate(
+            // firstOrCreate: if the email already exists we reuse the account as-is
+            // (role is NOT overwritten to avoid silently changing existing access).
+            $userCreated = false;
+
+            if ($email) {
+                $user = User::firstOrCreate(
                     ['email' => $email],
                     [
                         'name'     => $fullName,
-                        'password' => Hash::make(Str::random(16)),
+                        'password' => Hash::make(self::DEFAULT_PASSWORD),
                         'role'     => $role,
                     ]
-                )
-                : User::create([
+                );
+                $userCreated = $user->wasRecentlyCreated;
+            } else {
+                // No email — generate a placeholder so the unique constraint is satisfied
+                $user = User::create([
                     'name'     => $fullName,
                     'email'    => 'import.' . Str::lower(Str::random(8)) . '@placeholder.local',
-                    'password' => Hash::make(Str::random(16)),
+                    'password' => Hash::make(self::DEFAULT_PASSWORD),
                     'role'     => $role,
                 ]);
+                $userCreated = true;
+            }
 
             Employee::create(array_filter([
                 'user_id'              => $user->id,
@@ -338,9 +355,20 @@ class EmployeeImportController extends Controller
                 'position_title'       => $row['position_title']   ?? null,
                 'licence_number'       => $this->sanitizeId($row['licence_number'] ?? null),
             ], fn($v) => $v !== null && $v !== ''));
+
+            // Send credentials only to newly created users with a real email
+            if ($userCreated && $email) {
+                try {
+                    Mail::to($email)->send(new UserCredentialsMail($user, self::DEFAULT_PASSWORD));
+                    $emailSent = true;
+                } catch (\Exception $e) {
+                    // Non-fatal: log it but don't roll back the import
+                    Log::warning("Import: failed to send credentials to {$email} — " . $e->getMessage());
+                }
+            }
         });
 
-        return true;
+        return [true, $emailSent];
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
@@ -402,6 +430,6 @@ class EmployeeImportController extends Controller
             }
         }
 
-        return 'staff'; // fallback — can log in but no reviewer/contractor access
+        return 'staff';
     }
 }
