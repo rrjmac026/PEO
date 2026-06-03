@@ -333,6 +333,10 @@ class EmployeeImportController extends Controller
 
     public function import(Request $request)
     {
+
+        set_time_limit(300); // 5 minutes
+        ini_set('max_execution_time', 300);
+        
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv,pdf', 'max:10240'],
         ]);
@@ -605,7 +609,7 @@ class EmployeeImportController extends Controller
             // Send credentials only to newly created users with a real email
             if ($userCreated && $email) {
                 try {
-                    Mail::to($email)->send(new UserCredentialsMail($user, self::DEFAULT_PASSWORD));
+                    Mail::to($email)->queue(new UserCredentialsMail($user, self::DEFAULT_PASSWORD));
                     $emailSent = true;
                 } catch (\Exception $e) {
                     // Non-fatal: log it but don't roll back the import
