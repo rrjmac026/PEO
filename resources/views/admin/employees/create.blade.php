@@ -33,36 +33,11 @@
         <form action="{{ route('admin.employees.store') }}" method="POST">
             @csrf
 
-            {{-- ── USER ACCOUNT ─────────────────────────────────────────── --}}
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-                        <i class="fas fa-user-circle mr-2 text-indigo-500"></i>User Account
-                    </h2>
-                </div>
-                <div class="p-6 space-y-5">
-
-                    <!-- User -->
-                    <div>
-                        <label for="user_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Linked User
-                        </label>
-                        <select name="user_id" id="user_id"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('user_id') border-red-500 @enderror">
-                            <option value="">— No linked user —</option>
-                            @foreach ($users as $user)
-                                <option value="{{ $user->id }}" @selected(old('user_id') == $user->id)>
-                                    {{ $user->name }} ({{ $user->email }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('user_id')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
-                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Only users without an existing employee record are shown.</p>
-                    </div>
-
-                </div>
+            {{-- ── AUTO USER NOTE ──────────────────────────────────────────── --}}
+            <div class="mb-6 max-w-3xl mx-auto p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+                <i class="fas fa-info-circle mr-2"></i>
+                A <strong>User account</strong> will be created automatically using the employee's name and email address.
+                The default password is <code class="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">password</code> — remind them to change it on first login.
             </div>
 
             {{-- ── PERSONAL INFORMATION ──────────────────────────────────── --}}

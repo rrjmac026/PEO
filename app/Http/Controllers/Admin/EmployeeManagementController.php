@@ -24,14 +24,12 @@ class EmployeeManagementController extends Controller
 
     public function create()
     {
-        $users = User::doesntHave('employee')->get();
-        return view('admin.employees.create', compact('users'));
+        return view('admin.employees.create');
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'user_id'        => 'nullable|exists:users,id|unique:employees,user_id',
             'id_number'      => 'required|string|unique:employees,id_number',
             'position_title' => 'required|string|max:255',
             'department'     => 'nullable|string|max:255',
@@ -55,13 +53,38 @@ class EmployeeManagementController extends Controller
             'eligibility'    => 'nullable|string',
             'licence_number' => 'nullable|string|max:100',
             'office'         => 'nullable|string|max:255',
-            'signature_path' => 'nullable|string',
         ]);
 
-        Employee::create($request->all());
+        $fullName = trim($request->first_name . ' ' . ($request->middle_name ? $request->middle_name . ' ' : '') . $request->last_name);
+        $email    = $request->email_address;
+
+        // Auto-create or reuse a User account
+        if ($email) {
+            $user = \App\Models\User::firstOrCreate(
+                ['email' => strtolower($email)],
+                [
+                    'name'     => $fullName,
+                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                    'role'     => $this->resolveRole($request->position_title),
+                ]
+            );
+        } else {
+            $user = \App\Models\User::create([
+                'name'     => $fullName,
+                'email'    => 'manual.' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(8)) . '@placeholder.local',
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'role'     => $this->resolveRole($request->position_title),
+            ]);
+        }
+
+        $data = $request->except(['email_address']);
+        $data['user_id']       = $user->id;
+        $data['email_address'] = $email;
+
+        Employee::create($data);
 
         return redirect()->route('admin.employees.index')
-                         ->with('success', 'Employee created successfully.');
+                        ->with('success', 'Employee created and user account linked automatically.');
     }
 
     public function show(Employee $employee)

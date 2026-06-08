@@ -336,7 +336,7 @@ class EmployeeImportController extends Controller
 
         set_time_limit(300); // 5 minutes
         ini_set('max_execution_time', 300);
-        
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv,pdf', 'max:10240'],
         ]);
@@ -673,11 +673,19 @@ class EmployeeImportController extends Controller
         if (!$positionTitle) return 'staff';
 
         $lower = mb_strtolower(trim($positionTitle));
+        $map   = [
+            'provincial engineer' => 'provincial_engineer',
+            'engineer iv'         => 'engineeriv',
+            'engineer iii'        => 'engineeriii',
+            'resident engineer'   => 'resident_engineer',
+            'site inspector'      => 'site_inspector',
+            'surveyor'            => 'surveyor',
+            'mtqa'                => 'mtqa',
+            'contractor'          => 'contractor',
+        ];
 
-        foreach (self::POSITION_ROLE_MAP as $keyword => $role) {
-            if (str_contains($lower, $keyword)) {
-                return $role;
-            }
+        foreach ($map as $keyword => $role) {
+            if (str_contains($lower, $keyword)) return $role;
         }
 
         return 'staff';
