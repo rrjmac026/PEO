@@ -287,12 +287,27 @@
     </div>
 
     <!-- ── Employees Table ── -->
+     <form id="bulk-form" action="{{ route('admin.employees.bulk-destroy') }}" method="POST">
+    @csrf
+    @method('DELETE')
+
+    <!-- Bulk Action Bar (hidden until rows are selected) -->
+    <div id="bulk-bar" style="display:none;" class="em-alert error" style="margin-bottom:12px; align-items:center;">
+        <span id="bulk-count" style="font-weight:600;"></span> employee(s) selected
+        <button type="submit" class="em-btn em-btn-indigo" style="margin-left:auto; background:#dc2626; border-color:#dc2626;"
+                onclick="return confirm('Delete selected employees? This cannot be undone.')">
+            <i class="fas fa-trash"></i> Delete Selected
+        </button>
+    </div>
     <div class="em-panel">
         @if ($employees->count() > 0)
             <div class="overflow-x-auto">
                 <table class="em-table">
                     <thead>
                         <tr>
+                            <th>
+                                <input type="checkbox" id="select-all" class="em-check" title="Select all">
+                            </th>
                             <th>Name</th>
                             <th>ID Number</th>
                             <th>Position Title</th>
@@ -304,6 +319,9 @@
                     <tbody>
                         @foreach ($employees as $employee)
                             <tr>
+                                <td>
+                                    <input type="checkbox" name="ids[]" value="{{ $employee->id }}" class="em-check row-check">
+                                </td>
                                 <!-- Name + avatar -->
                                 <td>
                                     <div class="flex items-center gap-3">
@@ -382,5 +400,31 @@
             </div>
         @endif
     </div>
+
+@push('scripts')
+    <script>
+        const selectAll  = document.getElementById('select-all');
+        const bulkBar    = document.getElementById('bulk-bar');
+        const bulkCount  = document.getElementById('bulk-count');
+
+        function updateBulkBar() {
+            const checked = document.querySelectorAll('.row-check:checked');
+            bulkBar.style.display = checked.length ? 'flex' : 'none';
+            bulkCount.textContent = checked.length;
+            selectAll.indeterminate = checked.length > 0 &&
+                checked.length < document.querySelectorAll('.row-check').length;
+            selectAll.checked = checked.length === document.querySelectorAll('.row-check').length;
+        }
+
+        selectAll.addEventListener('change', () => {
+            document.querySelectorAll('.row-check').forEach(cb => cb.checked = selectAll.checked);
+            updateBulkBar();
+        });
+
+        document.querySelectorAll('.row-check').forEach(cb =>
+            cb.addEventListener('change', updateBulkBar)
+        );
+    </script>
+@endpush
 
 @endsection

@@ -145,4 +145,17 @@ class EmployeeManagementController extends Controller
         return redirect()->route('admin.employees.index')
                          ->with('success', 'Employee deleted successfully.');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array',
+            'ids.*' => 'exists:employees,id',
+        ]);
+
+        Employee::whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('admin.employees.index')
+                        ->with('success', count($request->ids) . ' employee(s) deleted successfully.');
+    }
 }

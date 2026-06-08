@@ -5,8 +5,8 @@ public/storage
 
 # Local environment
 .env
-.env1
-.env2
+.env.localtesting
+.env.production
 .env.*
 !.env.example
 

@@ -81,6 +81,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('employees/import', [EmployeeImportController::class, 'import'])->name('employees.import');
     Route::get ('employees/import/template/excel',   [EmployeeImportController::class, 'downloadTemplateExcel'])->name('employees.import.template.excel');
     Route::get ('employees/import/template/csv',     [EmployeeImportController::class, 'downloadTemplateCsv']) ->name('employees.import.template.csv');
+    Route::delete('employees/bulk-destroy', [EmployeeManagementController::class, 'bulkDestroy'])
+    ->name('employees.bulk-destroy');
     Route::resource('employees', EmployeeManagementController::class);
 
     
