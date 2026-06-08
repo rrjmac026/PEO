@@ -220,6 +220,7 @@
                 </div>
             </div>
 
+            <br>
             {{-- ── Employee Info Alert ── --}}
             @include('partials.employee-info-alert')
 
