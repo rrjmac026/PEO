@@ -40,7 +40,7 @@ class ConcretePouringNotificationService
 
         foreach ($admins as $admin) {
             try {
-                Mail::to($admin->email)->send(new ConcretePouringSubmittedMail($cp));
+                Mail::to($admin->email)->queue(new ConcretePouringSubmittedMail($cp));
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringSubmittedMail failed', [
                     'to'    => $admin->email,
@@ -121,7 +121,7 @@ class ConcretePouringNotificationService
             }
 
             try {
-                Mail::to($reviewer->email)->send(
+                Mail::to($reviewer->email)->queue(
                     new ConcretePouringAssignedMail($cp, $meta['label'], $isFirst)
                 );
             } catch (\Throwable $e) {
@@ -221,7 +221,7 @@ class ConcretePouringNotificationService
         );
 
         try {
-            Mail::to($nextReviewer->email)->send(
+            Mail::to($nextReviewer->email)->queue(
                 new ConcretePouringStepAdvancedMail(
                     $cp,
                     self::resolveReviewerName($cp, $completedStep),
@@ -279,7 +279,7 @@ class ConcretePouringNotificationService
         $contractor = User::find($cp->requested_by_user_id);
         if ($contractor) {
             try {
-                Mail::to($contractor->email)->send(new ConcretePouringApprovedMail($cp));
+                Mail::to($contractor->email)->queue(new ConcretePouringApprovedMail($cp));
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringApprovedMail (contractor) failed', [
                     'to'    => $contractor->email,
@@ -312,7 +312,7 @@ class ConcretePouringNotificationService
         $contractor = User::find($cp->requested_by_user_id);
         if ($contractor) {
             try {
-                Mail::to($contractor->email)->send(new ConcretePouringDisapprovedMail($cp));
+                Mail::to($contractor->email)->queue(new ConcretePouringDisapprovedMail($cp));
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringDisapprovedMail (contractor) failed', [
                     'to'    => $contractor->email,
@@ -355,7 +355,7 @@ class ConcretePouringNotificationService
         $reviewers = User::whereIn('id', $reviewerIds)->get();
         foreach ($reviewers as $reviewer) {
             try {
-                Mail::to($reviewer->email)->send($mailInstance);
+                Mail::to($reviewer->email)->queue($mailInstance);
             } catch (\Throwable $e) {
                 Log::error('ConcretePouringReviewerMail failed', [
                     'to'    => $reviewer->email,

@@ -16,9 +16,6 @@ use Illuminate\Support\Facades\Mail;
 
 class WorkRequestNotificationService
 {
-    /**
-     * Contractor submitted a new Work Request → notify all admins.
-     */
     public static function submitted(WorkRequest $wr): void
     {
         $admins = User::where('role', 'admin')->get();
@@ -36,7 +33,7 @@ class WorkRequestNotificationService
 
         foreach ($admins as $admin) {
             try {
-                Mail::to($admin->email)->send(new WorkRequestSubmittedMail($wr));
+                Mail::to($admin->email)->queue(new WorkRequestSubmittedMail($wr));
             } catch (\Throwable $e) {
                 Log::error('WorkRequestSubmittedMail failed', [
                     'to'    => $admin->email,
@@ -46,9 +43,6 @@ class WorkRequestNotificationService
         }
     }
 
-    /**
-     * Admin assigned engineers → notify each assigned engineer.
-     */
     public static function assigned(WorkRequest $wr): void
     {
         $steps = [
@@ -91,7 +85,7 @@ class WorkRequestNotificationService
             }
 
             try {
-                Mail::to($reviewer->email)->send(
+                Mail::to($reviewer->email)->queue(
                     new WorkRequestAssignedMail($wr, $info['role'], $isFirst)
                 );
             } catch (\Throwable $e) {
@@ -104,14 +98,6 @@ class WorkRequestNotificationService
         }
     }
 
-    /**
-     * A reviewer completed their step → notify the next reviewer.
-     * Call this AFTER $wr->advanceReviewStep() has been saved.
-     *
-     * FIX: when the next step is 'provincial_engineer', send
-     * WorkRequestReadyForDecisionMail instead of the generic step mail,
-     * since the PE is making the final decision, not just reviewing.
-     */
     public static function stepAdvanced(WorkRequest $wr, string $completedByName, string $completedStep): void
     {
         $stepLabels = [
@@ -126,7 +112,6 @@ class WorkRequestNotificationService
 
         $nextStep = $wr->current_review_step;
 
-        // Pipeline is complete — decisionMade() handles the outcome notifications.
         if (is_null($nextStep)) {
             return;
         }
@@ -140,7 +125,6 @@ class WorkRequestNotificationService
         $nextStepLabel = $stepLabels[$nextStep] ?? $nextStep;
         $prevLabel     = $stepLabels[$completedStep] ?? $completedStep;
 
-        // In-app notification (same for all steps)
         Notification::send(
             $wr->$col,
             'work_request',
@@ -154,13 +138,11 @@ class WorkRequestNotificationService
             $wr
         );
 
-        // FIX: Provincial Engineer gets the "Final Decision Needed" mail,
-        // everyone else gets the generic "Your Review Turn" mail.
         try {
             if ($nextStep === 'provincial_engineer') {
-                Mail::to($nextReviewer->email)->send(new WorkRequestReadyForDecisionMail($wr));
+                Mail::to($nextReviewer->email)->queue(new WorkRequestReadyForDecisionMail($wr));
             } else {
-                Mail::to($nextReviewer->email)->send(
+                Mail::to($nextReviewer->email)->queue(
                     new WorkRequestStepAdvancedMail($wr, $completedByName, $completedStep, $nextStepLabel)
                 );
             }
@@ -173,22 +155,17 @@ class WorkRequestNotificationService
         }
     }
 
-    /**
-     * Provincial Engineer made the final decision → notify contractor (and MTQA if approved).
-     */
     public static function decisionMade(WorkRequest $wr): void
     {
         $contractor = User::where('name', $wr->contractor_name)
             ->where('role', 'contractor')
             ->first();
-    
+
         $isApproved = $wr->status === WorkRequest::STATUS_APPROVED;
         $decision   = $isApproved ? 'Approved ✅' : 'Rejected ❌';
         $emoji      = $isApproved ? '🎉' : '😔';
         $statusWord = $isApproved ? 'approved' : 'rejected';
-    
-        // Notify MTQA when approved — they can now print
-        // Uses WorkRequestReadyToPrintMail, NOT WorkRequestDecisionMadeMail
+
         if ($isApproved && $wr->assigned_mtqa_id) {
             $mtqaUser = User::find($wr->assigned_mtqa_id);
             if ($mtqaUser) {
@@ -200,9 +177,9 @@ class WorkRequestNotificationService
                     route('reviewer.work-requests.show', $wr),
                     $wr
                 );
-    
+
                 try {
-                    Mail::to($mtqaUser->email)->send(new WorkRequestReadyToPrintMail($wr));
+                    Mail::to($mtqaUser->email)->queue(new WorkRequestReadyToPrintMail($wr));
                 } catch (\Throwable $e) {
                     Log::error('WorkRequestReadyToPrintMail (MTQA) failed', [
                         'to'    => $mtqaUser->email,
@@ -211,8 +188,7 @@ class WorkRequestNotificationService
                 }
             }
         }
-    
-        // Notify contractor of the outcome
+
         if ($contractor) {
             Notification::send(
                 $contractor->id,
@@ -223,9 +199,9 @@ class WorkRequestNotificationService
                 route('user.work-requests.show', $wr),
                 $wr
             );
-    
+
             try {
-                Mail::to($contractor->email)->send(new WorkRequestDecisionMadeMail($wr));
+                Mail::to($contractor->email)->queue(new WorkRequestDecisionMadeMail($wr));
             } catch (\Throwable $e) {
                 Log::error('WorkRequestDecisionMadeMail (contractor) failed', [
                     'to'    => $contractor->email,
@@ -234,5 +210,4 @@ class WorkRequestNotificationService
             }
         }
     }
-
 }
