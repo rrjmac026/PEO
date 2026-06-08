@@ -393,20 +393,20 @@ class WorkRequestPdf extends \FPDF
             $this->wr->contractor_signature ?? null
         );
 
-        $rx = self::ML + self::CA + 1;
-        $this->lbl($rx, $y + 1, 'Received By :');
-        $this->SetXY($rx, $y + 5);
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(...self::BLACK);
-        $this->Cell(38, 4, $this->val($this->wr->received_by ?? ''), 'B');
+        // $rx = self::ML + self::CA + 1;
+        // $this->lbl($rx, $y + 1, 'Received By :');
+        // $this->SetXY($rx, $y + 5);
+        // $this->SetFont('Arial', '', 8);
+        // $this->SetTextColor(...self::BLACK);
+        // $this->Cell(38, 4, $this->val($this->wr->received_by ?? ''), 'B');
 
-        $this->lbl($rx + 40, $y + 1, 'Date :');
-        $this->SetXY($rx + 40, $y + 5);
-        $this->Cell(26, 4, $this->fmtDate($this->wr->received_date ?? null, 'm/d/Y'), 'B');
+        // $this->lbl($rx + 40, $y + 1, 'Date :');
+        // $this->SetXY($rx + 40, $y + 5);
+        // $this->Cell(26, 4, $this->fmtDate($this->wr->received_date ?? null, 'm/d/Y'), 'B');
 
-        $this->lbl($rx + 68, $y + 1, 'Time:');
-        $this->SetXY($rx + 68, $y + 5);
-        $this->Cell(self::CB + self::CC - 69, 4, $this->val($this->wr->received_time ?? ''), 'B');
+        // $this->lbl($rx + 68, $y + 1, 'Time:');
+        // $this->SetXY($rx + 68, $y + 5);
+        // $this->Cell(self::CB + self::CC - 69, 4, $this->val($this->wr->received_time ?? ''), 'B');
 
         return $y + $h;
     }
