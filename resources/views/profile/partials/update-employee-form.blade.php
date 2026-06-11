@@ -40,6 +40,15 @@
             </div>
         </div>
 
+        {{-- Email (updates both employees.email_address and users.email) --}}
+        <div>
+            <label class="block font-medium text-sm mb-2" style="color:var(--profile-text);">{{ __('Email Address') }}</label>
+            <input name="email_address" type="email" class="profile-input mt-1 block w-full px-3 py-2"
+                value="{{ old('email_address', $emp?->email_address ?? auth()->user()->email) }}"
+                placeholder="e.g. juan@example.com" />
+            @error('email_address') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block font-medium text-sm mb-2" style="color:var(--profile-text);">{{ __('Date of Birth') }}</label>

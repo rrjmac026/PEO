@@ -127,10 +127,12 @@
 
                 {{-- Tab Headers --}}
                 <div class="profile-tabs">
-                    <button class="profile-tab-btn active" data-tab="account">
-                        <i class="fas fa-user"></i> Account
-                    </button>
-                    <button class="profile-tab-btn" data-tab="security">
+                    @if(auth()->user()->role === 'admin')
+                        <button class="profile-tab-btn active" data-tab="account">
+                            <i class="fas fa-user"></i> Account
+                        </button>
+                    @endif
+                    <button class="profile-tab-btn {{ auth()->user()->role !== 'admin' ? 'active' : '' }}" data-tab="security">
                         <i class="fas fa-lock"></i> Security
                     </button>
                     @if(auth()->user()->role !== 'admin')
@@ -143,15 +145,17 @@
                     </button>
                 </div>
 
-                {{-- Tab: Account --}}
-                <div class="profile-tab-panel active p-6 sm:p-8" id="tab-account">
-                    <div class="max-w-xl">
-                        @include('profile.partials.update-profile-information-form')
+                {{-- Tab: Account (admin only) --}}
+                @if(auth()->user()->role === 'admin')
+                    <div class="profile-tab-panel active p-6 sm:p-8" id="tab-account">
+                        <div class="max-w-xl">
+                            @include('profile.partials.update-profile-information-form')
+                        </div>
                     </div>
-                </div>
+                @endif
 
                 {{-- Tab: Security --}}
-                <div class="profile-tab-panel p-6 sm:p-8" id="tab-security">
+                <div class="profile-tab-panel {{ auth()->user()->role !== 'admin' ? 'active' : '' }} p-6 sm:p-8" id="tab-security">
                     <div class="max-w-xl">
                         @include('profile.partials.update-password-form')
                     </div>
@@ -188,7 +192,6 @@
                 switchTab(hash);
             }
 
-            // Auto-switch to employee tab if that form was just saved
             const status = @json(session('status'));
             if (status === 'employee-updated') {
                 switchTab('employee');
