@@ -231,4 +231,10 @@
         Reports
     </a>
 
+    <a href="{{ route('admin.backups.index') }}"
+       class="sb-link {{ request()->routeIs('admin.backups*') ? 'active' : '' }}">
+        <span class="sb-icon"><i class="fas fa-database"></i></span>
+        Backups
+    </a>
+
 </nav>
