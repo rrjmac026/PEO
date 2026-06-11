@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -68,17 +69,17 @@ class Employee extends Model
 
     // ── Scopes ────────────────────────────────────────────────────────────────
 
-    public function scopeSearch($query, $term)
+    public function scopeSearch(Builder $query, string $term): Builder
     {
-        return $query->where(function ($q) use ($term) {
-            $q->where('id_number',      'LIKE', "%{$term}%")
-              ->orWhere('first_name',   'LIKE', "%{$term}%")
-              ->orWhere('last_name',    'LIKE', "%{$term}%")
-              ->orWhere('position_title', 'LIKE', "%{$term}%")
-              ->orWhere('department',   'LIKE', "%{$term}%")
-              ->orWhereHas('user', fn ($q2) =>
-                  $q2->where('name', 'LIKE', "%{$term}%")
-              );
+        $like = '%' . $term . '%';
+
+        return $query->where(function ($q) use ($like) {
+            $q->where('id_number',      'LIKE', $like)
+            ->orWhere('first_name',   'LIKE', $like)
+            ->orWhere('last_name',    'LIKE', $like)
+            ->orWhere('position_title', 'LIKE', $like)
+            ->orWhere('department',   'LIKE', $like)
+            ->orWhereHas('user', fn ($u) => $u->where('name', 'LIKE', $like));
         });
     }
 
