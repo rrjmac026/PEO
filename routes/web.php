@@ -16,6 +16,7 @@ use App\Http\Controllers\User\UserMemoController;
 use App\Http\Controllers\Reviewer\ReviewerMemoController;
 use App\Http\Controllers\Admin\AdminReportsController;
 use App\Http\Controllers\Admin\EmployeeImportController;
+use App\Http\Controllers\Admin\DataBackupController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 
@@ -203,6 +204,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         Route::post('/{memo}/cancel',            [MemoController::class, 'cancel'])            ->name('cancel');
         Route::delete('/{memo}/attachment',      [MemoController::class, 'removeAttachment']) ->name('remove-attachment');
         Route::post('/{memo}/mark-read',         [MemoController::class, 'markRead'])         ->name('mark-read');
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // Database Backups
+    // ─────────────────────────────────────────────────────────────
+    Route::prefix('backups')->name('backups.')->group(function () {
+        Route::get('/',                        [DataBackupController::class, 'index'])    ->name('index');
+        Route::post('/',                       [DataBackupController::class, 'store'])    ->name('store');
+        Route::post('/quick',                  [DataBackupController::class, 'quick'])    ->name('quick');
+        Route::post('/cleanup',                [DataBackupController::class, 'cleanup'])  ->name('cleanup');
+        Route::get('/test',                    [DataBackupController::class, 'test'])     ->name('test');
+        Route::get('/{backup}/download',       [DataBackupController::class, 'download']) ->name('download');
+        Route::get('/{backup}/status',         [DataBackupController::class, 'status'])   ->name('status');
+        Route::delete('/{backup}',             [DataBackupController::class, 'destroy'])  ->name('destroy');
     });
 });
 
