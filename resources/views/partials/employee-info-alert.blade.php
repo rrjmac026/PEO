@@ -3,7 +3,7 @@
     $missingEmployeeInfo = $user->role !== 'admin' && !$user->employee;
     $incompleteEmployeeInfo = $user->role !== 'admin'
         && $user->employee
-        && (!$user->employee->position || !$user->employee->employee_number || !$user->employee->phone);
+        && (!$user->employee->first_name || !$user->employee->last_name || !$user->employee->position_title || !$user->employee->phone_number);
 @endphp
 
 @if($missingEmployeeInfo || $incompleteEmployeeInfo)
@@ -25,7 +25,7 @@
                 @if($missingEmployeeInfo)
                     Your employee details are missing. These are required for work requests and official documents.
                 @else
-                    Some employee details are missing (e.g. position, employee number, phone). Please complete your profile.
+                    Some employee details are missing (e.g. first name, last name, position, phone). Please complete your profile.
                 @endif
             </p>
             <div style="margin-top: 12px;">

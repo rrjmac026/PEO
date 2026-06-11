@@ -194,9 +194,10 @@
     @php
         $profileIncomplete = Auth::user()->role !== 'admin' && (
             !Auth::user()->employee ||
-            !Auth::user()->employee->position ||
-            !Auth::user()->employee->employee_number ||
-            !Auth::user()->employee->phone
+            !Auth::user()->employee->first_name ||
+            !Auth::user()->employee->last_name ||
+            !Auth::user()->employee->position_title ||
+            !Auth::user()->employee->phone_number
         );
     @endphp
 
