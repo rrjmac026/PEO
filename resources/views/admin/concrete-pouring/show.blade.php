@@ -43,7 +43,8 @@
                 </div>
             @endif
 
-            @include('reviewer.concrete-pouring.partials._hero')
+            {{-- Pass isMyTurn=false — admin is never an active reviewer --}}
+            @include('reviewer.concrete-pouring.partials._hero', ['isMyTurn' => false])
             @include('reviewer.concrete-pouring.partials._project-info')
             @include('reviewer.concrete-pouring.partials._checklist-fill', [
                 'concretePouring'  => $concretePouring,

@@ -42,7 +42,7 @@
                 </div>
             @endif
 
-            {{-- Hero --}}
+            {{-- ── Hero ──────────────────────────────────────────────────────── --}}
             <div class="cp-hero">
                 <div class="cp-hero-left">
                     <div>
@@ -66,7 +66,7 @@
                 </div>
             </div>
 
-            {{-- Meta chips --}}
+            {{-- ── Meta chips ────────────────────────────────────────────────── --}}
             <div class="cp-meta-row">
                 <div class="cp-meta-chip">
                     🕐 Submitted <strong>{{ $concretePouring->created_at->format('M d, Y · H:i') }}</strong>
@@ -81,7 +81,7 @@
                 @endif
             </div>
 
-            {{-- Project Details --}}
+            {{-- ── Project Details ───────────────────────────────────────────── --}}
             <div class="cp-card">
                 <div class="cp-card-head">
                     <div class="cp-card-head-icon cyan"><i class="fas fa-hard-hat"></i></div>
@@ -129,52 +129,7 @@
                 </div>
             </div>
 
-            @if($concretePouring->checklistFilledBy)
-                @php
-                    $filler = $concretePouring->checklistFilledBy;
-                    $fillerRoleLabel = match($filler->role) {
-                        'mtqa'              => 'ME/MTQA',
-                        'resident_engineer' => 'Resident Engineer',
-                        default             => ucfirst(str_replace('_', ' ', $filler->role)),
-                    };
-                    $fillerRoleColor = match($filler->role) {
-                        'mtqa'              => ['bg'=>'rgba(234,88,12,0.1)',  'color'=>'#ea580c', 'border'=>'rgba(234,88,12,0.3)'],
-                        'resident_engineer' => ['bg'=>'rgba(37,99,235,0.1)', 'color'=>'#2563eb', 'border'=>'rgba(37,99,235,0.3)'],
-                        default             => ['bg'=>'rgba(100,116,139,0.1)','color'=>'#64748b','border'=>'rgba(100,116,139,0.3)'],
-                    };
-                @endphp
-                <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;
-                            background:rgba(5,150,105,0.06); border:1px solid rgba(5,150,105,0.25);
-                            border-radius:10px; margin-bottom:16px; flex-wrap:wrap;">
-                    <div style="width:36px; height:36px; border-radius:50%;
-                                background:rgba(5,150,105,0.15); border:1.5px solid rgba(5,150,105,0.4);
-                                display:flex; align-items:center; justify-content:center;
-                                font-size:15px; color:#059669; flex-shrink:0;">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:700; color:var(--cp-text); margin-bottom:2px;">
-                            Checked by {{ $filler->name }}
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px;
-                                         background:{{ $fillerRoleColor['bg'] }};
-                                         color:{{ $fillerRoleColor['color'] }};
-                                         border:1px solid {{ $fillerRoleColor['border'] }};">
-                                {{ $fillerRoleLabel }}
-                            </span>
-                            @if($concretePouring->checklist_filled_at)
-                                <span style="font-size:12px; color:var(--cp-muted);">
-                                    <i class="fas fa-clock" style="margin-right:3px; font-size:10px;"></i>
-                                    {{ $concretePouring->checklist_filled_at->format('M d, Y · H:i') }}
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            {{-- Checklist --}}
+            {{-- ── Pre-Pouring Checklist ─────────────────────────────────────── --}}
             @php
                 $checklistItems = [
                     'concrete_vibrator'               => 'Concrete Vibrator',
@@ -201,7 +156,36 @@
                 $checkedCount = collect(array_keys($checklistItems))
                     ->filter(fn($f) => $concretePouring->$f)
                     ->count();
+
+                $itemCheckers = [];
+                foreach ($concretePouring->checklistLogs as $log) {
+                    if (!isset($itemCheckers[$log->field])) {
+                        $itemCheckers[$log->field] = [
+                            'user'    => $log->user,
+                            'checked' => $log->checked,
+                        ];
+                    }
+                }
+
+                $getRoleStyle = function (?string $role): array {
+                    return match ($role) {
+                        'mtqa'              => ['label' => 'ME/MTQA',           'bg' => 'rgba(234,88,12,0.1)',   'color' => '#ea580c', 'border' => 'rgba(234,88,12,0.3)'],
+                        'resident_engineer' => ['label' => 'Resident Engineer', 'bg' => 'rgba(37,99,235,0.1)',  'color' => '#2563eb', 'border' => 'rgba(37,99,235,0.3)'],
+                        default             => ['label' => ucfirst(str_replace('_', ' ', $role ?? '')), 'bg' => 'rgba(100,116,139,0.1)', 'color' => '#64748b', 'border' => 'rgba(100,116,139,0.3)'],
+                    };
+                };
+
+                $filler = $concretePouring->checklistFilledBy ?? null;
+                if (!$filler && $concretePouring->checklist_filled_by_user_id) {
+                    $filler = \App\Models\User::find($concretePouring->checklist_filled_by_user_id);
+                }
+                $filledAt        = $concretePouring->checklist_filled_at
+                                     ? \Illuminate\Support\Carbon::parse($concretePouring->checklist_filled_at)
+                                     : null;
+                $fillerRoleColor = $filler ? $getRoleStyle($filler->role) : $getRoleStyle(null);
+                $fillerRoleLabel = $fillerRoleColor['label'];
             @endphp
+
             <div class="cp-card">
                 <div class="cp-card-head">
                     <div class="cp-card-head-icon green"><i class="fas fa-tasks"></i></div>
@@ -211,6 +195,56 @@
                     </span>
                 </div>
                 <div class="cp-card-body">
+
+                    {{-- Who filled the checklist -- matches _checklist-fill.blade.php indicator --}}
+                    @if($filler)
+                        <div style="display:flex; align-items:center; gap:12px; padding:12px 16px;
+                                    background:rgba(5,150,105,0.06); border:1px solid rgba(5,150,105,0.25);
+                                    border-radius:10px; margin-bottom:16px; flex-wrap:wrap;">
+                            <div style="width:36px; height:36px; border-radius:50%;
+                                        background:rgba(5,150,105,0.15); border:1.5px solid rgba(5,150,105,0.4);
+                                        display:flex; align-items:center; justify-content:center;
+                                        font-size:15px; color:#059669; flex-shrink:0;">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:13px; font-weight:700; color:var(--cp-text); margin-bottom:2px;">
+                                    Checked by {{ $filler->name }}
+                                </div>
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <span style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px;
+                                                 background:{{ $fillerRoleColor['bg'] }};
+                                                 color:{{ $fillerRoleColor['color'] }};
+                                                 border:1px solid {{ $fillerRoleColor['border'] }};">
+                                        {{ $fillerRoleLabel }}
+                                    </span>
+                                    @if($filledAt)
+                                        <span style="font-size:12px; color:var(--cp-muted);">
+                                            <i class="fas fa-clock" style="margin-right:3px; font-size:10px;"></i>
+                                            {{ $filledAt->format('M d, Y · H:i') }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div style="flex-shrink:0;">
+                                @if($concretePouring->checklist_progress == 100)
+                                    <span style="font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px;
+                                                 background:rgba(5,150,105,0.12); color:#059669;
+                                                 border:1px solid rgba(5,150,105,0.3);">
+                                        <i class="fas fa-check-circle" style="margin-right:4px;"></i> All Complete
+                                    </span>
+                                @else
+                                    <span style="font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px;
+                                                 background:rgba(217,119,6,0.1); color:#d97706;
+                                                 border:1px solid rgba(217,119,6,0.3);">
+                                        <i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>
+                                        {{ $concretePouring->checklist_progress }}% Done
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
                     {{-- Progress bar --}}
                     <div class="mb-4">
                         <div style="height:6px;background:var(--cp-border);border-radius:99px;overflow:hidden">
@@ -218,25 +252,8 @@
                         </div>
                         <p class="text-xs mt-1" style="color:var(--cp-muted)">{{ $concretePouring->checklist_progress }}% complete</p>
                     </div>
-                    @php
-                        $itemCheckers = [];
-                        foreach ($concretePouring->checklistLogs as $log) {
-                            if (!isset($itemCheckers[$log->field])) {
-                                $itemCheckers[$log->field] = [
-                                    'user'    => $log->user,
-                                    'checked' => $log->checked,
-                                ];
-                            }
-                        }
 
-                        $getRoleStyle = function (?string $role): array {
-                            return match ($role) {
-                                'mtqa'              => ['label' => 'ME/MTQA',           'bg' => 'rgba(234,88,12,0.1)',   'color' => '#ea580c', 'border' => 'rgba(234,88,12,0.3)'],
-                                'resident_engineer' => ['label' => 'Resident Engineer', 'bg' => 'rgba(37,99,235,0.1)',  'color' => '#2563eb', 'border' => 'rgba(37,99,235,0.3)'],
-                                default             => ['label' => ucfirst(str_replace('_', ' ', $role ?? '')), 'bg' => 'rgba(100,116,139,0.1)', 'color' => '#64748b', 'border' => 'rgba(100,116,139,0.3)'],
-                            };
-                        };
-                    @endphp
+                    {{-- Checklist grid --}}
                     <div class="cp-checklist-grid">
                         @foreach($checklistItems as $field => $label)
                             @php
@@ -284,7 +301,7 @@
                 </div>
             </div>
 
-            {{-- Review Pipeline --}}
+            {{-- ── Review Pipeline ───────────────────────────────────────────── --}}
             <div class="cp-card">
                 <div class="cp-card-head">
                     <div class="cp-card-head-icon blue"><i class="fas fa-project-diagram"></i></div>
@@ -301,10 +318,9 @@
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
                                 <div class="cp-tl-icon {{ $reDone ? 'done' : ($reActive ? 'active' : 'waiting') }}">
-                                    @if($reDone) <i class="fas fa-check"></i>
-                                    @elseif($reActive) <i class="fas fa-clock"></i>
-                                    @else <i class="fas fa-circle"></i>
-                                    @endif
+                                    @if($reDone)<i class="fas fa-check"></i>
+                                    @elseif($reActive)<i class="fas fa-clock"></i>
+                                    @else<i class="fas fa-circle"></i>@endif
                                 </div>
                             </div>
                             <div style="flex:1">
@@ -336,10 +352,9 @@
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
                                 <div class="cp-tl-icon {{ $mtqaDone ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
-                                    @if($mtqaDone) <i class="fas fa-check"></i>
-                                    @elseif($mtqaActive) <i class="fas fa-clock"></i>
-                                    @else <i class="fas fa-circle"></i>
-                                    @endif
+                                    @if($mtqaDone)<i class="fas fa-check"></i>
+                                    @elseif($mtqaActive)<i class="fas fa-clock"></i>
+                                    @else<i class="fas fa-circle"></i>@endif
                                 </div>
                             </div>
                             <div style="flex:1">
@@ -371,10 +386,9 @@
                         <div class="cp-timeline-item">
                             <div class="cp-tl-icon-wrap">
                                 <div class="cp-tl-icon {{ $peDone ? 'done' : ($peActive ? 'active' : 'waiting') }}">
-                                    @if($peDone) <i class="fas fa-check"></i>
-                                    @elseif($peActive) <i class="fas fa-clock"></i>
-                                    @else <i class="fas fa-circle"></i>
-                                    @endif
+                                    @if($peDone)<i class="fas fa-check"></i>
+                                    @elseif($peActive)<i class="fas fa-clock"></i>
+                                    @else<i class="fas fa-circle"></i>@endif
                                 </div>
                             </div>
                             <div style="flex:1">
@@ -382,6 +396,7 @@
                                     Step 3 — Provincial Engineer Final Decision
                                     <span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:1px 8px;font-weight:700;">FINAL</span>
                                 </div>
+                                {{-- Name: shows decision context once finalised, same as reviewer pipeline --}}
                                 <div class="cp-tl-name">
                                     @if($concretePouring->status === 'approved')
                                         Approved by {{ $concretePouring->notedByEngineer?->name ?? '—' }}
@@ -404,7 +419,7 @@
                                 @elseif($concretePouring->status === 'disapproved')
                                     <span class="cp-badge disapproved" style="font-size:11px;padding:3px 8px">Disapproved</span>
                                 @elseif($peActive)
-                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">In Progress</span>
+                                    <span class="cp-badge requested" style="font-size:11px;padding:3px 8px">Pending Decision</span>
                                 @else
                                     <span style="font-size:11px;color:var(--cp-muted)">Waiting</span>
                                 @endif
@@ -415,7 +430,7 @@
                 </div>
             </div>
 
-            {{-- Danger zone --}}
+            {{-- ── Danger zone ───────────────────────────────────────────────── --}}
             @if($concretePouring->status === 'requested' && is_null($concretePouring->me_mtqa_user_id))
                 <div class="cp-danger-zone">
                     <div class="cp-danger-text">

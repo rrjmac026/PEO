@@ -5,7 +5,6 @@
     $mtqaDone    = !is_null($concretePouring->me_mtqa_date);
     $mtqaActive  = $concretePouring->current_review_step === 'mtqa';
     $isMyMtqa    = $isMyTurn && $mtqaActive;
-    $isFinalised = in_array($concretePouring->status, ['approved', 'disapproved']);
     $sig         = $concretePouring->me_mtqa_signature;
 
     $mtqaSigUrl = null;
@@ -28,8 +27,9 @@
 
 <div class="cp-timeline-item">
     <div class="cp-tl-icon-wrap">
-        <div class="cp-tl-icon {{ $isFinalised ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
-            @if($isFinalised)<i class="fas fa-check"></i>
+        {{-- Icon state uses $mtqaDone, same pattern as RE ($reDone) and PE ($peDone) --}}
+        <div class="cp-tl-icon {{ $mtqaDone ? 'done' : ($mtqaActive ? 'active' : 'waiting') }}">
+            @if($mtqaDone)<i class="fas fa-check"></i>
             @elseif($mtqaActive)<i class="fas fa-clock"></i>
             @else<i class="fas fa-circle"></i>@endif
         </div>

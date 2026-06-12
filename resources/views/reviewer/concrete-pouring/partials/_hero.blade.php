@@ -1,5 +1,6 @@
 {{-- resources/views/reviewer/concrete-pouring/partials/_hero.blade.php --}}
-{{-- Variables expected: $concretePouring, $isMyTurn --}}
+{{-- Variables expected: $concretePouring, $isMyTurn (optional, defaults false) --}}
+@php $isMyTurn = $isMyTurn ?? false; @endphp
 
 <div class="cp-hero">
     <div class="cp-hero-left">

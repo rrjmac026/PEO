@@ -39,13 +39,23 @@
             Step 3 — Provincial Engineer Final Decision
             <span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:1px 8px;font-weight:700;letter-spacing:0.3px;">FINAL</span>
         </div>
-        <div class="cp-tl-name">{{ $concretePouring->notedByEngineer?->name ?? 'Not assigned' }}</div>
+
+        {{-- Name line: shows decision context once finalised, mirrors user/show pipeline --}}
+        <div class="cp-tl-name">
+            @if($concretePouring->status === 'approved')
+                Approved by {{ $concretePouring->notedByEngineer?->name ?? '—' }}
+            @elseif($concretePouring->status === 'disapproved')
+                Disapproved by {{ $concretePouring->notedByEngineer?->name ?? '—' }}
+            @else
+                {{ $concretePouring->notedByEngineer?->name ?? 'Not assigned' }}
+            @endif
+        </div>
 
         @if($concretePouring->noted_date)
-            <div class="cp-tl-date">Noted: {{ $concretePouring->noted_date->format('M d, Y') }}</div>
+            <div class="cp-tl-date">Decided: {{ $concretePouring->noted_date->format('M d, Y') }}</div>
         @endif
 
-        @if($concretePouring->approval_remarks && $peDone && !in_array($concretePouring->status, ['approved','disapproved']))
+        @if($concretePouring->approval_remarks)
             <div class="cp-tl-remark">"{{ $concretePouring->approval_remarks }}"</div>
         @endif
 
