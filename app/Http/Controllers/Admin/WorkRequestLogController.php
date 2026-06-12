@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\WorkRequestLog;
+use App\Models\WorkRequest;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 
@@ -23,7 +24,7 @@ class WorkRequestLogController extends Controller
             $query->byEvent($request->event);
         }
 
-        $logs = $query->paginate(20);
+        $logs = $query->paginate(20)->withQueryString();
 
         // For the "Filter by Employee" dropdown
         $employees = Employee::join('users', 'employees.user_id', '=', 'users.id')
@@ -63,6 +64,29 @@ class WorkRequestLogController extends Controller
             return $carry;
         }, []);
 
-        return view('admin.work-request-logs.index', compact('logs', 'employees', 'events', 'eventLabels'));
+        return view('admin.work-request-logs.index', compact(
+            'logs', 'employees', 'events', 'eventLabels'
+        ));
+    }
+
+    /**
+     * Show the full activity timeline for a single Work Request.
+     */
+    public function show(WorkRequest $workRequest)
+    {
+        $workRequest->load([
+            'assignedSiteInspector',
+            'assignedSurveyor',
+            'assignedResidentEngineer',
+            'assignedMtqa',
+            'assignedEngineerIv',
+            'assignedEngineerIii',
+            'assignedProvincialEngineer',
+            'assignedByAdmin',
+            'logs.user',        // eager-load all log entries with their actor
+            'logs.employee.user', // legacy fallback
+        ]);
+
+        return view('admin.work-request-logs.show', compact('workRequest'));
     }
 }

@@ -72,6 +72,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         ->name('work-requests.logs');
     Route::get('/work-request-logs', [WorkRequestLogController::class, 'index'])
         ->name('work-request-logs.index');
+    Route::get('work-request-logs/{workRequest}', [WorkRequestLogController::class, 'show'])
+        ->name('work-request-logs.show');
 
     // ── Users & Employees ─────────────────────────────────────────────────────
     Route::post('/users/{user}/resend-credentials', [UserManagementController::class, 'resendCredentials'])

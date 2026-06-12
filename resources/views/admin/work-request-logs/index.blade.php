@@ -4,482 +4,554 @@
 
 @push('styles')
 <style>
-    /* ══════════════════════════════════════════
-       LIGHT MODE TOKENS (primary / default)
-    ══════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════════════════ */
     :root {
-        --lg-surface:   #ffffff;
-        --lg-surface2:  #f8fafc;
-        --lg-border:    #e2e8f0;
-        --lg-text:      #0f172a;
-        --lg-text-sec:  #334155;
-        --lg-muted:     #64748b;
-        --lg-shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-        --lg-shadow-lg: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+        --wr-surface:   #ffffff;
+        --wr-surface2:  #f8fafc;
+        --wr-border:    #e2e8f0;
+        --wr-text:      #0f172a;
+        --wr-text-sec:  #334155;
+        --wr-muted:     #64748b;
+        --wr-accent:    #4f46e5;
+        --wr-shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
     }
-
-    /* ══════════════════════════════════════════
-       DARK MODE TOKENS (override on .dark)
-    ══════════════════════════════════════════ */
     .dark {
-        --lg-surface:   #1a1f2e;
-        --lg-surface2:  #1e2335;
-        --lg-border:    #2a3050;
-        --lg-text:      #e8eaf6;
-        --lg-text-sec:  #c5cae9;
-        --lg-muted:     #7c85a8;
-        --lg-shadow:    0 1px 4px rgba(0,0,0,0.35);
-        --lg-shadow-lg: 0 4px 16px rgba(0,0,0,0.45);
+        --wr-surface:   #1a1f2e;
+        --wr-surface2:  #1e2335;
+        --wr-border:    #2a3050;
+        --wr-text:      #e8eaf6;
+        --wr-text-sec:  #c5cae9;
+        --wr-muted:     #7c85a8;
+        --wr-accent:    #818cf8;
     }
 
-    /* ── Page heading ── */
-    .lg-page-title { font-size: 28px; font-weight: 800; color: var(--lg-text); line-height: 1.2; }
-    .lg-page-sub   { font-size: 14px; color: var(--lg-muted); margin-top: 4px; }
+    /* ── Typography ── */
+    .wr-page-title { font-size: 28px; font-weight: 800; color: var(--wr-text); line-height: 1.2; }
+    .wr-page-sub   { font-size: 14px; color: var(--wr-muted); margin-top: 4px; }
 
-    /* ── Alert banners ── */
-    .lg-alert {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        padding: 12px 16px; border-radius: 10px; border: 1px solid;
-        margin-bottom: 16px; font-size: 14px;
-    }
-    .lg-alert.success { background: #f0fdf4; border-color: #86efac; color: #166534; }
-    .lg-alert.error   { background: #fff1f2; border-color: #fca5a5; color: #991b1b; }
-    .dark .lg-alert.success { background: rgba(5,150,105,.12); border-color: rgba(52,211,153,.3); color: #6ee7b7; }
-    .dark .lg-alert.error   { background: rgba(220,38,38,.10); border-color: rgba(248,113,113,.3); color: #fca5a5; }
+    /* ── Breadcrumb ── */
+    .wr-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--wr-muted); margin-bottom: 6px; }
+    .wr-breadcrumb a { color: var(--wr-muted); text-decoration: none; transition: color .12s; }
+    .wr-breadcrumb a:hover { color: var(--wr-text); }
+    .wr-breadcrumb .sep { font-size: 10px; opacity: .6; }
+    .wr-breadcrumb .current { color: var(--wr-text); font-weight: 600; }
 
-    .lg-alert ul { list-style: disc; padding-left: 20px; margin-top: 4px; }
-    .lg-alert-close {
-        background: none; border: none; cursor: pointer; font-size: 14px;
-        opacity: .6; line-height: 1; color: inherit; padding: 0; margin-left: 12px; flex-shrink: 0;
-    }
-    .lg-alert-close:hover { opacity: 1; }
+    /* ── Alert ── */
+    .wr-alert { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 16px; border-radius: 10px; border: 1px solid; margin-bottom: 16px; font-size: 14px; }
+    .wr-alert.success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+    .dark .wr-alert.success { background: rgba(5,150,105,.12); border-color: rgba(52,211,153,.3); color: #6ee7b7; }
+    .wr-alert-close { background: none; border: none; cursor: pointer; font-size: 14px; opacity: .6; color: inherit; padding: 0; margin-left: 12px; }
+    .wr-alert-close:hover { opacity: 1; }
+
+    /* ── Stat cards ── */
+    .wr-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    @media(max-width:640px) { .wr-stat-grid { grid-template-columns: repeat(2, 1fr); } }
+    .wr-stat-card  { background: var(--wr-surface); border: 1px solid var(--wr-border); border-radius: 12px; padding: 16px 20px; box-shadow: var(--wr-shadow); }
+    .wr-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--wr-muted); margin-bottom: 6px; }
+    .wr-stat-val   { font-size: 26px; font-weight: 800; line-height: 1; }
+    .wr-stat-val.clr-default { color: var(--wr-text); }
+    .wr-stat-val.clr-indigo  { color: #6366f1; }
+    .wr-stat-val.clr-green   { color: #059669; }
+    .wr-stat-val.clr-red     { color: #dc2626; }
 
     /* ── Panel ── */
-    .lg-panel {
-        background: var(--lg-surface);
-        border: 1px solid var(--lg-border);
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: var(--lg-shadow);
-    }
-    .lg-panel-body { padding: 20px 24px; }
+    .wr-panel { background: var(--wr-surface); border: 1px solid var(--wr-border); border-radius: 12px; overflow: hidden; box-shadow: var(--wr-shadow); }
+    .wr-panel-body { padding: 20px 24px; }
 
-    /* ── Form controls ── */
-    .lg-label {
-        display: block; font-size: 12px; font-weight: 600;
-        color: var(--lg-muted); text-transform: uppercase; letter-spacing: 0.4px;
-        margin-bottom: 6px;
-    }
-    .lg-input {
-        width: 100%; background: var(--lg-surface2);
-        border: 1px solid var(--lg-border); border-radius: 8px;
-        padding: 8px 14px; font-size: 14px; color: var(--lg-text);
-        transition: border-color .15s, box-shadow .15s; outline: none;
-    }
-    .lg-input::placeholder { color: var(--lg-muted); }
-    .lg-input:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99,102,241,.12);
-    }
-    .dark .lg-input:focus {
-        border-color: #818cf8;
-        box-shadow: 0 0 0 3px rgba(129,140,248,.12);
-    }
+    /* ── Form inputs ── */
+    .wr-input { width: 100%; background: var(--wr-surface2); border: 1px solid var(--wr-border); border-radius: 8px; padding: 8px 14px; font-size: 14px; color: var(--wr-text); outline: none; transition: border-color .15s, box-shadow .15s; }
+    .wr-input:focus { border-color: var(--wr-accent); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+    .wr-input::placeholder { color: var(--wr-muted); }
 
     /* ── Buttons ── */
-    .lg-btn {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-        border: 1px solid; cursor: pointer; transition: all .15s; text-decoration: none;
-        white-space: nowrap;
-    }
-    .lg-btn-primary {
-        background: #4f46e5; border-color: #4f46e5; color: #fff;
-    }
-    .lg-btn-primary:hover { background: #4338ca; border-color: #4338ca; }
-    .dark .lg-btn-primary { background: #6366f1; border-color: #6366f1; }
-    .dark .lg-btn-primary:hover { background: #818cf8; border-color: #818cf8; }
-
-    .lg-btn-secondary {
-        background: var(--lg-surface2); border-color: var(--lg-border); color: var(--lg-text-sec);
-    }
-    .lg-btn-secondary:hover { border-color: var(--lg-muted); }
+    .wr-btn            { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid; cursor: pointer; transition: all .15s; text-decoration: none; white-space: nowrap; }
+    .wr-btn-dark       { background: #1e293b; border-color: #1e293b; color: #fff; }
+    .wr-btn-dark:hover { background: #334155; }
+    .dark .wr-btn-dark { background: #e2e8f0; border-color: #e2e8f0; color: #0f172a; }
+    .wr-btn-secondary  { background: var(--wr-surface2); border-color: var(--wr-border); color: var(--wr-text-sec); }
+    .wr-btn-secondary:hover { background: var(--wr-border); }
 
     /* ── Table ── */
-    .lg-table { width: 100%; border-collapse: collapse; }
-    .lg-table thead tr {
-        background: var(--lg-surface2);
-        border-bottom: 1px solid var(--lg-border);
-    }
-    .lg-table thead th {
-        padding: 11px 20px; text-align: left;
-        font-size: 11px; font-weight: 700;
-        color: var(--lg-muted);
-        text-transform: uppercase; letter-spacing: 0.5px;
-        white-space: nowrap;
-    }
-    .lg-table tbody tr {
-        border-bottom: 1px solid var(--lg-border);
-        transition: background .12s;
-    }
-    .lg-table tbody tr:last-child { border-bottom: none; }
-    .lg-table tbody tr:hover { background: var(--lg-surface2); }
-    .lg-table td { padding: 14px 20px; font-size: 14px; color: var(--lg-text); }
-    .lg-table td.muted { color: var(--lg-muted); }
-
-    /* expandable detail row */
-    .lg-detail-row { background: var(--lg-surface2); }
-    .lg-detail-row td { padding: 16px 24px; }
-    .lg-detail-block { margin-bottom: 12px; }
-    .lg-detail-block:last-child { margin-bottom: 0; }
-    .lg-detail-label { font-size: 12px; font-weight: 700; color: var(--lg-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
-    .lg-detail-text  { font-size: 13px; color: var(--lg-text-sec); line-height: 1.6; }
-    .lg-detail-code  {
-        background: var(--lg-surface); border: 1px solid var(--lg-border);
-        border-radius: 8px; padding: 10px 14px;
-        font-family: monospace; font-size: 12px; color: var(--lg-text-sec);
-        overflow-x: auto; white-space: pre;
-    }
-    .lg-detail-ip { font-size: 12px; color: var(--lg-muted); }
-
-    /* ── Work request link chip ── */
-    .lg-wr-chip {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 3px 10px; border-radius: 7px;
-        font-size: 12px; font-weight: 700; font-family: monospace;
-        text-decoration: none; transition: all .15s;
-        background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;
-    }
-    .lg-wr-chip:hover { background: #dbeafe; border-color: #93c5fd; }
-    .dark .lg-wr-chip { background: rgba(96,165,250,.12); border-color: rgba(96,165,250,.3); color: #60a5fa; }
-    .dark .lg-wr-chip:hover { background: rgba(96,165,250,.2); }
-
-    .lg-deleted-chip { font-size: 13px; color: var(--lg-muted); font-style: italic; }
-
-    /* ── Avatar + name ── */
-    .lg-avatar {
-        width: 32px; height: 32px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 13px; font-weight: 700; flex-shrink: 0;
-        background: #e0e7ff; color: #4338ca;
-    }
-    .dark .lg-avatar { background: rgba(129,140,248,.2); color: #a5b4fc; }
-    .lg-emp-link {
-        font-size: 14px; font-weight: 500; color: var(--lg-text);
-        text-decoration: none; transition: color .15s;
-    }
-    .lg-emp-link:hover { color: #4f46e5; }
-    .dark .lg-emp-link:hover { color: #818cf8; }
-    .lg-system-user { font-size: 13px; color: var(--lg-muted); font-style: italic; }
+    .wr-table { width: 100%; border-collapse: collapse; }
+    .wr-table thead tr { background: var(--wr-surface2); border-bottom: 1px solid var(--wr-border); }
+    .wr-table thead th { padding: 11px 20px; text-align: left; font-size: 11px; font-weight: 700; color: var(--wr-muted); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .wr-table tbody tr { border-bottom: 1px solid var(--wr-border); transition: background .12s; cursor: pointer; }
+    .wr-table tbody tr.detail-row { cursor: default; }
+    .wr-table tbody tr:last-child { border-bottom: none; }
+    .wr-table tbody tr:not(.detail-row):hover { background: var(--wr-surface2); }
+    .wr-table td { padding: 13px 20px; font-size: 14px; color: var(--wr-text); }
+    .wr-table td.muted { color: var(--wr-muted); }
 
     /* ── Event badges ── */
-    .lg-event-badge {
-        display: inline-flex; align-items: center; gap: 5px;
-        padding: 3px 10px; border-radius: 20px;
-        font-size: 12px; font-weight: 600; border: 1px solid;
-    }
-    .lg-event-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .wr-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid; white-space: nowrap; }
+    .wr-badge-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-    /* light */
-    .lg-ev-created       { color: #047857; border-color: #6ee7b7; background: #f0fdf4; }
-    .lg-ev-updated       { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
-    .lg-ev-status_changed{ color: #6d28d9; border-color: #c4b5fd; background: #f5f3ff; }
-    .lg-ev-submitted     { color: #4338ca; border-color: #a5b4fc; background: #eef2ff; }
-    .lg-ev-inspected     { color: #92400e; border-color: #fcd34d; background: #fffbeb; }
-    .lg-ev-reviewed      { color: #c2410c; border-color: #fdba74; background: #fff7ed; }
-    .lg-ev-approved      { color: #047857; border-color: #6ee7b7; background: #f0fdf4; }
-    .lg-ev-rejected      { color: #b91c1c; border-color: #fca5a5; background: #fff1f2; }
-    .lg-ev-accepted      { color: #0f766e; border-color: #5eead4; background: #f0fdfa; }
-    .lg-ev-deleted       { color: #b91c1c; border-color: #fca5a5; background: #fff1f2; }
-    .lg-ev-restored      { color: #047857; border-color: #6ee7b7; background: #f0fdf4; }
-    .lg-ev-default       { color: #475569; border-color: #cbd5e1; background: #f1f5f9; }
+    /* Light */
+    .ev-created       { color: #047857; border-color: #6ee7b7; background: #f0fdf4; }
+    .ev-updated       { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+    .ev-status_changed{ color: #6d28d9; border-color: #c4b5fd; background: #f5f3ff; }
+    .ev-submitted     { color: #3730a3; border-color: #a5b4fc; background: #eef2ff; }
+    .ev-inspected     { color: #92400e; border-color: #fcd34d; background: #fffbeb; }
+    .ev-reviewed      { color: #c2410c; border-color: #fdba74; background: #fff7ed; }
+    .ev-approved      { color: #047857; border-color: #6ee7b7; background: #f0fdf4; }
+    .ev-rejected      { color: #b91c1c; border-color: #fca5a5; background: #fff1f2; }
+    .ev-accepted      { color: #0f766e; border-color: #5eead4; background: #f0fdfa; }
+    .ev-deleted       { color: #991b1b; border-color: #fca5a5; background: #fef2f2; }
+    .ev-restored      { color: #047857; border-color: #6ee7b7; background: #f0fdf4; }
+    .ev-default       { color: #475569; border-color: #cbd5e1; background: #f1f5f9; }
 
-    /* dark */
-    .dark .lg-ev-created       { color: #34d399; border-color: rgba(52,211,153,.3);  background: rgba(52,211,153,.08);  }
-    .dark .lg-ev-updated       { color: #60a5fa; border-color: rgba(96,165,250,.3);  background: rgba(96,165,250,.08);  }
-    .dark .lg-ev-status_changed{ color: #c084fc; border-color: rgba(192,132,252,.3); background: rgba(192,132,252,.08); }
-    .dark .lg-ev-submitted     { color: #818cf8; border-color: rgba(129,140,248,.3); background: rgba(129,140,248,.08); }
-    .dark .lg-ev-inspected     { color: #fbbf24; border-color: rgba(251,191,36,.3);  background: rgba(251,191,36,.08);  }
-    .dark .lg-ev-reviewed      { color: #fb923c; border-color: rgba(251,146,60,.3);  background: rgba(251,146,60,.08);  }
-    .dark .lg-ev-approved      { color: #34d399; border-color: rgba(52,211,153,.3);  background: rgba(52,211,153,.08);  }
-    .dark .lg-ev-rejected      { color: #f87171; border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.08); }
-    .dark .lg-ev-accepted      { color: #2dd4bf; border-color: rgba(45,212,191,.3);  background: rgba(45,212,191,.08);  }
-    .dark .lg-ev-deleted       { color: #f87171; border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.08); }
-    .dark .lg-ev-restored      { color: #34d399; border-color: rgba(52,211,153,.3);  background: rgba(52,211,153,.08);  }
-    .dark .lg-ev-default       { color: #94a3b8; border-color: rgba(148,163,184,.3); background: rgba(148,163,184,.08); }
+    /* Dark */
+    .dark .ev-created       { color: #34d399; border-color: rgba(52,211,153,.3);   background: rgba(52,211,153,.08); }
+    .dark .ev-updated       { color: #60a5fa; border-color: rgba(96,165,250,.3);   background: rgba(96,165,250,.08); }
+    .dark .ev-status_changed{ color: #c084fc; border-color: rgba(192,132,252,.3);  background: rgba(192,132,252,.08); }
+    .dark .ev-submitted     { color: #a5b4fc; border-color: rgba(165,180,252,.3);  background: rgba(165,180,252,.08); }
+    .dark .ev-inspected     { color: #fbbf24; border-color: rgba(251,191,36,.3);   background: rgba(251,191,36,.08); }
+    .dark .ev-reviewed      { color: #fb923c; border-color: rgba(251,146,60,.3);   background: rgba(251,146,60,.08); }
+    .dark .ev-approved      { color: #34d399; border-color: rgba(52,211,153,.3);   background: rgba(52,211,153,.08); }
+    .dark .ev-rejected      { color: #f87171; border-color: rgba(248,113,113,.3);  background: rgba(248,113,113,.08); }
+    .dark .ev-accepted      { color: #2dd4bf; border-color: rgba(45,212,191,.3);   background: rgba(45,212,191,.08); }
+    .dark .ev-deleted       { color: #f87171; border-color: rgba(248,113,113,.3);  background: rgba(248,113,113,.08); }
+    .dark .ev-restored      { color: #34d399; border-color: rgba(52,211,153,.3);   background: rgba(52,211,153,.08); }
+    .dark .ev-default       { color: #94a3b8; border-color: rgba(148,163,184,.3);  background: rgba(148,163,184,.08); }
 
-    /* dot colors match event color */
-    .lg-ev-created .dot, .lg-ev-approved .dot, .lg-ev-restored .dot { background: #10b981; }
-    .lg-ev-updated .dot        { background: #3b82f6; }
-    .lg-ev-status_changed .dot { background: #a855f7; }
-    .lg-ev-submitted .dot      { background: #6366f1; }
-    .lg-ev-inspected .dot      { background: #f59e0b; }
-    .lg-ev-reviewed .dot       { background: #f97316; }
-    .lg-ev-rejected .dot, .lg-ev-deleted .dot { background: #ef4444; }
-    .lg-ev-accepted .dot       { background: #14b8a6; }
-    .lg-ev-default .dot        { background: #94a3b8; }
+    /* Badge dots */
+    .ev-created .wr-badge-dot, .ev-approved .wr-badge-dot, .ev-restored .wr-badge-dot { background: #10b981; }
+    .ev-updated .wr-badge-dot        { background: #3b82f6; }
+    .ev-status_changed .wr-badge-dot { background: #a855f7; }
+    .ev-submitted .wr-badge-dot      { background: #6366f1; }
+    .ev-inspected .wr-badge-dot      { background: #f59e0b; }
+    .ev-reviewed .wr-badge-dot       { background: #f97316; }
+    .ev-rejected .wr-badge-dot, .ev-deleted .wr-badge-dot { background: #ef4444; }
+    .ev-accepted .wr-badge-dot       { background: #14b8a6; }
+    .ev-default .wr-badge-dot        { background: #94a3b8; }
 
-    /* ── Status change arrow ── */
-    .lg-status-change {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 12px; font-family: monospace;
-        color: var(--lg-text-sec);
-    }
-    .lg-status-change .arrow { color: var(--lg-muted); font-size: 10px; }
+    /* ── Work Request link chip ── */
+    .wr-ref-link { font-weight: 600; color: var(--wr-accent); text-decoration: none; }
+    .wr-ref-link:hover { text-decoration: underline; }
 
-    /* ── Expand button ── */
-    .lg-expand-btn {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 30px; height: 30px; border-radius: 7px;
-        font-size: 13px; border: 1px solid; cursor: pointer;
-        transition: all .15s; background: none;
-        color: #4f46e5; border-color: #c7d2fe; background: #eef2ff;
-    }
-    .lg-expand-btn:hover { background: #e0e7ff; border-color: #a5b4fc; }
-    .dark .lg-expand-btn { color: #818cf8; border-color: rgba(129,140,248,.3); background: rgba(129,140,248,.1); }
-    .dark .lg-expand-btn:hover { background: rgba(129,140,248,.2); border-color: rgba(129,140,248,.5); }
+    /* ── Role chip ── */
+    .wr-role { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
+    .wr-role.admin               { background: #f1f5f9; color: #475569;  border-color: #cbd5e1; }
+    .wr-role.contractor          { background: #fffbeb; color: #92400e;  border-color: #fde68a; }
+    .wr-role.site_inspector      { background: #ecfeff; color: #155e75;  border-color: #a5f3fc; }
+    .wr-role.surveyor            { background: #f0f9ff; color: #0c4a6e;  border-color: #7dd3fc; }
+    .wr-role.resident_engineer   { background: #ecfeff; color: #155e75;  border-color: #a5f3fc; }
+    .wr-role.mtqa                { background: #fff7ed; color: #9a3412;  border-color: #fed7aa; }
+    .wr-role.engineeriv          { background: #faf5ff; color: #6b21a8;  border-color: #e9d5ff; }
+    .wr-role.engineeriii         { background: #fdf4ff; color: #701a75;  border-color: #f0abfc; }
+    .wr-role.provincial_engineer { background: #faf5ff; color: #6b21a8;  border-color: #e9d5ff; }
+    .dark .wr-role.admin               { background: rgba(71,85,105,.15);    color: #94a3b8; border-color: rgba(148,163,184,.25); }
+    .dark .wr-role.contractor          { background: rgba(251,191,36,.08);   color: #fbbf24; border-color: rgba(251,191,36,.25); }
+    .dark .wr-role.site_inspector,
+    .dark .wr-role.resident_engineer   { background: rgba(6,182,212,.08);    color: #67e8f9; border-color: rgba(6,182,212,.25); }
+    .dark .wr-role.surveyor            { background: rgba(56,189,248,.08);   color: #7dd3fc; border-color: rgba(56,189,248,.25); }
+    .dark .wr-role.mtqa                { background: rgba(249,115,22,.08);   color: #fdba74; border-color: rgba(249,115,22,.25); }
+    .dark .wr-role.engineeriv,
+    .dark .wr-role.provincial_engineer { background: rgba(168,85,247,.08);   color: #d8b4fe; border-color: rgba(168,85,247,.25); }
+    .dark .wr-role.engineeriii         { background: rgba(217,70,239,.08);   color: #f0abfc; border-color: rgba(217,70,239,.25); }
 
-    /* ── Empty state ── */
-    .lg-empty { padding: 56px 24px; text-align: center; }
-    .lg-empty i { font-size: 36px; color: var(--lg-muted); opacity: .4; display: block; margin-bottom: 14px; }
-    .lg-empty-title { font-size: 16px; font-weight: 600; color: var(--lg-text-sec); }
-    .lg-empty-sub   { font-size: 13px; color: var(--lg-muted); margin-top: 4px; }
+    /* ── Avatar ── */
+    .wr-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--wr-surface2); border: 1px solid var(--wr-border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--wr-text-sec); flex-shrink: 0; }
 
-    /* ── Pagination wrapper ── */
-    .lg-pagination { padding: 16px 24px; border-top: 1px solid var(--lg-border); }
+    /* ── Status flow arrow ── */
+    .wr-status-flow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+    .wr-status-pill { border-radius: 5px; padding: 2px 8px; font-size: 11px; font-weight: 600; border: 1px solid; text-transform: capitalize; }
+    .wr-status-pill.from { background: var(--wr-surface2); border-color: var(--wr-border); color: var(--wr-muted); }
+    .wr-status-pill.to-approved  { background: #f0fdf4; border-color: #6ee7b7; color: #047857; }
+    .wr-status-pill.to-rejected  { background: #fff1f2; border-color: #fca5a5; color: #b91c1c; }
+    .wr-status-pill.to-accepted  { background: #f0fdfa; border-color: #5eead4; color: #0f766e; }
+    .wr-status-pill.to-default   { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+    .dark .wr-status-pill.to-approved { background: rgba(52,211,153,.08);   border-color: rgba(52,211,153,.3);   color: #34d399; }
+    .dark .wr-status-pill.to-rejected { background: rgba(248,113,113,.08);  border-color: rgba(248,113,113,.3);  color: #f87171; }
+    .dark .wr-status-pill.to-accepted { background: rgba(45,212,191,.08);   border-color: rgba(45,212,191,.3);   color: #2dd4bf; }
+    .dark .wr-status-pill.to-default  { background: rgba(96,165,250,.08);   border-color: rgba(96,165,250,.3);   color: #60a5fa; }
+
+    /* ── Action btn ── */
+    .wr-action-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 7px; font-size: 13px; border: 1px solid; cursor: pointer; transition: all .15s; text-decoration: none; background: none; }
+    .wr-action-btn.view        { color: var(--wr-accent); border-color: #c7d2fe; background: #eef2ff; }
+    .wr-action-btn.view:hover  { background: #e0e7ff; border-color: #a5b4fc; }
+    .dark .wr-action-btn.view  { color: #a5b4fc; border-color: rgba(165,180,252,.3); background: rgba(165,180,252,.1); }
+    .wr-action-btn.expand        { color: #64748b; border-color: var(--wr-border); background: var(--wr-surface2); }
+    .wr-action-btn.expand:hover  { border-color: var(--wr-muted); background: var(--wr-border); }
+
+    /* ── Expandable detail row ── */
+    .wr-detail-row { background: var(--wr-surface2); }
+    .wr-detail-row td { padding: 0; }
+    .wr-detail-inner { padding: 18px 24px; border-top: 1px solid var(--wr-border); }
+    .wr-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .wr-detail-block {}
+    .wr-detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--wr-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .wr-detail-text  { font-size: 13px; color: var(--wr-text-sec); line-height: 1.7; }
+    .wr-detail-code  { background: var(--wr-surface); border: 1px solid var(--wr-border); border-radius: 8px; padding: 10px 14px; font-family: monospace; font-size: 12px; color: var(--wr-text-sec); overflow-x: auto; white-space: pre; margin-top: 4px; }
+    .wr-detail-ip { font-size: 11px; color: var(--wr-muted); margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+
+    /* Changes diff table */
+    .wr-diff-table { width: 100%; border-collapse: collapse; margin-top: 6px; border-radius: 8px; overflow: hidden; border: 1px solid var(--wr-border); font-size: 12px; }
+    .wr-diff-table thead tr { background: var(--wr-surface2); }
+    .wr-diff-table thead th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--wr-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .wr-diff-table tbody tr { border-top: 1px solid var(--wr-border); }
+    .wr-diff-table tbody tr:hover { background: var(--wr-surface); }
+    .wr-diff-table td { padding: 7px 12px; vertical-align: top; }
+    .wr-diff-table td.field { font-family: monospace; color: var(--wr-text-sec); }
+    .wr-diff-table td.old   { color: #dc2626; text-decoration: line-through; opacity: .85; }
+    .wr-diff-table td.new   { color: #059669; font-weight: 600; }
+    .dark .wr-diff-table td.old { color: #f87171; }
+    .dark .wr-diff-table td.new { color: #34d399; }
+
+    /* ── Pagination ── */
+    .wr-pagination { padding: 16px 24px; border-top: 1px solid var(--wr-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+    /* ── Empty ── */
+    .wr-empty { padding: 60px 24px; text-align: center; }
+    .wr-empty i { font-size: 36px; color: var(--wr-muted); opacity: .35; display: block; margin-bottom: 14px; }
+    .wr-empty-title { font-size: 15px; font-weight: 600; color: var(--wr-text-sec); }
+    .wr-empty-sub   { font-size: 13px; color: var(--wr-muted); margin-top: 4px; }
+
+    /* ── Deleted chip ── */
+    .wr-deleted-chip { font-size: 12px; color: var(--wr-muted); font-style: italic; }
 </style>
 @endpush
 
 @section('content')
 
-    <!-- ── Page Header ── -->
+    {{-- Page Header --}}
     <div class="mb-8">
-        <h1 class="lg-page-title">Work Request Logs</h1>
-        <p class="lg-page-sub">Track and monitor all work request activities and changes</p>
+        <div class="wr-breadcrumb">
+            <a href="{{ route('admin.work-requests.index') }}">Work Requests</a>
+            <i class="fas fa-chevron-right sep"></i>
+            <span class="current">Activity Logs</span>
+        </div>
+        <h1 class="wr-page-title">Activity Logs</h1>
+        <p class="wr-page-sub">Complete audit trail of all actions across every work request</p>
     </div>
 
-    <!-- ── Error Alert ── -->
+    @if(session('success'))
+        <div class="wr-alert success" role="alert">
+            <span><i class="fas fa-check-circle mr-2"></i>{{ session('success') }}</span>
+            <button class="wr-alert-close" onclick="this.closest('.wr-alert').remove()"><i class="fas fa-times"></i></button>
+        </div>
+    @endif
+
     @if ($errors->any())
-        <div class="lg-alert error">
+        <div class="wr-alert" style="background:#fff1f2;border-color:#fca5a5;color:#991b1b;" role="alert">
             <div>
-                <div style="font-weight:700; margin-bottom:6px;">Please fix the following errors:</div>
-                <ul>
+                <strong>Please fix the following errors:</strong>
+                <ul style="list-style:disc;padding-left:18px;margin-top:4px;">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
                 </ul>
             </div>
-            <button class="lg-alert-close" onclick="this.closest('.lg-alert').remove()">
-                <i class="fas fa-times"></i>
-            </button>
+            <button class="wr-alert-close" onclick="this.closest('.wr-alert').remove()"><i class="fas fa-times"></i></button>
         </div>
     @endif
 
-    <!-- ── Success Alert ── -->
-    @if (session('success'))
-        <div class="lg-alert success">
-            <span><i class="fas fa-check-circle mr-2"></i>{{ session('success') }}</span>
-            <button class="lg-alert-close" onclick="this.closest('.lg-alert').remove()">
-                <i class="fas fa-times"></i>
-            </button>
+    {{-- Stat Cards --}}
+    @php
+        $totalCount    = $logs->total();
+        $todayCount    = \App\Models\WorkRequestLog::whereDate('created_at', today())->count();
+        $approvedCount = \App\Models\WorkRequestLog::where('event', \App\Models\WorkRequestLog::EVENT_APPROVED)->count();
+        $rejectedCount = \App\Models\WorkRequestLog::where('event', \App\Models\WorkRequestLog::EVENT_REJECTED)->count();
+    @endphp
+    <div class="wr-stat-grid">
+        <div class="wr-stat-card">
+            <div class="wr-stat-label"><i class="fas fa-list-ul mr-1"></i> Total Events</div>
+            <div class="wr-stat-val clr-default">{{ number_format($totalCount) }}</div>
         </div>
-    @endif
+        <div class="wr-stat-card">
+            <div class="wr-stat-label"><i class="fas fa-calendar-day mr-1"></i> Today</div>
+            <div class="wr-stat-val clr-indigo">{{ number_format($todayCount) }}</div>
+        </div>
+        <div class="wr-stat-card">
+            <div class="wr-stat-label"><i class="fas fa-check-circle mr-1"></i> Approvals</div>
+            <div class="wr-stat-val clr-green">{{ number_format($approvedCount) }}</div>
+        </div>
+        <div class="wr-stat-card">
+            <div class="wr-stat-label"><i class="fas fa-times-circle mr-1"></i> Rejections</div>
+            <div class="wr-stat-val clr-red">{{ number_format($rejectedCount) }}</div>
+        </div>
+    </div>
 
-    <!-- ── Filters ── -->
-    <div class="lg-panel mb-5">
-        <div class="lg-panel-body">
-            <form method="GET" action="{{ route('admin.work-request-logs.index') }}">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+    {{-- Filter Panel --}}
+    <div class="wr-panel mb-5">
+        <div class="wr-panel-body">
+            <form method="GET" action="{{ route('admin.work-request-logs.index') }}"
+                  class="flex flex-wrap gap-3 items-end">
 
-                    <div>
-                        <label for="employee_id" class="lg-label">Filter by Employee</label>
-                        <select name="employee_id" id="employee_id" class="lg-input">
-                            <option value="">All Employees</option>
-                            @foreach ($employees as $employee)
-                                <option value="{{ $employee->id }}"
-                                        {{ request('employee_id') == $employee->id ? 'selected' : '' }}>
-                                    {{ $employee->user->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                {{-- Employee filter --}}
+                <div class="min-w-[200px] flex-1">
+                    <select name="employee_id" class="wr-input">
+                        <option value="">All Employees</option>
+                        @foreach ($employees as $employee)
+                            <option value="{{ $employee->id }}"
+                                    @selected(request('employee_id') == $employee->id)>
+                                {{ $employee->user->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                    <div>
-                        <label for="event" class="lg-label">Filter by Event</label>
-                        <select name="event" id="event" class="lg-input">
-                            <option value="">All Events</option>
-                            @foreach ($events as $event)
-                                <option value="{{ $event }}"
-                                        {{ request('event') == $event ? 'selected' : '' }}>
-                                    {{ $eventLabels[$event] ?? ucfirst(str_replace('_', ' ', $event)) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                {{-- Event filter --}}
+                <div class="min-w-[180px]">
+                    <select name="event" class="wr-input">
+                        <option value="">All Events</option>
+                        @foreach ($events as $event)
+                            <option value="{{ $event }}"
+                                    @selected(request('event') == $event)>
+                                {{ $eventLabels[$event] ?? ucfirst(str_replace('_', ' ', $event)) }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                    <div class="flex gap-2">
-                        <button type="submit" class="lg-btn lg-btn-primary flex-1 justify-center">
-                            <i class="fas fa-filter"></i> Apply Filters
-                        </button>
-                        @if (request('employee_id') || request('event'))
-                            <a href="{{ route('admin.work-request-logs.index') }}" class="lg-btn lg-btn-secondary">
-                                <i class="fas fa-times"></i> Clear
-                            </a>
-                        @endif
-                    </div>
-
+                {{-- Action buttons --}}
+                <div class="flex gap-2 flex-wrap">
+                    <button type="submit" class="wr-btn wr-btn-dark">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    @if(request()->hasAny(['employee_id', 'event']))
+                        <a href="{{ route('admin.work-request-logs.index') }}" class="wr-btn wr-btn-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    @endif
+                    <a href="{{ route('admin.work-requests.index') }}" class="wr-btn wr-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ── Logs Table ── -->
-    <div class="lg-panel">
-        @if ($logs->count() > 0)
+    {{-- Logs Table --}}
+    @php
+        $knownEvents = ['created','updated','status_changed','submitted','inspected','reviewed','approved','rejected','accepted','deleted','restored'];
+
+        $eventIcons = [
+            'created'        => 'fa-plus-circle',
+            'updated'        => 'fa-pen',
+            'status_changed' => 'fa-arrows-rotate',
+            'submitted'      => 'fa-paper-plane',
+            'inspected'      => 'fa-hard-hat',
+            'reviewed'       => 'fa-clipboard-check',
+            'approved'       => 'fa-circle-check',
+            'rejected'       => 'fa-circle-xmark',
+            'accepted'       => 'fa-handshake',
+            'deleted'        => 'fa-trash',
+            'restored'       => 'fa-rotate-left',
+        ];
+    @endphp
+
+    <div class="wr-panel">
+        @if($logs->count() > 0)
             <div class="overflow-x-auto">
-                <table class="lg-table">
+                <table class="wr-table">
                     <thead>
                         <tr>
+                            <th>Timestamp</th>
                             <th>Work Request</th>
-                            <th>Employee</th>
                             <th>Event</th>
+                            <th>Actor</th>
                             <th>Status Change</th>
-                            <th>Date &amp; Time</th>
-                            <th>Actions</th>
+                            <th>Description</th>
+                            <th style="text-align:center;width:90px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($logs as $log)
+                        @foreach($logs as $log)
                             @php
-                                $evClass = 'lg-ev-' . ($log->event ?? 'default');
-                                $knownEvents = ['created','updated','status_changed','submitted','inspected','reviewed','approved','rejected','accepted','deleted','restored'];
-                                if (!in_array($log->event, $knownEvents)) $evClass = 'lg-ev-default';
+                                $evKey    = in_array($log->event, $knownEvents) ? $log->event : 'default';
+                                $badgeCls = 'ev-' . $evKey;
+                                $icon     = $eventIcons[$evKey] ?? 'fa-clock';
+
+                                // Resolve actor
+                                $actorUser    = $log->user ?? $log->employee?->user ?? null;
+                                $actorName    = $actorUser?->name ?? 'System';
+                                $actorInitial = strtoupper(substr($actorName, 0, 1));
+                                $actorRole    = $actorUser?->role ?? 'admin';
+
+                                // Status pill classes
+                                $toCls = match($log->status_to) {
+                                    'approved'  => 'to-approved',
+                                    'rejected'  => 'to-rejected',
+                                    'accepted'  => 'to-accepted',
+                                    default     => 'to-default',
+                                };
+
+                                $hasDetails = $log->description || $log->note || $log->changes;
+
+                                // Work request detail URL
+                                $wrUrl = $log->workRequest
+                                    ? route('admin.work-request-logs.show', $log->workRequest)
+                                    : null;
                             @endphp
 
-                            <tr>
-                                <!-- Work Request -->
-                                <td>
-                                    @if ($log->workRequest)
-                                        <a href="{{ route('admin.work-requests.show', $log->workRequest) }}" class="lg-wr-chip">
-                                            #{{ $log->workRequest->id }}
-                                            <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
-                                        </a>
-                                    @else
-                                        <span class="lg-deleted-chip">Deleted Request</span>
-                                    @endif
+                            {{-- Main row --}}
+                            <tr @if($wrUrl) onclick="handleRowClick(event, '{{ $wrUrl }}', {{ $log->id }})" @endif
+                                data-row="{{ $log->id }}">
+
+                                {{-- Timestamp --}}
+                                <td style="white-space:nowrap;">
+                                    <div style="font-size:13px;font-weight:600;color:var(--wr-text-sec);">
+                                        {{ $log->created_at->format('M d, Y') }}
+                                    </div>
+                                    <div style="font-size:11px;color:var(--wr-muted);margin-top:2px;">
+                                        {{ $log->created_at->format('g:i A') }}
+                                        &bull;
+                                        {{ $log->created_at->diffForHumans() }}
+                                    </div>
                                 </td>
 
-                                <!-- Employee -->
+                                {{-- Work Request --}}
                                 <td>
-                                    @php
-                                        // Priority 1: user_id (what addLog() saves)
-                                        // Priority 2: employee_id (legacy rows)
-                                        $actorName   = null;
-                                        $actorInitial = null;
-                                        $actorLink   = null;
-
-                                        if ($log->user) {
-                                            $actorName    = $log->user->name;
-                                            $actorInitial = strtoupper(substr($actorName, 0, 1));
-                                            // If this user also has an employee record, link to it
-                                            if ($log->user->employee) {
-                                                $actorLink = route('admin.employees.show', $log->user->employee);
-                                            }
-                                        } elseif ($log->employee && $log->employee->user) {
-                                            $actorName    = $log->employee->user->name;
-                                            $actorInitial = strtoupper(substr($actorName, 0, 1));
-                                            $actorLink    = route('admin.employees.show', $log->employee);
-                                        }
-                                    @endphp
-
-                                    @if ($actorName)
-                                        <div class="flex items-center gap-2">
-                                            <div class="lg-avatar">{{ $actorInitial }}</div>
-                                            @if ($actorLink)
-                                                <a href="{{ $actorLink }}" class="lg-emp-link">
-                                                    {{ $actorName }}
-                                                </a>
-                                            @else
-                                                <span class="lg-emp-link" style="cursor:default;">
-                                                    {{ $actorName }}
-                                                </span>
-                                            @endif
+                                    @if($log->workRequest)
+                                        <a href="{{ $wrUrl }}"
+                                           class="wr-ref-link"
+                                           onclick="event.stopPropagation()">
+                                            #{{ $log->workRequest->id }}
+                                        </a>
+                                        <div style="font-size:12px;color:var(--wr-muted);margin-top:2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                            {{ $log->workRequest->name_of_project ?? $log->workRequest->project_name ?? '—' }}
                                         </div>
                                     @else
-                                        <span class="lg-system-user">System User</span>
+                                        <span class="wr-deleted-chip"><i class="fas fa-ban mr-1"></i>[Deleted]</span>
                                     @endif
                                 </td>
 
-                                <!-- Event -->
+                                {{-- Event --}}
                                 <td>
-                                    <span class="lg-event-badge {{ $evClass }}">
-                                        <span class="dot"></span>
-                                        {{ $log->getEventLabelAttribute() }}
+                                    <span class="wr-badge {{ $badgeCls }}">
+                                        <span class="wr-badge-dot"></span>
+                                        {{ $log->event_label }}
                                     </span>
                                 </td>
 
-                                <!-- Status Change -->
+                                {{-- Actor --}}
                                 <td>
-                                    @if ($log->status_from || $log->status_to)
-                                        <div class="lg-status-change">
-                                            <span>{{ $log->status_from ? ucfirst($log->status_from) : '—' }}</span>
-                                            <span class="arrow"><i class="fas fa-arrow-right"></i></span>
-                                            <span>{{ $log->status_to ? ucfirst($log->status_to) : '—' }}</span>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <div class="wr-avatar">{{ $actorInitial }}</div>
+                                        <div>
+                                            <div style="font-size:13px;font-weight:600;color:var(--wr-text);white-space:nowrap;">
+                                                {{ $actorName }}
+                                            </div>
+                                            <span class="wr-role {{ $actorRole }}">
+                                                {{ ucwords(str_replace('_', ' ', $actorRole)) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {{-- Status Change --}}
+                                <td>
+                                    @if($log->status_from || $log->status_to)
+                                        <div class="wr-status-flow">
+                                            @if($log->status_from)
+                                                <span class="wr-status-pill from">{{ $log->status_from }}</span>
+                                                <i class="fas fa-arrow-right" style="font-size:9px;color:var(--wr-muted);"></i>
+                                            @endif
+                                            @if($log->status_to)
+                                                <span class="wr-status-pill {{ $toCls }}">{{ $log->status_to }}</span>
+                                            @endif
                                         </div>
                                     @else
-                                        <span class="muted">—</span>
+                                        <span style="color:var(--wr-muted);font-size:12px;">—</span>
                                     @endif
                                 </td>
 
-                                <!-- Date & Time -->
+                                {{-- Description --}}
                                 <td>
-                                    <div style="font-size:13px; font-weight:600; color:var(--lg-text);">
-                                        {{ $log->created_at->format('M d, Y') }}
+                                    <div style="font-size:13px;color:var(--wr-text);max-width:220px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+                                        {{ $log->description ?? '—' }}
                                     </div>
-                                    <div style="font-size:11px; color:var(--lg-muted); margin-top:2px;">
-                                        {{ $log->created_at->format('h:i A') }}
-                                    </div>
+                                    @if($log->note)
+                                        <div style="font-size:11px;color:var(--wr-muted);font-style:italic;margin-top:2px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                            "{{ $log->note }}"
+                                        </div>
+                                    @endif
                                 </td>
 
-                                <!-- Actions -->
-                                <td>
-                                    @if ($log->description || $log->note || $log->changes)
-                                        <button onclick="toggleDetails(event, {{ $log->id }})"
-                                                class="lg-expand-btn" title="View Details">
-                                            <i class="fas fa-expand-alt"></i>
-                                        </button>
-                                    @endif
+                                {{-- Actions --}}
+                                <td style="text-align:center;" onclick="event.stopPropagation()">
+                                    <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                        @if($wrUrl)
+                                            <a href="{{ $wrUrl }}" class="wr-action-btn view" title="View work request">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
 
-                            <!-- Expandable Detail Row -->
-                            @if ($log->description || $log->note || $log->changes)
-                                <tr id="details-{{ $log->id }}" class="hidden lg-detail-row">
-                                    <td colspan="6">
-                                        @if ($log->description)
-                                            <div class="lg-detail-block">
-                                                <div class="lg-detail-label">Description</div>
-                                                <div class="lg-detail-text">{{ $log->description }}</div>
+                            {{-- Expandable detail row --}}
+                            @if($hasDetails)
+                                <tr id="details-{{ $log->id }}" class="wr-detail-row hidden" style="display:none;">
+                                    <td colspan="7">
+                                        <div class="wr-detail-inner">
+                                            <div class="wr-detail-grid">
+
+                                                @if($log->description)
+                                                    <div class="wr-detail-block">
+                                                        <div class="wr-detail-label">
+                                                            <i class="fas fa-align-left" style="font-size:10px;"></i>
+                                                            Description
+                                                        </div>
+                                                        <div class="wr-detail-text">{{ $log->description }}</div>
+                                                    </div>
+                                                @endif
+
+                                                @if($log->note)
+                                                    <div class="wr-detail-block">
+                                                        <div class="wr-detail-label">
+                                                            <i class="fas fa-comment-dots" style="font-size:10px;"></i>
+                                                            Note
+                                                        </div>
+                                                        <div class="wr-detail-text" style="font-style:italic;">"{{ $log->note }}"</div>
+                                                    </div>
+                                                @endif
+
                                             </div>
-                                        @endif
-                                        @if ($log->note)
-                                            <div class="lg-detail-block">
-                                                <div class="lg-detail-label">Note</div>
-                                                <div class="lg-detail-text">{{ $log->note }}</div>
-                                            </div>
-                                        @endif
-                                        @if ($log->changes)
-                                            <div class="lg-detail-block">
-                                                <div class="lg-detail-label">Changes</div>
-                                                <div class="lg-detail-code">{{ json_encode($log->changes, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</div>
-                                            </div>
-                                        @endif
-                                        @if ($log->ip_address)
-                                            <div class="lg-detail-ip">
-                                                <i class="fas fa-network-wired mr-1"></i>
-                                                IP Address: <strong>{{ $log->ip_address }}</strong>
-                                            </div>
-                                        @endif
+
+                                            @if($log->changes)
+                                                <div style="margin-top:14px;">
+                                                    <div class="wr-detail-label" style="margin-bottom:8px;">
+                                                        <i class="fas fa-code-compare" style="font-size:10px;"></i>
+                                                        {{ count($log->changes) }} Field(s) Changed
+                                                    </div>
+                                                    <table class="wr-diff-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Field</th>
+                                                                <th>Before</th>
+                                                                <th>After</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach($log->changes as $field => $change)
+                                                                @php
+                                                                    [$old, $new] = is_array($change) ? $change : [null, $change];
+                                                                @endphp
+                                                                <tr>
+                                                                    <td class="field">{{ str_replace('_', ' ', $field) }}</td>
+                                                                    <td class="old">{{ is_bool($old) ? ($old ? 'Yes' : 'No') : ($old ?? '—') }}</td>
+                                                                    <td class="new">{{ is_bool($new) ? ($new ? 'Yes' : 'No') : ($new ?? '—') }}</td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            @endif
+
+                                            @if($log->ip_address)
+                                                <div class="wr-detail-ip">
+                                                    <i class="fas fa-network-wired"></i>
+                                                    IP Address: <strong>{{ $log->ip_address }}</strong>
+                                                    @if($log->user_agent)
+                                                        &bull; <span style="font-family:monospace;font-size:10px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom;">{{ $log->user_agent }}</span>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endif
@@ -489,20 +561,22 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="lg-pagination">
-                {{ $logs->links() }}
+            <div class="wr-pagination">
+                <span style="font-size:13px;color:var(--wr-muted);">
+                    Showing {{ $logs->firstItem() }}–{{ $logs->lastItem() }} of {{ number_format($logs->total()) }} events
+                </span>
+                {{ $logs->withQueryString()->links() }}
             </div>
 
         @else
-            <div class="lg-empty">
+            <div class="wr-empty">
                 <i class="fas fa-history"></i>
-                <div class="lg-empty-title">No work request logs found</div>
-                <div class="lg-empty-sub">
-                    @if (request('employee_id') || request('event'))
-                        Try adjusting your filters
+                <div class="wr-empty-title">No activity logs found</div>
+                <div class="wr-empty-sub">
+                    @if(request()->hasAny(['employee_id', 'event']))
+                        Try adjusting your filters.
                     @else
-                        Work request activities will appear here
+                        Work request activities will appear here as actions are taken.
                     @endif
                 </div>
             </div>
@@ -513,14 +587,30 @@
 
 @push('scripts')
 <script>
+    /**
+     * Toggle the expandable detail row.
+     * The chevron rotates 180° when open.
+     */
     function toggleDetails(event, logId) {
         event.preventDefault();
-        const row = document.getElementById('details-' + logId);
+        event.stopPropagation();
+
+        const row     = document.getElementById('details-' + logId);
+        const chevron = document.getElementById('chevron-' + logId);
         if (!row) return;
-        row.classList.toggle('hidden');
-        const icon = event.target.closest('button').querySelector('i');
-        icon.classList.toggle('fa-expand-alt');
-        icon.classList.toggle('fa-compress-alt');
+
+        const isHidden = row.style.display === 'none' || row.style.display === '';
+        row.style.display  = isHidden ? 'table-row' : 'none';
+        if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    /**
+     * Row click navigates to the work request,
+     * unless the click was on an interactive child element.
+     */
+    function handleRowClick(event, url, logId) {
+        if (event.target.closest('a, button')) return;
+        window.location = url;
     }
 </script>
 @endpush

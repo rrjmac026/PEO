@@ -224,4 +224,106 @@
 
         </div>
     </div>
+@push('scripts')
+<script>
+(function () {
+    const form = document.querySelector('form[action*="concrete-pouring"][method="GET"]');
+    if (!form) return;
+
+    // Admin uses .cp-panel wrapping the table; User uses .cp-table-container
+    const tableWrapper = document.querySelector('.cp-panel:has(table)') 
+                      ?? document.querySelector('.cp-table-container');
+    if (!tableWrapper) return;
+
+    let debounceTimer;
+    let currentController = null;
+
+    async function fetchResults() {
+        const params = new URLSearchParams(new FormData(form));
+
+        // Abort any in-flight request
+        if (currentController) currentController.abort();
+        currentController = new AbortController();
+
+        tableWrapper.style.opacity = '0.5';
+        tableWrapper.style.pointerEvents = 'none';
+
+        try {
+            const url = form.action + '?' + params.toString();
+            const res = await fetch(url, {
+                signal: currentController.signal,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!res.ok) return;
+
+            const html = res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(await html, 'text/html');
+
+            // Pull the same wrapper from the fetched page
+            const newWrapper = doc.querySelector('.cp-panel:has(table)') 
+                            ?? doc.querySelector('.cp-table-container');
+
+            if (newWrapper) {
+                tableWrapper.innerHTML = newWrapper.innerHTML;
+                // Re-bind pagination links
+                bindPaginationLinks();
+            }
+        } catch (e) {
+            if (e.name !== 'AbortError') console.error(e);
+        } finally {
+            tableWrapper.style.opacity = '';
+            tableWrapper.style.pointerEvents = '';
+        }
+    }
+
+    function bindPaginationLinks() {
+        tableWrapper.querySelectorAll('.pagination a, [aria-label] a, nav a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const pageUrl = new URL(this.href);
+                // Merge current filter params + page param into the form
+                pageUrl.searchParams.forEach((val, key) => {
+                    const el = form.querySelector(`[name="${key}"]`);
+                    if (el) el.value = val;
+                });
+                // Also update the URL bar without reload
+                history.pushState({}, '', pageUrl.toString());
+                fetchResults();
+            });
+        });
+    }
+
+    function debounce(fn, delay) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fn, delay);
+    }
+
+    form.querySelectorAll('input[type="text"]').forEach(input => {
+        input.addEventListener('input', () => debounce(fetchResults, 400));
+    });
+
+    form.querySelectorAll('select').forEach(select => {
+        select.addEventListener('change', fetchResults);
+    });
+
+    form.querySelectorAll('input[type="date"]').forEach(input => {
+        input.addEventListener('change', fetchResults);
+    });
+
+    // Prevent the Filter button from doing a hard submit
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        fetchResults();
+    });
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', fetchResults);
+
+    // Bind pagination on initial load too
+    bindPaginationLinks();
+})();
+</script>
+@endpush
 </x-app-layout>
