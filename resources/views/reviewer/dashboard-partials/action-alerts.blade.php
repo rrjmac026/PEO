@@ -89,7 +89,7 @@
                 </p>
                 @endif
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="{{ route('memos.index') ?? '#' }}"
+                    <a href="{{ route('reviewer.memos.index') ?? '#' }}"
                        style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; background: #2563eb; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
                        onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
                         <i class="fas fa-envelope" style="font-size: 10px;"></i>

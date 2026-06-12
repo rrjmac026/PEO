@@ -368,7 +368,7 @@ class MemoController extends Controller
                 // Use send() instead of queue() so exceptions are catchable here.
                 // If you need async, switch to a dedicated SendMemoMail job that
                 // handles its own retry/failure logging.
-                Mail::to($user->email)->send(new MemoMail($memo, $user));
+                Mail::to($user->email)->queue(new MemoMail($memo, $user));
 
                 MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
