@@ -22,6 +22,9 @@
             {{-- Employee Info Alert --}}
             @include('partials.employee-info-alert')
 
+             {{-- Status Alerts --}}
+            @include('user.dashboard-partials._status-alerts')
+
             {{-- Quick Actions --}}
             @include('user.dashboard-partials._quick-actions')
 
