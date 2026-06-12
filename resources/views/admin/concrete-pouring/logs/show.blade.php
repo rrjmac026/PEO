@@ -298,7 +298,7 @@
                         </div>
                         @php
                             $infoRows = [
-                                ['label' => 'Reference #',   'value' => $concretePouring->reference_number ?? '—'],
+                                ['label' => 'Contract #',   'value' => $concretePouring->contract_number ?? '—'],
                                 ['label' => 'Project',        'value' => $concretePouring->project_name],
                                 ['label' => 'Location',       'value' => $concretePouring->location],
                                 ['label' => 'Contractor',     'value' => $concretePouring->contractor],

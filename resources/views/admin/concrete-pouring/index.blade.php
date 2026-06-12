@@ -127,7 +127,7 @@
 
                         <div class="flex-1 min-w-[200px]">
                             <input type="text" name="search" value="{{ request('search') }}"
-                                   placeholder="Search project, location, contractor, ref…"
+                                   placeholder="Search project, location, contractor, contract…"
                                    class="cp-input">
                         </div>
 

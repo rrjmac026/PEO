@@ -50,11 +50,18 @@ class UserConcretePouringController extends Controller
             ->get();
 
         // ── Existing contract numbers for the combobox ──────────────
-        $contractNumbers = ConcretePouring::whereNotNull('contract_number')
+        $contractNumbers = WorkRequest::whereNotNull('contract_number')
             ->where('contract_number', '!=', '')
             ->distinct()
-            ->orderBy('contract_number')
             ->pluck('contract_number')
+            ->merge(
+                \App\Models\ConcretePouring::whereNotNull('contract_number')
+                    ->where('contract_number', '!=', '')
+                    ->distinct()
+                    ->pluck('contract_number')
+            )
+            ->unique()
+            ->sort()
             ->values();
 
         $residentEngineers   = \App\Models\User::where('role', 'resident_engineer')->orderBy('name')->get();

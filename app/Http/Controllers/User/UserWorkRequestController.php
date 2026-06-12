@@ -64,6 +64,13 @@ class UserWorkRequestController extends Controller
             ->where('contract_number', '!=', '')
             ->distinct()
             ->pluck('contract_number')
+            ->merge(
+                \App\Models\ConcretePouring::whereNotNull('contract_number')
+                    ->where('contract_number', '!=', '')
+                    ->distinct()
+                    ->pluck('contract_number')
+            )
+            ->unique()
             ->sort()
             ->values();
 
