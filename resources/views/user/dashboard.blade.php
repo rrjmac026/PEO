@@ -22,12 +22,6 @@
             {{-- Employee Info Alert --}}
             @include('partials.employee-info-alert')
 
-            {{-- Work Request Stats --}}
-            @include('user.dashboard-partials._work-request-stats')
-
-            {{-- Concrete Pouring Stats (Employee only) --}}
-            @include('user.dashboard-partials._concrete-pouring-stats')
-
             {{-- Quick Actions --}}
             @include('user.dashboard-partials._quick-actions')
 
