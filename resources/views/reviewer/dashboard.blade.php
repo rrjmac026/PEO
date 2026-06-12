@@ -12,6 +12,8 @@
             <br>
             @include('partials.employee-info-alert')
 
+            @include('reviewer.dashboard-partials.action-alerts')
+
             {{-- ── Stats Grid ── --}}
             @if($role === 'site_inspector')
                 @include('reviewer.dashboard-partials.stats-site-inspector')
