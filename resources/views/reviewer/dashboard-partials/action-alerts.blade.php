@@ -192,14 +192,14 @@
                 </p>
                 @endif
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="{{ route('reviewer.concrete-pourings.index') ?? '#' }}"
+                    <a href="{{ route('reviewer.concrete-pouring.index') ?? '#' }}"
                        style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; background: #16a34a; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
                        onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
                         <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
                         Review Now
                     </a>
                     @if($latestCp)
-                    <a href="{{ route('reviewer.concrete-pourings.show', $latestCp) ?? '#' }}"
+                    <a href="{{ route('reviewer.concrete-pouring.show', $latestCp) ?? '#' }}"
                        style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; background: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
                        onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">
                         <i class="fas fa-eye" style="font-size: 10px;"></i>
