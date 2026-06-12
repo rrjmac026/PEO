@@ -1,6 +1,5 @@
 {{-- resources/views/reviewer/dashboard-partials/action-alerts.blade.php --}}
 @php
-    use App\Models\Notification;
     use Illuminate\Support\Facades\Auth;
 
     $user = Auth::user();
@@ -15,41 +14,48 @@
         ->latest()
         ->first()?->memo;
 
-    // ── Pending Work Requests (assigned to this reviewer) ────────────────────
-    $pendingWrCount = \App\Models\WorkRequest::assignedToUser($user->id)->count();
-    $latestWr = \App\Models\WorkRequest::assignedToUser($user->id)->latest()->first();
+    // ── Pending Work Requests — mirrors ReviewerController stat logic ─────────
+    $pendingWrCount = 0;
+    $latestWr       = null;
 
-    // ── Pending Concrete Pourings (assigned to this reviewer) ────────────────
+    $wrQuery = match($user->role) {
+        'site_inspector'    => \App\Models\WorkRequest::whereNull('inspected_by_site_inspector'),
+        'surveyor'          => \App\Models\WorkRequest::whereNull('surveyor_name'),
+        'resident_engineer' => \App\Models\WorkRequest::whereNull('resident_engineer_name'),
+        'mtqa', 'engineeriv'=> \App\Models\WorkRequest::whereNull('checked_by_mtqa'),
+        'engineeriii'       => \App\Models\WorkRequest::whereNull('recommending_approval_by'),
+        'provincial_engineer'=> \App\Models\WorkRequest::where('status', 'submitted'),
+        default             => null,
+    };
+
+    if ($wrQuery) {
+        $pendingWrCount = (clone $wrQuery)->count();
+        $latestWr       = (clone $wrQuery)->latest()->first();
+    }
+
+    // ── Pending Concrete Pourings ─────────────────────────────────────────────
     $pendingCpCount = 0;
-    $latestCp = null;
+    $latestCp       = null;
 
     if (in_array($user->role, ['mtqa', 'engineeriv'])) {
-        $pendingCpCount = \App\Models\ConcretePouring::where('current_review_step', 'mtqa')
+        $cpQuery = \App\Models\ConcretePouring::where('current_review_step', 'mtqa')
             ->where('me_mtqa_user_id', $user->id)
-            ->where('status', 'requested')
-            ->count();
-        $latestCp = \App\Models\ConcretePouring::where('current_review_step', 'mtqa')
-            ->where('me_mtqa_user_id', $user->id)
-            ->where('status', 'requested')
-            ->latest()->first();
+            ->where('status', 'requested');
     } elseif ($user->role === 'resident_engineer') {
-        $pendingCpCount = \App\Models\ConcretePouring::where('current_review_step', 'resident_engineer')
+        $cpQuery = \App\Models\ConcretePouring::where('current_review_step', 'resident_engineer')
             ->where('resident_engineer_user_id', $user->id)
-            ->where('status', 'requested')
-            ->count();
-        $latestCp = \App\Models\ConcretePouring::where('current_review_step', 'resident_engineer')
-            ->where('resident_engineer_user_id', $user->id)
-            ->where('status', 'requested')
-            ->latest()->first();
+            ->where('status', 'requested');
     } elseif (in_array($user->role, ['provincial_engineer', 'engineeriii'])) {
-        $pendingCpCount = \App\Models\ConcretePouring::where('current_review_step', 'provincial_engineer')
+        $cpQuery = \App\Models\ConcretePouring::where('current_review_step', 'provincial_engineer')
             ->where('noted_by_user_id', $user->id)
-            ->where('status', 'requested')
-            ->count();
-        $latestCp = \App\Models\ConcretePouring::where('current_review_step', 'provincial_engineer')
-            ->where('noted_by_user_id', $user->id)
-            ->where('status', 'requested')
-            ->latest()->first();
+            ->where('status', 'requested');
+    } else {
+        $cpQuery = null;
+    }
+
+    if ($cpQuery) {
+        $pendingCpCount = (clone $cpQuery)->count();
+        $latestCp       = (clone $cpQuery)->latest()->first();
     }
 @endphp
 
