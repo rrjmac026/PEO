@@ -17,6 +17,33 @@ use Illuminate\Support\Facades\Log;
  */
 class SmsNotificationService
 {
+    /**
+     * Microseconds to wait between SMS sends in a bulk loop.
+     *
+     * The Android modem can only have one SMS transaction in flight at a
+     * time per SIM. Sending the next request before the modem has cleared
+     * the previous one causes RESULT_ERROR_GENERIC_FAILURE on the device
+     * (confirmed via the SMS Gateway app's own delivery log). 2 seconds
+     * gives the modem enough margin to finish the prior send.
+     */
+    private const BULK_SEND_DELAY_US = 2000000; // 2s
+
+    /**
+     * Links are stripped from every outgoing SMS and replaced with a short
+     * call-to-action telling the recipient to check the system.
+     *
+     * Confirmed root cause of RESULT_ERROR_GENERIC_FAILURE on delivery:
+     * including the route() link pushed messages over the GSM-7 single-segment
+     * limit (forcing multipart delivery, which failed) and/or the gateway
+     * path was bouncing messages containing a URL outright. Removing links
+     * entirely resolved delivery reliably, so this is the confirmed-working
+     * behaviour going forward.
+     */
+    private const STRIP_LINKS = true;
+
+    /** Phrase appended where a link used to be, telling the recipient what to do instead. */
+    private const VISIT_PROMPT = 'Please visit the system to view details.';
+
     // ══════════════════════════════════════════════════════════════════════════
     //  WORK REQUESTS
     //  Mirrors: WorkRequestNotificationService
@@ -34,7 +61,7 @@ class SmsNotificationService
             self::send(
                 $admin,
                 '[Work Request] New submission: "' . self::truncate($wr->name_of_project, 40)
-                    . '" by ' . $wr->contractor_name . '. Log in to assign reviewers. '
+                    . '" by ' . self::truncate($wr->contractor_name, 25) . '. Log in to assign reviewers. '
                     . route('admin.work-requests.show', $wr)
             );
         }
@@ -202,7 +229,7 @@ class SmsNotificationService
                 $admin,
                 '[Concrete Pouring] New request ' . $cp->contract_number
                     . ' for "' . self::truncate($cp->project_name, 30) . '" by '
-                    . $cp->contractor . '. Awaiting reviewer assignment. '
+                    . self::truncate($cp->contractor, 25) . '. Awaiting reviewer assignment. '
                     . route('admin.concrete-pouring.show', $cp->id)
             );
         }
@@ -382,6 +409,11 @@ class SmsNotificationService
      *
      * Each recipient gets the role-appropriate link, exactly mirroring
      * the logic in MemoController::dispatchNotifications().
+     *
+     * NOTE: Memos can go out to many recipients at once (by_role / by_department /
+     * all). A small delay is inserted between sends so a local gateway (e.g.
+     * SMSGate on an Android phone, which can only process one outgoing SMS
+     * at a time) doesn't drop or time out requests fired in rapid succession.
      */
     public static function memoDispatched(\App\Models\Memo $memo, array $userIds): void
     {
@@ -393,8 +425,12 @@ class SmsNotificationService
         ];
 
         $recipients = User::whereIn('id', $userIds)->with('employee')->get();
+        $count      = $recipients->count();
+        $i          = 0;
 
         foreach ($recipients as $recipient) {
+            $i++;
+
             $link = match (true) {
                 $recipient->role === 'admin'               => route('admin.memos.show', $memo),
                 $recipient->role === 'contractor'          => route('user.memos.show', $memo),
@@ -407,9 +443,14 @@ class SmsNotificationService
             self::send(
                 $recipient,
                 '[' . $memo->type_label . '] ' . self::truncate($memo->subject, 50)
-                    . ' — from ' . ($memo->sender?->name ?? 'Admin') . '. '
+                    . ' - from ' . ($memo->sender?->name ?? 'Admin') . '. '
                     . $link
             );
+
+            // Throttle bulk sends — skip the delay after the last recipient
+            if ($i < $count) {
+                usleep(self::BULK_SEND_DELAY_US);
+            }
         }
     }
 
@@ -434,8 +475,19 @@ class SmsNotificationService
             return;
         }
 
+        if (self::STRIP_LINKS) {
+            $message = self::stripLinks($message);
+        }
+
         try {
-            SmsService::send($phone, $message);
+            $sent = SmsService::send($phone, $message);
+
+            if (!$sent) {
+                Log::warning('SmsNotificationService: send returned false', [
+                    'user_id' => $user->id,
+                    'phone'   => $phone,
+                ]);
+            }
         } catch (\Throwable $e) {
             Log::error('SmsNotificationService: send failed', [
                 'user_id' => $user->id,
@@ -443,6 +495,29 @@ class SmsNotificationService
                 'error'   => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Remove any http(s):// URL from the message text, clean up the
+     * trailing punctuation left behind (e.g. a dangling ". " or ": "
+     * where the link used to be), then append a short call-to-action
+     * telling the recipient to check the system instead of tapping a link.
+     */
+    private static function stripLinks(string $message): string
+    {
+        $hadLink = (bool) preg_match('/https?:\/\/\S+/i', $message);
+
+        $message = preg_replace('/https?:\/\/\S+/i', '', $message);
+        $message = rtrim($message);
+        // Drop a trailing period or colon left over from "...turn. " etc.
+        $message = rtrim($message, '.:');
+        $message = trim($message);
+
+        if ($hadLink) {
+            $message .= '. ' . self::VISIT_PROMPT;
+        }
+
+        return $message;
     }
 
     /**
@@ -462,8 +537,16 @@ class SmsNotificationService
         if (empty($reviewerIds)) return;
 
         $reviewers = User::whereIn('id', $reviewerIds)->with('employee')->get();
+        $count     = $reviewers->count();
+        $i         = 0;
+
         foreach ($reviewers as $reviewer) {
+            $i++;
             self::send($reviewer, $message . ' ' . $link);
+
+            if ($i < $count) {
+                usleep(self::BULK_SEND_DELAY_US);
+            }
         }
     }
 
@@ -471,7 +554,7 @@ class SmsNotificationService
     private static function truncate(string $text, int $max): string
     {
         return mb_strlen($text) > $max
-            ? mb_substr($text, 0, $max - 1) . '…'
+            ? mb_substr($text, 0, $max - 1) . '...'
             : $text;
     }
 }
