@@ -384,34 +384,7 @@ class MemoController extends Controller
 
         // Pass the already-loaded $recipients collection so memoDispatched()
         // does not re-query the database for users + employees a second time.
-        \App\Services\SmsNotificationService::memoDispatched($memo, $recipients);
+        \App\Services\SmsNotificationService::memoDispatched($memo, $userIds);
     }
 
-    public static function memoDispatched(\App\Models\Memo $memo, \Illuminate\Support\Collection $recipients): void
-    {
-        if ($recipients->isEmpty()) return;
-
-        $reviewerRoles = [
-            'site_inspector', 'surveyor', 'resident_engineer',
-            'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
-        ];
-
-        foreach ($recipients as $recipient) {
-            $link = match (true) {
-                $recipient->role === 'admin'               => route('admin.memos.show', $memo),
-                $recipient->role === 'contractor'          => route('user.memos.show', $memo),
-                in_array($recipient->role, $reviewerRoles) => \Illuminate\Support\Facades\Route::has('reviewer.memos.show')
-                                                                ? route('reviewer.memos.show', $memo)
-                                                                : route('user.memos.show', $memo),
-                default                                    => route('user.memos.show', $memo),
-            };
-
-            self::send(
-                $recipient,
-                '[' . $memo->type_label . '] ' . self::truncate($memo->subject, 50)
-                    . ' — from ' . ($memo->sender?->name ?? 'Admin') . '. '
-                    . $link
-            );
-        }
-    }
 }
