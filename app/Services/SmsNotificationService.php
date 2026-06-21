@@ -34,7 +34,8 @@ class SmsNotificationService
             self::send(
                 $admin,
                 '[Work Request] New submission: "' . self::truncate($wr->name_of_project, 40)
-                    . '" by ' . $wr->contractor_name . '. Log in to assign reviewers.'
+                    . '" by ' . $wr->contractor_name . '. Log in to assign reviewers. '
+                    . route('admin.work-requests.show', $wr)
             );
         }
     }
@@ -63,18 +64,21 @@ class SmsNotificationService
             if (!$reviewer) continue;
 
             $isFirst = $wr->current_review_step === $info['step'];
+            $link    = route('reviewer.work-requests.show', $wr);
 
             if ($isFirst) {
                 self::send(
                     $reviewer,
                     '[Action Required] Work Request "' . self::truncate($wr->name_of_project, 35)
-                        . '" assigned to you as ' . $info['role'] . '. Please log in to review.'
+                        . '" assigned to you as ' . $info['role'] . '. Please log in to review. '
+                        . $link
                 );
             } else {
                 self::send(
                     $reviewer,
                     '[Heads Up] You are queued as ' . $info['role'] . ' for Work Request "'
-                        . self::truncate($wr->name_of_project, 35) . '". You will be notified when it\'s your turn.'
+                        . self::truncate($wr->name_of_project, 35) . '". You will be notified when it\'s your turn. '
+                        . $link
                 );
             }
         }
@@ -109,18 +113,21 @@ class SmsNotificationService
         ];
 
         $nextLabel = $stepLabels[$nextStep] ?? $nextStep;
+        $link      = route('reviewer.work-requests.show', $wr);
 
         if ($nextStep === 'provincial_engineer') {
             self::send(
                 $nextReviewer,
                 '[Action Required] Work Request "' . self::truncate($wr->name_of_project, 30)
-                    . '" is ready for your final decision as Provincial Engineer. Please log in.'
+                    . '" is ready for your final decision as Provincial Engineer. Please log in. '
+                    . $link
             );
         } else {
             self::send(
                 $nextReviewer,
                 '[Action Required] It\'s your turn as ' . $nextLabel . ' to review "'
-                    . self::truncate($wr->name_of_project, 30) . '". Log in to proceed.'
+                    . self::truncate($wr->name_of_project, 30) . '". Log in to proceed. '
+                    . $link
             );
         }
     }
@@ -147,7 +154,8 @@ class SmsNotificationService
             self::send(
                 $contractor,
                 '[Work Request ' . $decision . '] "'
-                    . self::truncate($wr->name_of_project, 35) . '".' . $remarks
+                    . self::truncate($wr->name_of_project, 35) . '".' . $remarks . ' '
+                    . route('user.work-requests.show', $wr)
             );
         }
 
@@ -158,7 +166,8 @@ class SmsNotificationService
                 self::send(
                     $mtqa,
                     '[Ready to Print] Work Request "' . self::truncate($wr->name_of_project, 40)
-                        . '" has been approved. Log in to print.'
+                        . '" has been approved. Log in to print. '
+                        . route('reviewer.work-requests.show', $wr)
                 );
             }
         }
@@ -181,7 +190,8 @@ class SmsNotificationService
             self::send(
                 $contractor,
                 '[Concrete Pouring] Your request ' . $cp->contract_number
-                    . ' for "' . self::truncate($cp->project_name, 35) . '" has been submitted.'
+                    . ' for "' . self::truncate($cp->project_name, 35) . '" has been submitted. '
+                    . route('user.concrete-pouring.show', $cp->id)
             );
         }
 
@@ -192,7 +202,8 @@ class SmsNotificationService
                 $admin,
                 '[Concrete Pouring] New request ' . $cp->contract_number
                     . ' for "' . self::truncate($cp->project_name, 30) . '" by '
-                    . $cp->contractor . '. Awaiting reviewer assignment.'
+                    . $cp->contractor . '. Awaiting reviewer assignment. '
+                    . route('admin.concrete-pouring.show', $cp->id)
             );
         }
     }
@@ -209,7 +220,8 @@ class SmsNotificationService
             self::send(
                 $contractor,
                 '[Concrete Pouring] Request ' . $cp->contract_number
-                    . ' for "' . self::truncate($cp->project_name, 30) . '" is now under review.'
+                    . ' for "' . self::truncate($cp->project_name, 30) . '" is now under review. '
+                    . route('user.concrete-pouring.show', $cp->id)
             );
         }
 
@@ -227,18 +239,21 @@ class SmsNotificationService
             if (!$reviewer) continue;
 
             $isFirst = $cp->current_review_step === $step;
+            $link    = route('reviewer.concrete-pouring.show', $cp->id);
 
             if ($isFirst) {
                 self::send(
                     $reviewer,
                     '[Action Required] Concrete Pouring ' . $cp->contract_number
-                        . ' assigned to you as ' . $meta['label'] . '. It is now your turn to review.'
+                        . ' assigned to you as ' . $meta['label'] . '. It is now your turn to review. '
+                        . $link
                 );
             } else {
                 self::send(
                     $reviewer,
                     '[Heads Up] You are queued as ' . $meta['label'] . ' for Concrete Pouring '
-                        . $cp->contract_number . '. You will be notified when it\'s your turn.'
+                        . $cp->contract_number . '. You will be notified when it\'s your turn. '
+                        . $link
                 );
             }
         }
@@ -275,20 +290,23 @@ class SmsNotificationService
 
         $nextLabel = $stepLabels[$nextStep] ?? $nextStep;
         $isFinal   = $nextStep === 'mtqa';
+        $link      = route('reviewer.concrete-pouring.show', $cp->id);
 
         if ($isFinal) {
             self::send(
                 $nextReviewer,
                 '[Action Required] Concrete Pouring ' . $cp->contract_number
                     . ' for "' . self::truncate($cp->project_name, 30)
-                    . '" is ready for your final decision as ' . $nextLabel . '.'
+                    . '" is ready for your final decision as ' . $nextLabel . '. '
+                    . $link
             );
         } else {
             self::send(
                 $nextReviewer,
                 '[Action Required] It\'s your turn as ' . $nextLabel
                     . ' to review Concrete Pouring ' . $cp->contract_number
-                    . ' for "' . self::truncate($cp->project_name, 25) . '".'
+                    . ' for "' . self::truncate($cp->project_name, 25) . '". '
+                    . $link
             );
         }
     }
@@ -309,7 +327,8 @@ class SmsNotificationService
             self::send(
                 $contractor,
                 '[Concrete Pouring APPROVED] ' . $cp->contract_number
-                    . ' for "' . self::truncate($cp->project_name, 35) . '".' . $remarks
+                    . ' for "' . self::truncate($cp->project_name, 35) . '".' . $remarks . ' '
+                    . route('user.concrete-pouring.show', $cp->id)
             );
         }
 
@@ -317,7 +336,8 @@ class SmsNotificationService
         self::notifyAllCpReviewers(
             $cp,
             '[Concrete Pouring APPROVED] ' . $cp->contract_number
-                . ' for "' . self::truncate($cp->project_name, 30) . '" has been approved.' . $remarks
+                . ' for "' . self::truncate($cp->project_name, 30) . '" has been approved.' . $remarks,
+            route('reviewer.concrete-pouring.show', $cp->id)
         );
     }
 
@@ -337,7 +357,8 @@ class SmsNotificationService
             self::send(
                 $contractor,
                 '[Concrete Pouring DISAPPROVED] ' . $cp->contract_number
-                    . ' for "' . self::truncate($cp->project_name, 30) . '".' . $remarks
+                    . ' for "' . self::truncate($cp->project_name, 30) . '".' . $remarks . ' '
+                    . route('user.concrete-pouring.show', $cp->id)
             );
         }
 
@@ -345,7 +366,8 @@ class SmsNotificationService
         self::notifyAllCpReviewers(
             $cp,
             '[Concrete Pouring DISAPPROVED] ' . $cp->contract_number
-                . ' for "' . self::truncate($cp->project_name, 25) . '" has been disapproved.' . $remarks
+                . ' for "' . self::truncate($cp->project_name, 25) . '" has been disapproved.' . $remarks,
+            route('reviewer.concrete-pouring.show', $cp->id)
         );
     }
 
@@ -357,18 +379,36 @@ class SmsNotificationService
     /**
      * Mirrors: MemoController::dispatchNotifications()
      * Recipients: all resolved memo recipients
+     *
+     * Each recipient gets the role-appropriate link, exactly mirroring
+     * the logic in MemoController::dispatchNotifications().
      */
     public static function memoDispatched(\App\Models\Memo $memo, array $userIds): void
     {
         if (empty($userIds)) return;
 
+        $reviewerRoles = [
+            'site_inspector', 'surveyor', 'resident_engineer',
+            'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
+        ];
+
         $recipients = User::whereIn('id', $userIds)->with('employee')->get();
 
         foreach ($recipients as $recipient) {
+            $link = match (true) {
+                $recipient->role === 'admin'               => route('admin.memos.show', $memo),
+                $recipient->role === 'contractor'          => route('user.memos.show', $memo),
+                in_array($recipient->role, $reviewerRoles) => \Illuminate\Support\Facades\Route::has('reviewer.memos.show')
+                                                                ? route('reviewer.memos.show', $memo)
+                                                                : route('user.memos.show', $memo),
+                default                                    => route('user.memos.show', $memo),
+            };
+
             self::send(
                 $recipient,
                 '[' . $memo->type_label . '] ' . self::truncate($memo->subject, 50)
-                    . ' — from ' . ($memo->sender?->name ?? 'Admin') . '. Log in to read.'
+                    . ' — from ' . ($memo->sender?->name ?? 'Admin') . '. '
+                    . $link
             );
         }
     }
@@ -406,11 +446,12 @@ class SmsNotificationService
     }
 
     /**
-     * Notify all three CP reviewer slots (RE, PE, MTQA) with the same message.
+     * Notify all three CP reviewer slots (RE, PE, MTQA) with the same message + link.
      */
     private static function notifyAllCpReviewers(
         \App\Models\ConcretePouring $cp,
-        string                      $message
+        string                      $message,
+        string                      $link
     ): void {
         $reviewerIds = collect([
             $cp->resident_engineer_user_id,
@@ -422,7 +463,7 @@ class SmsNotificationService
 
         $reviewers = User::whereIn('id', $reviewerIds)->with('employee')->get();
         foreach ($reviewers as $reviewer) {
-            self::send($reviewer, $message);
+            self::send($reviewer, $message . ' ' . $link);
         }
     }
 

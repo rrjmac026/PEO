@@ -338,13 +338,13 @@ class MemoController extends Controller
 
     private function dispatchNotifications(\App\Models\Memo $memo, array $userIds): void
     {
-        $recipients = \App\Models\User::whereIn('id', $userIds)->get();
- 
+        $recipients = \App\Models\User::whereIn('id', $userIds)->with('employee')->get();
+
         $reviewerRoles = [
             'site_inspector', 'surveyor', 'resident_engineer',
             'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
         ];
- 
+
         foreach ($recipients as $user) {
             $link = match(true) {
                 $user->role === 'admin'               => route('admin.memos.show', $memo),
@@ -354,7 +354,7 @@ class MemoController extends Controller
                                                             : route('admin.memos.show', $memo),
                 default                               => route('user.memos.show', $memo),
             };
- 
+
             \App\Models\Notification::send(
                 [$user->id],
                 'memo',
@@ -363,28 +363,55 @@ class MemoController extends Controller
                 $link,
                 $memo
             );
- 
+
             // Email
             try {
                 \Illuminate\Support\Facades\Mail::to($user->email)->queue(
                     new \App\Mail\MemoMail($memo, $user)
                 );
- 
+
                 \App\Models\MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error("MemoMail failed for user {$user->id}: " . $e->getMessage());
- 
+
                 \App\Models\MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_failed' => true]);
             }
         }
- 
-        // SMS — mirrors the per-recipient email loop above.
-        // Called once with the full $userIds list so SmsNotificationService
-        // batches the phone lookups in a single query.
-        \App\Services\SmsNotificationService::memoDispatched($memo, $userIds);
+
+        // Pass the already-loaded $recipients collection so memoDispatched()
+        // does not re-query the database for users + employees a second time.
+        \App\Services\SmsNotificationService::memoDispatched($memo, $recipients);
+    }
+
+    public static function memoDispatched(\App\Models\Memo $memo, \Illuminate\Support\Collection $recipients): void
+    {
+        if ($recipients->isEmpty()) return;
+
+        $reviewerRoles = [
+            'site_inspector', 'surveyor', 'resident_engineer',
+            'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
+        ];
+
+        foreach ($recipients as $recipient) {
+            $link = match (true) {
+                $recipient->role === 'admin'               => route('admin.memos.show', $memo),
+                $recipient->role === 'contractor'          => route('user.memos.show', $memo),
+                in_array($recipient->role, $reviewerRoles) => \Illuminate\Support\Facades\Route::has('reviewer.memos.show')
+                                                                ? route('reviewer.memos.show', $memo)
+                                                                : route('user.memos.show', $memo),
+                default                                    => route('user.memos.show', $memo),
+            };
+
+            self::send(
+                $recipient,
+                '[' . $memo->type_label . '] ' . self::truncate($memo->subject, 50)
+                    . ' — from ' . ($memo->sender?->name ?? 'Admin') . '. '
+                    . $link
+            );
+        }
     }
 }
