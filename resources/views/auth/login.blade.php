@@ -513,7 +513,7 @@
                 Government Portal
             </div>
             <h1 class="panel-headline">
-                Building Better<br>
+                Opportunity-Driven<br>
                 <span>Infrastructure</span><br>
                 For Our Community
             </h1>

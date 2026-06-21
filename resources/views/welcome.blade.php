@@ -240,8 +240,7 @@
         }
 
         .hero h2 {
-            
-            font-size: clamp(2.4rem, 4vw, 3.8rem);
+            font-size: clamp(2.1rem, 3.4vw, 3.2rem); /* was clamp(2.4rem, 4vw, 3.8rem) */
             font-weight: 900;
             line-height: 1.08;
             letter-spacing: -0.03em;
@@ -725,7 +724,7 @@
                     Serving Malaybalay City
                 </div>
                 <h2>
-                    Building Better<br>
+                    Opportunity-Driven<br>
                     <em>Infrastructure</em><br>
                     For Our Community
                 </h2>
@@ -889,7 +888,7 @@
                     <div class="contact-icon"><i class="fas fa-envelope"></i></div>
                     <div>
                         <h4>Email Us</h4>
-                        <p>peo.malaybalay@bukidnon.gov.ph</p>
+                        <p>peo@bukidnon.gov.ph</p>
                     </div>
                 </div>
             </div>
