@@ -39,6 +39,7 @@ class ConcretePouringNotificationService
         );
 
         foreach ($admins as $admin) {
+            // Email
             try {
                 Mail::to($admin->email)->queue(new ConcretePouringSubmittedMail($cp));
             } catch (\Throwable $e) {
@@ -48,6 +49,9 @@ class ConcretePouringNotificationService
                 ]);
             }
         }
+
+        // SMS — mirrors contractor notification + admin email loop above
+        SmsNotificationService::concretePouringSubmitted($cp);
     }
 
     public static function updated(ConcretePouring $cp): void
@@ -60,6 +64,8 @@ class ConcretePouringNotificationService
             route('user.concrete-pouring.show', $cp->id),
             $cp
         );
+
+        // No email sent for updates in the original — SMS also skipped to mirror that
     }
 
     public static function deleted(int $contractorId, string $contractNumber, string $projectName): void
@@ -72,6 +78,8 @@ class ConcretePouringNotificationService
             route('user.concrete-pouring.index'),
             null
         );
+
+        // No email sent for deletes in the original — SMS also skipped to mirror that
     }
 
     public static function assigned(ConcretePouring $cp): void
@@ -120,6 +128,7 @@ class ConcretePouringNotificationService
                 );
             }
 
+            // Email
             try {
                 Mail::to($reviewer->email)->queue(
                     new ConcretePouringAssignedMail($cp, $meta['label'], $isFirst)
@@ -132,6 +141,9 @@ class ConcretePouringNotificationService
                 ]);
             }
         }
+
+        // SMS — mirrors contractor + per-reviewer email loop above
+        SmsNotificationService::concretePouringAssigned($cp);
     }
 
     public static function signatureSubmitted(
@@ -172,6 +184,8 @@ class ConcretePouringNotificationService
                 );
             }
         }
+
+        // No dedicated email in the original for signatureSubmitted — SMS also skipped to mirror that
     }
 
     public static function stepAdvanced(ConcretePouring $cp, string $completedStep = ''): void
@@ -220,6 +234,7 @@ class ConcretePouringNotificationService
             $cp
         );
 
+        // Email
         try {
             Mail::to($nextReviewer->email)->queue(
                 new ConcretePouringStepAdvancedMail(
@@ -235,6 +250,9 @@ class ConcretePouringNotificationService
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // SMS — mirrors the single next-reviewer email above
+        SmsNotificationService::concretePouringStepAdvanced($cp, $completedStep);
     }
 
     public static function readyForDecision(ConcretePouring $cp): void
@@ -261,6 +279,8 @@ class ConcretePouringNotificationService
                 $cp
             );
         }
+
+        // No email in the original for readyForDecision — SMS also skipped to mirror that
     }
 
     public static function approved(ConcretePouring $cp): void
@@ -278,6 +298,7 @@ class ConcretePouringNotificationService
 
         $contractor = User::find($cp->requested_by_user_id);
         if ($contractor) {
+            // Email
             try {
                 Mail::to($contractor->email)->queue(new ConcretePouringApprovedMail($cp));
             } catch (\Throwable $e) {
@@ -294,6 +315,9 @@ class ConcretePouringNotificationService
             "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) that you reviewed has been approved.{$remarksNote}",
             new ConcretePouringApprovedMail($cp)
         );
+
+        // SMS — mirrors contractor email + reviewer emails above
+        SmsNotificationService::concretePouringApproved($cp);
     }
 
     public static function disapproved(ConcretePouring $cp): void
@@ -311,6 +335,7 @@ class ConcretePouringNotificationService
 
         $contractor = User::find($cp->requested_by_user_id);
         if ($contractor) {
+            // Email
             try {
                 Mail::to($contractor->email)->queue(new ConcretePouringDisapprovedMail($cp));
             } catch (\Throwable $e) {
@@ -327,6 +352,9 @@ class ConcretePouringNotificationService
             "Concrete pouring request {$cp->contract_number} ({$cp->project_name}) that you reviewed has been disapproved.{$remarksNote}",
             new ConcretePouringDisapprovedMail($cp)
         );
+
+        // SMS — mirrors contractor email + reviewer emails above
+        SmsNotificationService::concretePouringDisapproved($cp);
     }
 
     private static function notifyAllReviewers(

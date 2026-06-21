@@ -32,6 +32,7 @@ class WorkRequestNotificationService
         );
 
         foreach ($admins as $admin) {
+            // Email
             try {
                 Mail::to($admin->email)->queue(new WorkRequestSubmittedMail($wr));
             } catch (\Throwable $e) {
@@ -41,6 +42,9 @@ class WorkRequestNotificationService
                 ]);
             }
         }
+
+        // SMS — mirrors the admin email loop above
+        SmsNotificationService::workRequestSubmitted($wr);
     }
 
     public static function assigned(WorkRequest $wr): void
@@ -84,6 +88,7 @@ class WorkRequestNotificationService
                 );
             }
 
+            // Email
             try {
                 Mail::to($reviewer->email)->queue(
                     new WorkRequestAssignedMail($wr, $info['role'], $isFirst)
@@ -96,6 +101,9 @@ class WorkRequestNotificationService
                 ]);
             }
         }
+
+        // SMS — mirrors the per-reviewer email loop above
+        SmsNotificationService::workRequestAssigned($wr);
     }
 
     public static function stepAdvanced(WorkRequest $wr, string $completedByName, string $completedStep): void
@@ -138,6 +146,7 @@ class WorkRequestNotificationService
             $wr
         );
 
+        // Email
         try {
             if ($nextStep === 'provincial_engineer') {
                 Mail::to($nextReviewer->email)->queue(new WorkRequestReadyForDecisionMail($wr));
@@ -153,6 +162,9 @@ class WorkRequestNotificationService
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // SMS — mirrors the single next-reviewer email above
+        SmsNotificationService::workRequestStepAdvanced($wr, $completedByName, $completedStep);
     }
 
     public static function decisionMade(WorkRequest $wr): void
@@ -178,6 +190,7 @@ class WorkRequestNotificationService
                     $wr
                 );
 
+                // Email
                 try {
                     Mail::to($mtqaUser->email)->queue(new WorkRequestReadyToPrintMail($wr));
                 } catch (\Throwable $e) {
@@ -200,6 +213,7 @@ class WorkRequestNotificationService
                 $wr
             );
 
+            // Email
             try {
                 Mail::to($contractor->email)->queue(new WorkRequestDecisionMadeMail($wr));
             } catch (\Throwable $e) {
@@ -209,5 +223,8 @@ class WorkRequestNotificationService
                 ]);
             }
         }
+
+        // SMS — mirrors contractor email + MTQA ready-to-print email above
+        SmsNotificationService::workRequestDecisionMade($wr);
     }
 }

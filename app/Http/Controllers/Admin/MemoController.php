@@ -336,15 +336,15 @@ class MemoController extends Controller
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private function dispatchNotifications(Memo $memo, array $userIds): void
+    private function dispatchNotifications(\App\Models\Memo $memo, array $userIds): void
     {
-        $recipients = User::whereIn('id', $userIds)->get();
-
+        $recipients = \App\Models\User::whereIn('id', $userIds)->get();
+ 
         $reviewerRoles = [
             'site_inspector', 'surveyor', 'resident_engineer',
             'provincial_engineer', 'mtqa', 'engineeriii', 'engineeriv',
         ];
-
+ 
         foreach ($recipients as $user) {
             $link = match(true) {
                 $user->role === 'admin'               => route('admin.memos.show', $memo),
@@ -354,8 +354,8 @@ class MemoController extends Controller
                                                             : route('admin.memos.show', $memo),
                 default                               => route('user.memos.show', $memo),
             };
-
-            Notification::send(
+ 
+            \App\Models\Notification::send(
                 [$user->id],
                 'memo',
                 "[{$memo->type_label}] {$memo->subject}",
@@ -363,23 +363,28 @@ class MemoController extends Controller
                 $link,
                 $memo
             );
-
+ 
+            // Email
             try {
-                // Use send() instead of queue() so exceptions are catchable here.
-                // If you need async, switch to a dedicated SendMemoMail job that
-                // handles its own retry/failure logging.
-                Mail::to($user->email)->queue(new MemoMail($memo, $user));
-
-                MemoRecipient::where('memo_id', $memo->id)
+                \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                    new \App\Mail\MemoMail($memo, $user)
+                );
+ 
+                \App\Models\MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error("MemoMail failed for user {$user->id}: " . $e->getMessage());
-
-                MemoRecipient::where('memo_id', $memo->id)
+ 
+                \App\Models\MemoRecipient::where('memo_id', $memo->id)
                     ->where('user_id', $user->id)
                     ->update(['email_failed' => true]);
             }
         }
+ 
+        // SMS — mirrors the per-recipient email loop above.
+        // Called once with the full $userIds list so SmsNotificationService
+        // batches the phone lookups in a single query.
+        \App\Services\SmsNotificationService::memoDispatched($memo, $userIds);
     }
 }
