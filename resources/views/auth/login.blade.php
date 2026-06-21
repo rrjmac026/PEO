@@ -628,14 +628,6 @@
                 </button>
             </form>
 
-            @if (Route::has('register'))
-                <div class="form-divider"></div>
-                <div class="form-footer">
-                    Don't have an account?
-                    <a href="{{ route('register') }}">Create one</a>
-                </div>
-            @endif
-
         </div>
     </div>
 
