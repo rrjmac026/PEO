@@ -6,47 +6,47 @@
     <div class="wr-fields">
         <div class="wr-fields wr-two-col">
             <div class="wr-field">
-                <label class="wr-label" for="item_no">Item Number</label>
+                <label class="wr-label" for="item_no">Item Number <span class="wr-required">*</span></label>
                 <div class="wr-input-wrap">
                     <span class="wr-icon">#</span>
-                    <input type="text" id="item_no" name="item_no"
+                    <input type="text" id="item_no" name="item_no" required
                         value="{{ old('item_no') }}" placeholder="e.g., A-101">
                 </div>
             </div>
             <div class="wr-field">
-                <label class="wr-label" for="equipment_to_be_used">Equipment to be Used</label>
+                <label class="wr-label" for="equipment_to_be_used">Equipment to be Used <span class="wr-required">*</span></label>
                 <div class="wr-input-wrap">
                     <span class="wr-icon">🚧</span>
-                    <input type="text" id="equipment_to_be_used" name="equipment_to_be_used"
+                    <input type="text" id="equipment_to_be_used" name="equipment_to_be_used" required
                         value="{{ old('equipment_to_be_used') }}" placeholder="e.g., Excavator, Roller">
                 </div>
             </div>
         </div>
 
         <div class="wr-field">
-            <label class="wr-label" for="description">Item Description</label>
+            <label class="wr-label" for="description">Item Description <span class="wr-required">*</span></label>
             <div class="wr-input-wrap textarea-wrap">
                 <span class="wr-icon">📄</span>
-                <textarea id="description" name="description" rows="3"
+                <textarea id="description" name="description" rows="3" required
                     placeholder="Brief description of the pay item...">{{ old('description') }}</textarea>
             </div>
         </div>
 
         <div class="wr-fields wr-two-col">
             <div class="wr-field">
-                <label class="wr-label" for="estimated_quantity">Estimated Quantity</label>
+                <label class="wr-label" for="estimated_quantity">Estimated Quantity <span class="wr-required">*</span></label>
                 <div class="wr-input-wrap">
                     <span class="wr-icon">🔢</span>
-                    <input type="number" id="estimated_quantity" name="estimated_quantity"
-                        step="0.01" min="0" placeholder="0.00"
+                    <input type="number" id="estimated_quantity" name="estimated_quantity" required
+                        step="0.01" min="0.01" placeholder="0.00"
                         value="{{ old('estimated_quantity') }}">
                 </div>
             </div>
             <div class="wr-field">
-                <label class="wr-label" for="unit">Unit</label>
+                <label class="wr-label" for="unit">Unit <span class="wr-required">*</span></label>
                 <div class="wr-input-wrap">
                     <span class="wr-icon">📐</span>
-                    <input type="text" id="unit" name="unit"
+                    <input type="text" id="unit" name="unit" required
                         value="{{ old('unit') }}" placeholder="m, kg, hrs, cu.m">
                 </div>
             </div>

@@ -14,21 +14,32 @@
         ->latest()
         ->first()?->memo;
 
-    // ── Pending Work Requests — mirrors ReviewerController stat logic ─────────
+    // ── Pending Work Requests ─────────────────────────────────────────────────
     $pendingWrCount = 0;
     $latestWr       = null;
 
-    $wrQuery = match($user->role) {
-        'site_inspector'    => \App\Models\WorkRequest::whereNull('inspected_by_site_inspector'),
-        'surveyor'          => \App\Models\WorkRequest::whereNull('surveyor_name'),
-        'resident_engineer' => \App\Models\WorkRequest::whereNull('resident_engineer_name'),
-        'mtqa', 'engineeriv'=> \App\Models\WorkRequest::whereNull('checked_by_mtqa'),
-        'engineeriii'       => \App\Models\WorkRequest::whereNull('recommending_approval_by'),
-        'provincial_engineer'=> \App\Models\WorkRequest::where('status', 'submitted'),
-        default             => null,
-    };
+    $stepMap = [
+        'site_inspector'      => 'assigned_site_inspector_id',
+        'surveyor'            => 'assigned_surveyor_id',
+        'resident_engineer'   => 'assigned_resident_engineer_id',
+        'mtqa'                => 'assigned_mtqa_id',
+        'engineeriv'          => 'assigned_engineer_iv_id',
+        'engineeriii'         => 'assigned_engineer_iii_id',
+        'provincial_engineer' => 'assigned_provincial_engineer_id',
+    ];
 
-    if ($wrQuery) {
+    $stepKeyMap = [
+        'engineeriv'  => 'engineer_iv',
+        'engineeriii' => 'engineer_iii',
+    ];
+
+    $assignedCol = $stepMap[$user->role] ?? null;
+    $stepKey     = $stepKeyMap[$user->role] ?? $user->role;
+
+    if ($assignedCol) {
+        $wrQuery = \App\Models\WorkRequest::where('current_review_step', $stepKey)
+                       ->where($assignedCol, $user->id);
+
         $pendingWrCount = (clone $wrQuery)->count();
         $latestWr       = (clone $wrQuery)->latest()->first();
     }
@@ -89,7 +100,7 @@
                 </p>
                 @endif
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="{{ route('reviewer.memos.index') ?? '#' }}"
+                    <a href="{{ route('reviewer.memos.index') }}"
                        style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; background: #2563eb; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
                        onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
                         <i class="fas fa-envelope" style="font-size: 10px;"></i>
@@ -192,14 +203,14 @@
                 </p>
                 @endif
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="{{ route('reviewer.concrete-pouring.index') ?? '#' }}"
+                    <a href="{{ route('reviewer.concrete-pouring.index') }}"
                        style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; background: #16a34a; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
                        onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
                         <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
                         Review Now
                     </a>
                     @if($latestCp)
-                    <a href="{{ route('reviewer.concrete-pouring.show', $latestCp) ?? '#' }}"
+                    <a href="{{ route('reviewer.concrete-pouring.show', $latestCp) }}"
                        style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; background: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; font-size: 12px; font-weight: 700; text-decoration: none; transition: background 0.2s;"
                        onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">
                         <i class="fas fa-eye" style="font-size: 10px;"></i>
@@ -226,7 +237,6 @@
         0%, 100% { opacity: 1; transform: scale(1); }
         50%       { opacity: 0.5; transform: scale(0.75); }
     }
-    /* Dark mode overrides */
     .dark #alert-memo            { background: rgba(37,99,235,0.10) !important; border-color: rgba(59,130,246,0.25) !important; }
     .dark #alert-memo p          { color: #93c5fd !important; }
     .dark #alert-memo span[style*="color: #1d4ed8"] { color: #bfdbfe !important; }
@@ -251,11 +261,9 @@
         }, 200);
         setTimeout(() => el.remove(), 500);
 
-        // Persist dismissal in sessionStorage so it stays gone on soft navigations
         sessionStorage.setItem('dismissed_' + id, '1');
     }
 
-    // Re-apply dismissals on page load
     document.addEventListener('DOMContentLoaded', () => {
         ['alert-memo', 'alert-work-request', 'alert-concrete-pouring'].forEach(id => {
             if (sessionStorage.getItem('dismissed_' + id)) {
