@@ -203,7 +203,8 @@ class WorkRequestPdf extends \FPDF
                 'findings_engineer',
                 'recommendation_engineer',
                 false,
-                'resident_engineer_signature'
+                'resident_engineer_signature',
+                'resident_engineer'
              );
         $y = $this->rowCheckedBy($y);
         $y = $this->rowApproval(
@@ -212,7 +213,8 @@ class WorkRequestPdf extends \FPDF
             $this->val($this->wr->reviewed_by ?? ''),
             'Engineer IV/Chief, MTQC Division',
             $this->val($this->wr->reviewed_by_recommendation_action ?? ''),
-            $this->wr->reviewer_signature ?? null
+            $this->wr->reviewer_signature ?? null,
+            'engineer_iv'
         );
         $y = $this->rowApproval(
             $y,
@@ -220,7 +222,8 @@ class WorkRequestPdf extends \FPDF
             $this->val($this->wr->recommending_approval_by ?? ''),
             'Engineer III/ OIC, Construction Division',
             $this->val($this->wr->recommending_approval_recommendation_action ?? ''),
-            $this->wr->recommending_approval_signature ?? null
+            $this->wr->recommending_approval_signature ?? null,
+            'engineer_iii'
         );
         $y = $this->rowApproval(
             $y,
@@ -228,7 +231,8 @@ class WorkRequestPdf extends \FPDF
             $this->val($this->wr->approved_by ?? ''),
             'Provincial Engineer',
             $this->val($this->wr->approved_recommendation_action ?? ''),
-            $this->wr->approved_signature ?? null
+            $this->wr->approved_signature ?? null,
+            'provincial_engineer'
         );
         $y = $this->rowAccepted($y);
 
@@ -437,15 +441,15 @@ class WorkRequestPdf extends \FPDF
 
     // ─── ROW: Inspector sig row ─────────────────────────────────────────────────
     private function rowInspector(
-        float   $y,
-        string  $nameField,
-        string  $role,
-        string  $findF,
-        string  $recF,
-        bool    $noTop    = false,
-        ?string $sigField = null
+    float   $y,
+    string  $nameField,
+    string  $role,
+    string  $findF,
+    string  $recF,
+    bool    $noTop    = false,
+    ?string $sigField = null,
+    ?string $historyStep = null   // ← new
     ): float {
-        // Reduced from 18 → 16 to save 2mm each (×3 = 6mm total)
         $h    = 16;
         $draw = $noTop ? 'boxNoTop' : 'box';
         $this->$draw(self::ML,                      $y, self::CA, $h);
@@ -453,8 +457,8 @@ class WorkRequestPdf extends \FPDF
         $this->$draw(self::ML + self::CA + self::CB, $y, self::CC, $h);
 
         $sig = ($sigField && !empty($this->wr->$sigField))
-             ? $this->wr->$sigField
-             : null;
+            ? $this->wr->$sigField
+            : null;
 
         $this->sigLine(
             self::ML, $y, self::CA,
@@ -468,10 +472,23 @@ class WorkRequestPdf extends \FPDF
         $this->SetTextColor(...self::BLACK);
         $this->MultiCell(self::CB - 2, 4, $this->val($this->wr->$findF ?? ''), 0);
 
-        $this->SetXY(self::ML + self::CA + self::CB + 1, $y + 2);
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(...self::BLACK);
-        $this->MultiCell(self::CC - 2, 4, $this->val($this->wr->$recF ?? ''), 0);
+        // ── Recommendation column: history if applicable, else plain value ──
+        $recX = self::ML + self::CA + self::CB + 1;
+        $recY = $y + 2;
+        $recW = self::CC - 2;
+        $recH = $h - 3;
+
+        if ($historyStep) {
+            $historyText = $this->stepHistoryText($historyStep);
+            $fallback    = $this->val($this->wr->$recF ?? '');
+            $textToShow  = $historyText !== '' ? $historyText : $fallback;
+            $this->autoFitMultiCell($recX, $recY, $recW, $recH, $textToShow);
+        } else {
+            $this->SetXY($recX, $recY);
+            $this->SetFont('Arial', '', 8);
+            $this->SetTextColor(...self::BLACK);
+            $this->MultiCell($recW, 4, $this->val($this->wr->$recF ?? ''), 0);
+        }
 
         return $y + $h;
     }
@@ -480,7 +497,6 @@ class WorkRequestPdf extends \FPDF
     private function rowCheckedBy(float $y): float
     {
         $hh = 5;
-        // Reduced $hc from 18 → 15 to save 3mm
         $hc = 15;
         $rx = self::ML + self::CA;
         $rw = self::CB + self::CC;
@@ -507,10 +523,12 @@ class WorkRequestPdf extends \FPDF
             $mtqaSig
         );
 
-        $this->SetXY($rx + 1, $y2 + 2);
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(...self::BLACK);
-        $this->MultiCell($rw - 2, 4, $this->val($this->wr->recommended_action ?? ''), 0);
+        // ── Recommended Action: full timestamped history, auto-fit ──
+        $historyText = $this->stepHistoryText('mtqa');
+        $fallback    = $this->val($this->wr->recommended_action ?? '');
+        $textToShow  = $historyText !== '' ? $historyText : $fallback;
+
+        $this->autoFitMultiCell($rx + 1, $y2 + 2, $rw - 2, $hc - 3, $textToShow);
 
         return $y2 + $hc;
     }
@@ -522,9 +540,9 @@ class WorkRequestPdf extends \FPDF
         string  $name,
         string  $role,
         string  $notes,
-        ?string $signature = null
+        ?string $signature = null,
+        ?string $historyStep = null,   // ← new
     ): float {
-        // Reduced from 18 → 16 to save 2mm each (×3 = 6mm total)
         $h = 16;
         $this->box(self::ML,            $y, self::CA,            $h);
         $this->box(self::ML + self::CA, $y, self::CB + self::CC, $h);
@@ -536,10 +554,21 @@ class WorkRequestPdf extends \FPDF
 
         $this->sigLine(self::ML, $y, self::CA, $name, $role, $signature);
 
-        $this->SetXY(self::ML + self::CA + 1, $y + 2);
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(...self::BLACK);
-        $this->MultiCell(self::CB + self::CC - 2, 4, $notes, 0);
+        $notesX = self::ML + self::CA + 1;
+        $notesY = $y + 2;
+        $notesW = self::CB + self::CC - 2;
+        $notesH = $h - 3;
+
+        if ($historyStep) {
+            $historyText = $this->stepHistoryText($historyStep);
+            $textToShow  = $historyText !== '' ? $historyText : $notes;
+            $this->autoFitMultiCell($notesX, $notesY, $notesW, $notesH, $textToShow);
+        } else {
+            $this->SetXY($notesX, $notesY);
+            $this->SetFont('Arial', '', 8);
+            $this->SetTextColor(...self::BLACK);
+            $this->MultiCell($notesW, 4, $notes, 0);
+        }
 
         return $y + $h;
     }
@@ -618,6 +647,95 @@ class WorkRequestPdf extends \FPDF
         $this->SetFont('Arial', '', 8);
         $this->SetTextColor(...self::BLACK);
         $this->Cell($w, 4, $text, 0);
+    }
+
+        /**
+     * Build a numbered, timestamped history string for a given step,
+     * pulling from WorkRequestRecommendation (permanent history table).
+     * Falls back to empty string if no recommendations exist for that step.
+     */
+    private function stepHistoryText(string $step): string
+    {
+        $recs = $this->wr->recommendationsForStep($step);
+
+        if ($recs->isEmpty()) {
+            return '';
+        }
+
+        $lines = [];
+        foreach ($recs as $i => $rec) {
+            $num       = $i + 1;
+            $timestamp = $rec->created_at ? $rec->created_at->format('m/d/Y g:i A') : '';
+            $status    = $rec->is_signed ? ' (Approved)' : ' (Sent back for revision)';   // ← changed
+            $text      = $this->toLatin1($rec->recommendation_text);
+            $lines[]   = "{$num}. {$text} - {$timestamp}{$status}";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Render text inside a fixed box, auto-shrinking the font size until
+     * all lines fit within the given height. Box position/size is untouched —
+     * only font size adapts. Falls back to a minimum size and lets it clip
+     * only in extreme edge cases.
+     */
+    private function autoFitMultiCell(float $x, float $y, float $w, float $h, string $text, float $maxFont = 8, float $minFont = 5): void
+    {
+        if ($text === '') {
+            return;
+        }
+
+        $font = $maxFont;
+
+        while ($font >= $minFont) {
+            $this->SetFont('Arial', '', $font);
+            $lineHeight = $font * 0.5; // approx mm per pt, matches FPDF's typical ratio at this scale
+
+            // Estimate wrapped line count by measuring each paragraph's width
+            $totalLines = 0;
+            foreach (explode("\n", $text) as $paragraph) {
+                $totalLines += max(1, $this->estimateWrappedLines($paragraph, $w, $font));
+            }
+
+            $estimatedHeight = $totalLines * $lineHeight;
+
+            if ($estimatedHeight <= $h || $font <= $minFont) {
+                break;
+            }
+
+            $font -= 0.5;
+        }
+
+        $this->SetXY($x, $y);
+        $this->SetFont('Arial', '', $font);
+        $this->SetTextColor(...self::BLACK);
+        $this->MultiCell($w, $font * 0.5, $text, 0);
+    }
+
+    /**
+     * Rough estimate of how many lines a paragraph will wrap into at a given
+     * font size and width, using FPDF's own string-width measurement.
+     */
+    private function estimateWrappedLines(string $text, float $w, float $fontSize): int
+    {
+        $this->SetFont('Arial', '', $fontSize);
+        $words = explode(' ', $text);
+        $lines = 1;
+        $lineWidth = 0;
+        $spaceWidth = $this->GetStringWidth(' ');
+
+        foreach ($words as $word) {
+            $wordWidth = $this->GetStringWidth($word);
+            if ($lineWidth + $wordWidth > $w) {
+                $lines++;
+                $lineWidth = $wordWidth + $spaceWidth;
+            } else {
+                $lineWidth += $wordWidth + $spaceWidth;
+            }
+        }
+
+        return $lines;
     }
 
     /**
@@ -774,5 +892,10 @@ class WorkRequestPdf extends \FPDF
         } catch (\Throwable $e) {
             return '';
         }
+    }
+
+    private function toLatin1(string $text): string
+    {
+        return iconv('UTF-8', 'Windows-1252//TRANSLIT//IGNORE', $text) ?: $text;
     }
 }
