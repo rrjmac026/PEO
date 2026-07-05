@@ -292,7 +292,32 @@ class UserWorkRequestController extends Controller
             abort(403, 'Unauthorized access to this work request.');
         }
 
-        return view('user.work-requests.print', compact('workRequest'));
+        if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
+            abort(403, 'This work request has not been approved yet.');
+        }
+
+        $pdf = new \App\Services\WorkRequestPdf($workRequest);
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="work-request-' . $workRequest->id . '.pdf"',
+        ]);
+    }
+
+    public function downloadApproved(WorkRequest $workRequest)
+    {
+        if ($workRequest->contractor_name !== Auth::user()->name) {
+            abort(403, 'Unauthorized access to this work request.');
+        }
+
+        if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
+            abort(403, 'This work request has not been approved yet.');
+        }
+
+        $pdf = new \App\Services\WorkRequestPdf($workRequest);
+        return response($pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="work-request-' . $workRequest->id . '.pdf"',
+        ]);
     }
 
     

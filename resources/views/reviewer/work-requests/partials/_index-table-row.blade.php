@@ -52,5 +52,8 @@ $roleStatus = $roleStatusMap[$role] ?? null;
         <a href="{{ route('reviewer.work-requests.show', $workRequest) }}" class="wri-link">
             <i class="fas fa-eye"></i> View
         </a>
+        <a href="{{ route('reviewer.work-requests.print', $workRequest) }}" class="wri-link" target="_blank">
+            <i class="fas fa-print"></i> Print
+        </a>
     </td>
 </tr>

@@ -268,6 +268,20 @@
                                             <a href="{{ route('user.work-requests.show', $workRequest) }}" class="wri-link-action" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+
+                                            @if($workRequest->status === 'approved')
+                                                <a href="{{ route('user.work-requests.print', $workRequest) }}" target="_blank"
+                                                style="color: #f59e0b; text-decoration: none; transition: opacity 0.15s;"
+                                                class="hover:opacity-70" title="Print">
+                                                    <i class="fas fa-print"></i>
+                                                </a>
+                                                <a href="{{ route('user.work-requests.download', $workRequest) }}"
+                                                style="color: #059669; text-decoration: none; transition: opacity 0.15s;"
+                                                class="hover:opacity-70" title="Download PDF">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            @endif
+
                                             @if($workRequest->canEdit())
                                                 <a href="{{ route('user.work-requests.edit', $workRequest) }}" style="color: #ea580c; text-decoration: none; transition: opacity 0.15s;" class="hover:opacity-70" title="Edit">
                                                     <i class="fas fa-edit"></i>

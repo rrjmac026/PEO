@@ -460,8 +460,10 @@ class ReviewerWorkRequestController extends Controller
 
     public function printApproved(WorkRequest $workRequest)
     {
-        if (Auth::user()->role !== 'mtqa') {
-            abort(403, 'Only MTQA can print approved work requests.');
+        $user = Auth::user();
+
+        if (! $this->userIsAssignedAnywhere($workRequest, $user)) {
+            abort(403, 'You are not assigned to this work request.');
         }
 
         if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {
@@ -477,8 +479,10 @@ class ReviewerWorkRequestController extends Controller
 
     public function downloadApproved(WorkRequest $workRequest)
     {
-        if (Auth::user()->role !== 'mtqa') {
-            abort(403, 'Only MTQA can download approved work requests.');
+        $user = Auth::user();
+
+        if (! $this->userIsAssignedAnywhere($workRequest, $user)) {
+            abort(403, 'You are not assigned to this work request.');
         }
 
         if ($workRequest->status !== WorkRequest::STATUS_APPROVED) {

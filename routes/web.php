@@ -187,6 +187,10 @@ Route::prefix('user')->name('user.')->middleware(['auth', 'role:contractor'])->g
     Route::resource('work-requests', UserWorkRequestController::class);
     Route::get('employee-details', [UserWorkRequestController::class, 'getEmployeeDetails'])
         ->name('employee-details');
+    Route::get('work-requests/{workRequest}/print', [UserWorkRequestController::class, 'print'])
+        ->name('work-requests.print');
+    Route::get('work-requests/{workRequest}/download', [UserWorkRequestController::class, 'download'])
+        ->name('work-requests.download');
 
     Route::get('/concrete-pouring/{concretePouring}/print', [UserConcretePouringController::class, 'print'])
         ->name('concrete-pouring.print');
