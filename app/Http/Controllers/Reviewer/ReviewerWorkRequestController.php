@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reviewer;
 use App\Http\Controllers\Controller;
 use App\Models\WorkRequest;
 use App\Models\WorkRequestLog;
+use App\Models\WorkRequestRecommendation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,7 +20,6 @@ class ReviewerWorkRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Base query: requests where it is currently this user's turn
         $query = WorkRequest::where(function($q) use ($user) {
             $q->where('assigned_site_inspector_id', $user->id)
             ->orWhere('assigned_surveyor_id', $user->id)
@@ -30,15 +30,12 @@ class ReviewerWorkRequestController extends Controller
             ->orWhere('assigned_provincial_engineer_id', $user->id);
         });
 
-        // MTQA special case: also surface approved requests they are assigned to
         if ($user->role === 'mtqa') {
             $query = WorkRequest::where(function ($q) use ($user) {
-                // Their active turn
                 $q->where(function ($q2) use ($user) {
                     $q2->where('current_review_step', 'mtqa')
                        ->where('assigned_mtqa_id', $user->id);
                 })
-                // OR: approved and they are the assigned MTQA
                 ->orWhere(function ($q2) use ($user) {
                     $q2->where('assigned_mtqa_id', $user->id)
                        ->where('status', WorkRequest::STATUS_APPROVED);
@@ -73,8 +70,6 @@ class ReviewerWorkRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Any MTQA user can see ALL approved work requests (not just their assigned ones)
-        // so they can always find and print them.
         $query = WorkRequest::where('status', WorkRequest::STATUS_APPROVED);
 
         if ($request->filled('search')) {
@@ -96,7 +91,6 @@ class ReviewerWorkRequestController extends Controller
 
         $isAssignedAnywhere = $this->userIsAssignedAnywhere($workRequest, $user);
 
-        // MTQA can also view approved requests for printing
         $isMtqaViewer = ($user->role === 'mtqa' && $workRequest->status === WorkRequest::STATUS_APPROVED);
 
         if (! $isAssignedAnywhere && ! $isMtqaViewer) {
@@ -111,7 +105,7 @@ class ReviewerWorkRequestController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Site Inspector
+    // Site Inspector — unchanged (no recommendation-history / revision loop)
     // ─────────────────────────────────────────────────────────────────────────
 
     public function storeInspection(Request $request, WorkRequest $workRequest)
@@ -144,7 +138,7 @@ class ReviewerWorkRequestController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Surveyor
+    // Surveyor — unchanged (no recommendation-history / revision loop)
     // ─────────────────────────────────────────────────────────────────────────
 
     public function storeSurvey(Request $request, WorkRequest $workRequest)
@@ -176,37 +170,7 @@ class ReviewerWorkRequestController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // MTQA
-    // ─────────────────────────────────────────────────────────────────────────
-
-    public function storeMtqaCheck(Request $request, WorkRequest $workRequest)
-    {
-        $this->authorizeStep($workRequest, 'mtqa');
-
-        $request->validate([
-            'recommended_action' => 'nullable|string',
-            'mtqa_signature'     => 'nullable|string',
-        ]);
-
-        $workRequest->update([
-            'checked_by_mtqa'    => Auth::user()->name,
-            'mtqa_signature'     => $this->resolveSignatureValue($request->input('mtqa_signature')),
-            'recommended_action' => $request->recommended_action,
-        ]);
-
-        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'MTQA check submitted by ' . Auth::user()->name,
-            'user_id'     => Auth::id(),
-        ]);
-
-        $workRequest->advanceReviewStep();
-        $this->notifyNextReviewer($workRequest, 'mtqa');
-
-        return back()->with('success', 'MTQA check submitted. Request forwarded to next reviewer.');
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Resident Engineer
+    // Resident Engineer — NOW WITH RECOMMENDATION HISTORY + REVISION LOOP
     // ─────────────────────────────────────────────────────────────────────────
 
     public function storeEngineerReview(Request $request, WorkRequest $workRequest)
@@ -215,31 +179,114 @@ class ReviewerWorkRequestController extends Controller
 
         $request->validate([
             'findings_engineer'           => 'nullable|string',
-            'recommendation_engineer'     => 'nullable|string',
+            'recommendation_engineer'     => 'required|string',
             'resident_engineer_signature' => 'nullable|string',
+        ]);
+
+        $signature = $this->resolveSignatureValue($request->input('resident_engineer_signature'));
+        $isSigned  = ! empty($signature);
+
+        // Always record the recommendation in history
+        WorkRequestRecommendation::create([
+            'work_request_id'     => $workRequest->id,
+            'step'                => 'resident_engineer',
+            'user_id'             => Auth::id(),
+            'recommendation_text' => $request->recommendation_engineer,
+            'signature'           => $signature,
+            'is_signed'           => $isSigned,
         ]);
 
         $workRequest->update([
             'resident_engineer_name'      => Auth::user()->name,
-            'resident_engineer_signature' => $this->resolveSignatureValue($request->input('resident_engineer_signature')),
+            'resident_engineer_signature' => $signature,
             'findings_engineer'           => $request->findings_engineer,
             'recommendation_engineer'     => $request->recommendation_engineer,
-            'status'                      => WorkRequest::STATUS_REVIEWED,
         ]);
 
+        if ($isSigned) {
+            $workRequest->update(['status' => WorkRequest::STATUS_REVIEWED]);
+
+            $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+                'description' => 'Resident engineer review submitted and signed by ' . Auth::user()->name,
+                'user_id'     => Auth::id(),
+            ]);
+
+            $workRequest->advanceReviewStep();
+            $this->notifyNextReviewer($workRequest, 'resident_engineer');
+
+            return back()->with('success', 'Engineer review submitted. Request forwarded to next reviewer.');
+        }
+
+        // Not signed — send back to contractor for revision
+        $workRequest->update(['status' => WorkRequest::STATUS_NEEDS_REVISION]);
+
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Resident engineer review submitted by ' . Auth::user()->name,
+            'description' => 'Resident engineer requested revision (unsigned) — ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        $workRequest->advanceReviewStep();
-        $this->notifyNextReviewer($workRequest, 'resident_engineer');
+        \App\Services\NotificationService::workRequestNeedsRevision($workRequest, 'resident_engineer');
 
-        return back()->with('success', 'Engineer review submitted. Request forwarded to next reviewer.');
+        return back()->with('success', 'Recommendation saved. Request sent back to contractor for revision.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Engineer IV
+    // MTQA — NOW WITH RECOMMENDATION HISTORY + REVISION LOOP
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function storeMtqaCheck(Request $request, WorkRequest $workRequest)
+    {
+        $this->authorizeStep($workRequest, 'mtqa');
+
+        $request->validate([
+            'recommended_action' => 'required|string',
+            'mtqa_signature'     => 'nullable|string',
+        ]);
+
+        $signature = $this->resolveSignatureValue($request->input('mtqa_signature'));
+        $isSigned  = ! empty($signature);
+
+        WorkRequestRecommendation::create([
+            'work_request_id'     => $workRequest->id,
+            'step'                => 'mtqa',
+            'user_id'             => Auth::id(),
+            'recommendation_text' => $request->recommended_action,
+            'signature'           => $signature,
+            'is_signed'           => $isSigned,
+        ]);
+
+        $workRequest->update([
+            'checked_by_mtqa'    => Auth::user()->name,
+            'mtqa_signature'     => $signature,
+            'recommended_action' => $request->recommended_action,
+        ]);
+
+        if ($isSigned) {
+            $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+                'description' => 'MTQA check submitted and signed by ' . Auth::user()->name,
+                'user_id'     => Auth::id(),
+            ]);
+
+            $workRequest->advanceReviewStep();
+            $this->notifyNextReviewer($workRequest, 'mtqa');
+
+            return back()->with('success', 'MTQA check submitted. Request forwarded to next reviewer.');
+        }
+
+        $workRequest->update(['status' => WorkRequest::STATUS_NEEDS_REVISION]);
+
+        $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+            'description' => 'MTQA requested revision (unsigned) — ' . Auth::user()->name,
+            'user_id'     => Auth::id(),
+        ]);
+
+        \App\Services\NotificationService::workRequestNeedsRevision($workRequest, 'mtqa');
+
+        return back()->with('success', 'Recommendation saved. Request sent back to contractor for revision.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Engineer IV — NOW WITH RECOMMENDATION HISTORY + REVISION LOOP
     // ─────────────────────────────────────────────────────────────────────────
 
     public function storeEngineerIvReview(Request $request, WorkRequest $workRequest)
@@ -247,29 +294,54 @@ class ReviewerWorkRequestController extends Controller
         $this->authorizeStep($workRequest, 'engineer_iv');
 
         $request->validate([
-            'reviewed_by_recommendation_action' => 'nullable|string',
+            'reviewed_by_recommendation_action' => 'required|string',
             'reviewer_signature'                => 'nullable|string',
+        ]);
+
+        $signature = $this->resolveSignatureValue($request->input('reviewer_signature'));
+        $isSigned  = ! empty($signature);
+
+        WorkRequestRecommendation::create([
+            'work_request_id'     => $workRequest->id,
+            'step'                => 'engineer_iv',
+            'user_id'             => Auth::id(),
+            'recommendation_text' => $request->reviewed_by_recommendation_action,
+            'signature'           => $signature,
+            'is_signed'           => $isSigned,
         ]);
 
         $workRequest->update([
             'reviewed_by'                       => Auth::user()->name,
-            'reviewer_signature'                => $this->resolveSignatureValue($request->input('reviewer_signature')),
+            'reviewer_signature'                => $signature,
             'reviewed_by_recommendation_action' => $request->reviewed_by_recommendation_action,
         ]);
 
+        if ($isSigned) {
+            $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+                'description' => 'Engineer IV review submitted and signed by ' . Auth::user()->name,
+                'user_id'     => Auth::id(),
+            ]);
+
+            $workRequest->advanceReviewStep();
+            $this->notifyNextReviewer($workRequest, 'engineer_iv');
+
+            return back()->with('success', 'Engineer IV review submitted. Request forwarded to next reviewer.');
+        }
+
+        $workRequest->update(['status' => WorkRequest::STATUS_NEEDS_REVISION]);
+
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Engineer IV review submitted by ' . Auth::user()->name,
+            'description' => 'Engineer IV requested revision (unsigned) — ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        $workRequest->advanceReviewStep();
-        $this->notifyNextReviewer($workRequest, 'engineer_iv');
+        \App\Services\NotificationService::workRequestNeedsRevision($workRequest, 'engineer_iv');
 
-        return back()->with('success', 'Engineer IV review submitted. Request forwarded to next reviewer.');
+        return back()->with('success', 'Recommendation saved. Request sent back to contractor for revision.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Engineer III
+    // Engineer III — NOW WITH RECOMMENDATION HISTORY + REVISION LOOP
     // ─────────────────────────────────────────────────────────────────────────
 
     public function storeRecommendingApproval(Request $request, WorkRequest $workRequest)
@@ -281,25 +353,50 @@ class ReviewerWorkRequestController extends Controller
             'eiii_signature' => 'nullable|string',
         ]);
 
+        $signature = $this->resolveSignatureValue($request->input('eiii_signature'));
+        $isSigned  = ! empty($signature);
+
+        WorkRequestRecommendation::create([
+            'work_request_id'     => $workRequest->id,
+            'step'                => 'engineer_iii',
+            'user_id'             => Auth::id(),
+            'recommendation_text' => $request->eiii_notes,
+            'signature'           => $signature,
+            'is_signed'           => $isSigned,
+        ]);
+
         $workRequest->update([
             'recommending_approval_by'                    => Auth::user()->name,
             'recommending_approval_recommendation_action' => $request->eiii_notes,
-            'recommending_approval_signature'             => $this->resolveSignatureValue($request->input('eiii_signature')),
+            'recommending_approval_signature'             => $signature,
         ]);
 
+        if ($isSigned) {
+            $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+                'description' => 'Engineer III recommending approval submitted and signed by ' . Auth::user()->name,
+                'user_id'     => Auth::id(),
+            ]);
+
+            $workRequest->advanceReviewStep();
+            $this->notifyNextReviewer($workRequest, 'engineer_iii');
+
+            return back()->with('success', 'Recommending approval submitted. Request forwarded to Provincial Engineer.');
+        }
+
+        $workRequest->update(['status' => WorkRequest::STATUS_NEEDS_REVISION]);
+
         $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
-            'description' => 'Engineer III recommending approval submitted by ' . Auth::user()->name,
+            'description' => 'Engineer III requested revision (unsigned) — ' . Auth::user()->name,
             'user_id'     => Auth::id(),
         ]);
 
-        $workRequest->advanceReviewStep();
-        $this->notifyNextReviewer($workRequest, 'engineer_iii');
+        \App\Services\NotificationService::workRequestNeedsRevision($workRequest, 'engineer_iii');
 
-        return back()->with('success', 'Recommending approval submitted. Request forwarded to Provincial Engineer.');
+        return back()->with('success', 'Recommendation saved. Request sent back to contractor for revision.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Provincial Engineer — FINAL DECISION (approve or reject)
+    // Provincial Engineer — FINAL DECISION (approve / reject / request revision)
     // ─────────────────────────────────────────────────────────────────────────
 
     public function storeProvincialDecision(Request $request, WorkRequest $workRequest)
@@ -307,11 +404,45 @@ class ReviewerWorkRequestController extends Controller
         $this->authorizeStep($workRequest, 'provincial_engineer');
 
         $request->validate([
-            'decision'                       => 'required|in:approved,rejected',
+            'decision'                       => 'required|in:approved,rejected,needs_revision',
             'approved_recommendation_action' => 'required|string|max:2000',
             'approved_signature'             => 'nullable|string',
         ]);
 
+        $signature = $this->resolveSignatureValue($request->input('approved_signature'));
+        $isSigned  = ! empty($signature);
+
+        // Always record in history
+        WorkRequestRecommendation::create([
+            'work_request_id'     => $workRequest->id,
+            'step'                => 'provincial_engineer',
+            'user_id'             => Auth::id(),
+            'recommendation_text' => $request->approved_recommendation_action,
+            'signature'           => $signature,
+            'is_signed'           => $isSigned,
+        ]);
+
+        // If PE explicitly picks "needs_revision", OR picks approve/reject but didn't sign,
+        // treat it as a bounce-back to the contractor.
+        if ($request->decision === 'needs_revision' || ! $isSigned) {
+            $workRequest->update([
+                'approved_by'                    => Auth::user()->name,
+                'approved_recommendation_action' => $request->approved_recommendation_action,
+                'approved_signature'             => $signature,
+                'status'                         => WorkRequest::STATUS_NEEDS_REVISION,
+            ]);
+
+            $workRequest->addLog(WorkRequestLog::EVENT_REVIEWED, [
+                'description' => 'Provincial Engineer requested revision (unsigned) — ' . Auth::user()->name,
+                'user_id'     => Auth::id(),
+            ]);
+
+            \App\Services\NotificationService::workRequestNeedsRevision($workRequest, 'provincial_engineer');
+
+            return back()->with('success', 'Recommendation saved. Request sent back to contractor for revision.');
+        }
+
+        // Signed AND a real decision was made — finalize
         $newStatus = $request->decision === 'approved'
             ? WorkRequest::STATUS_APPROVED
             : WorkRequest::STATUS_REJECTED;
@@ -319,16 +450,13 @@ class ReviewerWorkRequestController extends Controller
         $workRequest->update([
             'approved_by'                    => Auth::user()->name,
             'approved_recommendation_action' => $request->approved_recommendation_action,
-            'approved_signature'             => $this->resolveSignatureValue($request->input('approved_signature')),
+            'approved_signature'             => $signature,
             'status'                         => $newStatus,
             'current_review_step'            => null,
-
-            // ── These two lines must be present ──────────────────────────────
             'accepted_date' => $request->decision === 'approved' ? now()->toDateString() : null,
             'accepted_time' => $request->decision === 'approved' ? now()->format('H:i:s') : null,
         ]);
 
-        // Notify MTQA that the request is approved and ready to print
         \App\Services\NotificationService::workRequestDecisionMade($workRequest);
 
         $message = $request->decision === 'approved'

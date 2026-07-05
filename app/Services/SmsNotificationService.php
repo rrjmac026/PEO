@@ -158,6 +158,7 @@ class SmsNotificationService
             );
         }
     }
+    
 
     /**
      * Mirrors: WorkRequestNotificationService::decisionMade()
@@ -557,4 +558,46 @@ class SmsNotificationService
             ? mb_substr($text, 0, $max - 1) . '...'
             : $text;
     }
+
+    /**
+     * Mirrors: WorkRequestNotificationService::needsRevision()
+     * Recipient: contractor
+     */
+    public static function workRequestNeedsRevision(\App\Models\WorkRequest $wr, string $stepLabel): void
+    {
+        $contractor = User::with('employee')
+            ->where('name', $wr->contractor_name)
+            ->where('role', 'contractor')
+            ->first();
+
+        if (!$contractor) return;
+
+        self::send(
+            $contractor,
+            '[Revision Requested] ' . $stepLabel . ' requested changes to your Work Request "'
+                . self::truncate($wr->name_of_project, 35) . '". Please review and resubmit. '
+                . route('user.work-requests.edit', $wr)
+        );
+    }
+
+    /**
+     * Mirrors: WorkRequestNotificationService::resubmitted()
+     * Recipient: the reviewer who requested the revision
+     */
+    public static function workRequestResubmitted(\App\Models\WorkRequest $wr, string $stepLabel): void
+    {
+        $col = \App\Models\WorkRequest::REVIEW_STEPS[$wr->current_review_step]['assigned_col'] ?? null;
+        if (!$col || !$wr->$col) return;
+
+        $reviewer = User::with('employee')->find($wr->$col);
+        if (!$reviewer) return;
+
+        self::send(
+            $reviewer,
+            '[Resubmitted] Contractor revised Work Request "' . self::truncate($wr->name_of_project, 35)
+                . '" per your ' . $stepLabel . ' feedback. Please review again. '
+                . route('reviewer.work-requests.show', $wr)
+        );
+    }
+    
 }

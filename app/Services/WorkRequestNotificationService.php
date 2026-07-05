@@ -227,4 +227,97 @@ class WorkRequestNotificationService
         // SMS — mirrors contractor email + MTQA ready-to-print email above
         SmsNotificationService::workRequestDecisionMade($wr);
     }
+
+    public static function needsRevision(WorkRequest $wr, string $requestedByStep): void
+    {
+        $contractor = User::where('name', $wr->contractor_name)
+            ->where('role', 'contractor')
+            ->first();
+
+        if (! $contractor) {
+            return;
+        }
+
+        $stepLabels = [
+            'site_inspector'      => 'Site Inspector',
+            'surveyor'            => 'Surveyor',
+            'resident_engineer'   => 'Resident Engineer',
+            'mtqa'                => 'MTQA',
+            'engineer_iv'         => 'Engineer IV',
+            'engineer_iii'        => 'Engineer III',
+            'provincial_engineer' => 'Provincial Engineer',
+        ];
+
+        $stepLabel = $stepLabels[$requestedByStep] ?? $requestedByStep;
+
+        Notification::send(
+            $contractor->id,
+            'work_request',
+            '✏️ Revision Requested',
+            "The {$stepLabel} has requested changes to your work request \"{$wr->name_of_project}\". Please review the recommendation and resubmit.",
+            route('user.work-requests.edit', $wr),
+            $wr
+        );
+
+        // Email
+        try {
+            Mail::to($contractor->email)->queue(new WorkRequestNeedsRevisionMail($wr, $stepLabel));
+        } catch (\Throwable $e) {
+            Log::error('WorkRequestNeedsRevisionMail failed', [
+                'to'    => $contractor->email,
+                'step'  => $requestedByStep,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // SMS — mirrors the contractor email above
+        SmsNotificationService::workRequestNeedsRevision($wr, $stepLabel);
+    }
+
+    public static function resubmitted(WorkRequest $wr, string $step): void
+    {
+        $col = WorkRequest::REVIEW_STEPS[$step]['assigned_col'] ?? null;
+        if (!$col || !$wr->$col) {
+            return;
+        }
+
+        $reviewer = User::find($wr->$col);
+        if (!$reviewer) {
+            return;
+        }
+
+        $stepLabels = [
+            'site_inspector'      => 'Site Inspector',
+            'surveyor'            => 'Surveyor',
+            'resident_engineer'   => 'Resident Engineer',
+            'mtqa'                => 'MTQA',
+            'engineer_iv'         => 'Engineer IV',
+            'engineer_iii'        => 'Engineer III',
+            'provincial_engineer' => 'Provincial Engineer',
+        ];
+        $stepLabel = $stepLabels[$step] ?? $step;
+
+        Notification::send(
+            $reviewer->id,
+            'work_request',
+            '🔁 Work Request Resubmitted',
+            "The contractor has revised and resubmitted \"{$wr->name_of_project}\" following your request for changes as {$stepLabel}. Please review again.",
+            route('reviewer.work-requests.show', $wr),
+            $wr
+        );
+
+        // Email
+        try {
+            Mail::to($reviewer->email)->queue(new WorkRequestResubmittedMail($wr, $stepLabel));
+        } catch (\Throwable $e) {
+            Log::error('WorkRequestResubmittedMail failed', [
+                'to'    => $reviewer->email,
+                'step'  => $step,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // SMS — mirrors the reviewer email above
+        SmsNotificationService::workRequestResubmitted($wr, $stepLabel);
+    }
 }

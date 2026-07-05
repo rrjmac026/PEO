@@ -41,6 +41,16 @@ class NotificationService
         WorkRequestNotificationService::decisionMade($wr);
     }
 
+    public static function workRequestNeedsRevision(WorkRequest $wr, string $requestedByStep): void
+    {
+        WorkRequestNotificationService::needsRevision($wr, $requestedByStep);
+    }
+
+    public static function workRequestResubmitted(WorkRequest $wr, string $step): void
+    {
+        WorkRequestNotificationService::resubmitted($wr, $step);
+    }
+
     // ══════════════════════════════════════════════════════════════
     //  CONCRETE POURING — delegates to ConcretePouringNotificationService
     // ══════════════════════════════════════════════════════════════

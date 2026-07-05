@@ -44,11 +44,12 @@ class UserWorkRequestController extends Controller
         $contractorName = Auth::user()->name;
 
         $stats = [
-            'total'     => WorkRequest::where('contractor_name', $contractorName)->count(),
-            'draft'     => WorkRequest::where('contractor_name', $contractorName)->where('status', 'draft')->count(),
-            'submitted' => WorkRequest::where('contractor_name', $contractorName)->where('status', 'submitted')->count(),
-            'approved'  => WorkRequest::where('contractor_name', $contractorName)->where('status', 'approved')->count(),
-            'rejected'  => WorkRequest::where('contractor_name', $contractorName)->where('status', 'rejected')->count(),
+            'total'          => WorkRequest::where('contractor_name', $contractorName)->count(),
+            'draft'          => WorkRequest::where('contractor_name', $contractorName)->where('status', 'draft')->count(),
+            'submitted'      => WorkRequest::where('contractor_name', $contractorName)->where('status', 'submitted')->count(),
+            'needs_revision' => WorkRequest::where('contractor_name', $contractorName)->where('status', WorkRequest::STATUS_NEEDS_REVISION)->count(),
+            'approved'       => WorkRequest::where('contractor_name', $contractorName)->where('status', 'approved')->count(),
+            'rejected'       => WorkRequest::where('contractor_name', $contractorName)->where('status', 'rejected')->count(),
         ];
 
         return view('user.work-requests.index', compact('workRequests', 'stats'));
@@ -74,7 +75,6 @@ class UserWorkRequestController extends Controller
             ->sort()
             ->values();
 
-        // Only load resident engineers — the select is hidden when this is empty.
         $residentEngineers = User::where('role', 'resident_engineer')
             ->orderBy('name')
             ->get();
@@ -87,31 +87,18 @@ class UserWorkRequestController extends Controller
 
     /**
      * Store a new work request.
-     *
-     * If a Resident Engineer was chosen the request goes straight to the RE's
-     * review queue (current_review_step = 'resident_engineer', status = 'in_review').
-     * If none was chosen (no REs in system) it lands in the admin queue as normal.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // Contract Number
             'contract_number'               => 'nullable|string|max:100',
-
-            // Project Information
             'name_of_project'               => 'required|string|max:255',
             'project_location'              => 'required|string|max:255',
             'for_office'                    => 'nullable|string|max:255',
             'from_requester'                => 'nullable|string|max:255',
-
-            // Schedule
             'requested_work_start_date'     => 'required|date',
             'requested_work_start_time'     => 'nullable|string|max:20',
-
-            // Contractor-chosen Resident Engineer (required when engineers exist)
             'assigned_resident_engineer_id' => 'nullable|exists:users,id',
-
-            // Pay Item Details
             'item_no'                       => 'nullable|string|max:100',
             'description'                   => 'nullable|string|max:255',
             'quantity'                      => 'nullable|numeric|min:0',
@@ -119,13 +106,10 @@ class UserWorkRequestController extends Controller
             'unit'                          => 'nullable|string|max:50',
             'equipment_to_be_used'          => 'nullable|string|max:255',
             'description_of_work_requested' => 'required|string',
-
-            // Submission
             'contractor_name'               => 'nullable|string|max:255',
             'contractor_signature'          => 'nullable|string',
         ]);
 
-        // If there ARE resident engineers in the system, one must be chosen.
         $engineersExist = User::where('role', 'resident_engineer')->exists();
 
         if ($engineersExist && empty($validated['assigned_resident_engineer_id'])) {
@@ -136,17 +120,9 @@ class UserWorkRequestController extends Controller
                 ]);
         }
 
-        // Force locked fields
         $validated['contractor_name'] = Auth::user()->name;
         $validated['for_office']      = 'PROVINCIAL ENGINEERS OFFICE';
-
-        // Clean up empty RE id
         $validated['assigned_resident_engineer_id'] = $validated['assigned_resident_engineer_id'] ?: null;
-
-        // ALWAYS land in admin queue — the contractor-chosen RE is just a pre-fill
-        // for the admin assign form. Admin must still assign ALL other reviewers
-        // (Site Inspector, Surveyor, MTQA, Engineer IV, Engineer III, Provincial Engineer)
-        // before the review pipeline can start.
         $validated['status']              = WorkRequest::STATUS_SUBMITTED;
         $validated['current_review_step'] = null;
 
@@ -163,10 +139,6 @@ class UserWorkRequestController extends Controller
 
         \App\Services\NotificationService::workRequestSubmitted($workRequest);
 
-        // Do NOT notify the RE yet — admin must confirm the full assignment first.
-        // Notification fires in WorkRequestController::assign() after admin saves all reviewers.
-
-        // Notify the RE directly if one was chosen
         if (!empty($validated['assigned_resident_engineer_id'])) {
             \App\Services\NotificationService::workRequestAssigned($workRequest);
         }
@@ -208,6 +180,11 @@ class UserWorkRequestController extends Controller
 
     /**
      * Update a work request.
+     *
+     * If the request was in `needs_revision` status (a reviewer left an
+     * unsigned recommendation asking for changes), resubmitting sends it
+     * back to `in_review` and returns it to the SAME reviewer/step that
+     * requested the revision — no admin reassignment needed.
      */
     public function update(Request $request, WorkRequest $workRequest)
     {
@@ -241,18 +218,42 @@ class UserWorkRequestController extends Controller
         $validated['contractor_name'] = Auth::user()->name;
         $validated['for_office']      = 'PROVINCIAL ENGINEERS OFFICE';
 
+        $wasNeedsRevision = $workRequest->status === WorkRequest::STATUS_NEEDS_REVISION;
+        $revisionStep     = $workRequest->current_review_step; // preserved, same reviewer resumes
+
         $changes = $workRequest->buildChanges($validated);
+
+        if ($wasNeedsRevision) {
+            // Resubmitting after a revision request — send it back to the
+            // SAME step/reviewer, no admin reassignment, no restart of pipeline.
+            $validated['status'] = WorkRequest::STATUS_IN_REVIEW;
+            // current_review_step is untouched — Eloquent won't reset it since
+            // it's not part of $validated, so it stays exactly where it was.
+        }
+
         $workRequest->update($validated);
 
+        $logDescription = $wasNeedsRevision
+            ? 'Work request revised and resubmitted by contractor. Returned to ' . ($workRequest->current_step_label ?? 'reviewer') . '.'
+            : 'Work request updated by contractor';
+
         $workRequest->addLog(WorkRequestLog::EVENT_UPDATED, [
-            'description' => 'Work request updated by contractor',
+            'description' => $logDescription,
             'changes'     => $changes,
             'user_id'     => Auth::id(),
         ]);
 
+        if ($wasNeedsRevision && $revisionStep) {
+            $this->notifyReviewerOfResubmission($workRequest, $revisionStep);
+        }
+
+        $successMessage = $wasNeedsRevision
+            ? 'Work request revised and resubmitted for review!'
+            : 'Work request updated successfully!';
+
         return redirect()
             ->route('user.work-requests.show', $workRequest)
-            ->with('success', 'Work request updated successfully!');
+            ->with('success', $successMessage);
     }
 
     /**
@@ -294,6 +295,8 @@ class UserWorkRequestController extends Controller
         return view('user.work-requests.print', compact('workRequest'));
     }
 
+    
+
     /**
      * Get employee details for autofill.
      */
@@ -315,5 +318,18 @@ class UserWorkRequestController extends Controller
             'email'       => Auth::user()->email,
             'phone'       => $employee->phone,
         ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Notify the reviewer (same one who requested the revision) that the
+     * contractor has resubmitted the work request for their review again.
+     */
+    private function notifyReviewerOfResubmission(WorkRequest $workRequest, string $step): void
+    {
+        \App\Services\NotificationService::workRequestResubmitted($workRequest, $step);
     }
 }

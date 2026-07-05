@@ -377,6 +377,8 @@
                         </div>
                     @endif
 
+                    @include('work-requests._recommendation-history', ['step' => 'resident_engineer'])
+
                     {{-- MTQA --}}
                     @if($workRequest->checked_by_mtqa || $workRequest->recommended_action)
                         <div style="padding:16px; border-left:4px solid #f59e0b; border-radius:4px; background:rgba(245,158,11,0.06); margin-bottom:16px;">
@@ -413,6 +415,8 @@
                             <p style="font-size:13px; color:var(--wr-muted); font-style:italic;">No MTQA check submitted yet.</p>
                         </div>
                     @endif
+
+                    @include('work-requests._recommendation-history', ['step' => 'mtqa'])
 
                     {{-- Reviewed By --}}
                     @if($workRequest->reviewed_by || $workRequest->reviewed_by_recommendation_action)
@@ -451,6 +455,8 @@
                         </div>
                     @endif
 
+                    @include('work-requests._recommendation-history', ['step' => 'engineer_iv'])
+
                     {{-- Recommending Approval --}}
                     @if($workRequest->recommending_approval_by || $workRequest->recommending_approval_recommendation_action)
                         <div style="padding:16px; border-left:4px solid #f97316; border-radius:4px; background:rgba(249,115,22,0.06); margin-bottom:16px;">
@@ -488,6 +494,8 @@
                         </div>
                     @endif
 
+                    @include('work-requests._recommendation-history', ['step' => 'engineer_iii'])
+
                     {{-- Approved By --}}
                         @if($workRequest->approved_by || $workRequest->approved_recommendation_action)
                             <div style="padding:16px; border-left:4px solid #14b8a6; border-radius:4px; background:rgba(20,184,166,0.06); margin-bottom:16px;">
@@ -524,6 +532,8 @@
                                 <p style="font-size:13px; color:var(--wr-muted); font-style:italic;">No approval submitted yet.</p>
                             </div>
                         @endif
+
+                        @include('work-requests._recommendation-history', ['step' => 'provincial_engineer'])
 
                     {{-- Acceptance --}}
                         @if($workRequest->accepted_by_contractor || $workRequest->accepted_date)
@@ -685,6 +695,7 @@
 
         </div>
     </div>
+    
 
     @push('scripts')
         @include('reviewer.work-requests.partials._scripts')

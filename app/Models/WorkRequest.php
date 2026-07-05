@@ -164,6 +164,7 @@ class WorkRequest extends Model
     const STATUS_APPROVED  = 'approved';
     const STATUS_ACCEPTED  = 'accepted';
     const STATUS_REJECTED  = 'rejected';
+    const STATUS_NEEDS_REVISION = 'needs_revision';
 
     public static function getStatuses(): array
     {
@@ -174,9 +175,11 @@ class WorkRequest extends Model
             self::STATUS_IN_REVIEW,
             self::STATUS_INSPECTED,
             self::STATUS_REVIEWED,
+            self::STATUS_NEEDS_REVISION,   // ← new
             self::STATUS_APPROVED,
             self::STATUS_ACCEPTED,
             self::STATUS_REJECTED,
+            
         ];
     }
 
@@ -290,7 +293,11 @@ class WorkRequest extends Model
 
     public function canEdit(): bool
     {
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SUBMITTED]);
+        return in_array($this->status, [
+            self::STATUS_DRAFT,
+            self::STATUS_SUBMITTED,
+            self::STATUS_NEEDS_REVISION,
+        ]);
     }
 
     public function isAssigned(): bool
@@ -429,6 +436,7 @@ class WorkRequest extends Model
             self::STATUS_APPROVED   => 'green',
             self::STATUS_ACCEPTED   => 'teal',
             self::STATUS_REJECTED   => 'red',
+            self::STATUS_NEEDS_REVISION => 'amber',
             default                 => 'gray',
         };
     }
@@ -515,5 +523,18 @@ class WorkRequest extends Model
             }
         }
         return $changes;
+    }
+
+    public function recommendations()
+    {
+        return $this->hasMany(WorkRequestRecommendation::class)->orderBy('created_at', 'asc');
+    }
+
+    /**
+     * Get recommendations for a specific step, oldest first (for numbered history display).
+     */
+    public function recommendationsForStep(string $step)
+    {
+        return $this->recommendations()->where('step', $step)->get();
     }
 }
