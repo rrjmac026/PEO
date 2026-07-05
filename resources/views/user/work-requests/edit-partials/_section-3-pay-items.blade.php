@@ -70,4 +70,17 @@
             @enderror
         </div>
     </div>
+
+    {{-- NEW: Quantity --}}
+    <div class="mb-4">
+        <label for="quantity" class="wre-label block text-sm mb-2">
+            {{ __('Quantity') }}
+        </label>
+        <input type="number" name="quantity" id="quantity" step="0.01"
+            value="{{ old('quantity', $workRequest->quantity) }}"
+            class="wre-input block w-full px-3 py-2 shadow-sm">
+        @error('quantity')
+            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+        @enderror
+    </div>
 </div>

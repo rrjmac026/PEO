@@ -52,6 +52,17 @@
             </div>
         </div>
 
+        {{-- NEW: Quantity field --}}
+        <div class="wr-field">
+            <label class="wr-label" for="quantity">Quantity <span class="wr-required">*</span></label>
+            <div class="wr-input-wrap">
+                <span class="wr-icon">📦</span>
+                <input type="number" id="quantity" name="quantity" required
+                    step="0.01" min="0.01" placeholder="0.00"
+                    value="{{ old('quantity') }}">
+            </div>
+        </div>
+
         <div class="wr-field">
             <label class="wr-label" for="notes">Additional Notes</label>
             <div class="wr-input-wrap textarea-wrap">

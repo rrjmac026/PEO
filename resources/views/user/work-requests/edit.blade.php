@@ -47,8 +47,4 @@
             </div>
         </div>
     </div>
-
-    @push('scripts')
-        @include('user.work-requests.edit-partials._edit-scripts')
-    @endpush
 </x-app-layout>

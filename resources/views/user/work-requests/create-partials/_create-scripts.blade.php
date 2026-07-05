@@ -12,7 +12,7 @@
                 1: ['name_of_project', 'project_location'],
                 2: ['requested_work_start_date', 'description_of_work_requested'],
                 3: ['assigned_resident_engineer_id'],
-                4: [],
+                4: ['item_no', 'description', 'estimated_quantity', 'quantity', 'unit', 'equipment_to_be_used'],
             };
             const errorKeys = @json($errors->keys());
             for (let step = 1; step <= 4; step++) {
@@ -105,9 +105,8 @@
         }
 
         // Step 3 — RE required only when the select element exists
-        // (when no engineers are registered the select is absent and the step is skippable)
         if (step === 3) {
-            if (!wrHasReSelect) return true;   // no engineers in system — pass through
+            if (!wrHasReSelect) return true;
 
             const sel = document.getElementById('assigned_resident_engineer_id');
             const err = document.getElementById('err-assigned_resident_engineer_id');
@@ -123,7 +122,29 @@
             return true;
         }
 
-        // Steps 4+ — no mandatory fields
+        // Step 4 — required pay item fields
+        if (step === 4) {
+            const required = ['item_no', 'description', 'estimated_quantity', 'quantity', 'unit', 'equipment_to_be_used'];
+            let ok = true;
+            required.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('wr-error');
+                const err = document.getElementById(`err-${id}`);
+                if (err) err.classList.remove('show');
+            });
+            required.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el || !el.value.trim()) {
+                    if (el) el.classList.add('wr-error');
+                    const err = document.getElementById(`err-${id}`);
+                    if (err) err.classList.add('show');
+                    ok = false;
+                }
+            });
+            return ok;
+        }
+
+        // Step 5 — no mandatory fields (review/summary step)
         return true;
     }
 
@@ -174,7 +195,8 @@
                     { k: 'Item No.',    v: wrGetVal('item_no') || '—' },
                     { k: 'Description', v: wrGetVal('description') || '—' },
                     { k: 'Equipment',   v: wrGetVal('equipment_to_be_used') || '—' },
-                    { k: 'Quantity',    v: wrGetVal('estimated_quantity') ? `${wrGetVal('estimated_quantity')} ${wrGetVal('unit')}` : '—' },
+                    { k: 'Estimated Quantity', v: wrGetVal('estimated_quantity') ? `${wrGetVal('estimated_quantity')} ${wrGetVal('unit')}` : '—' },
+                    { k: 'Quantity',    v: wrGetVal('quantity') ? `${wrGetVal('quantity')} ${wrGetVal('unit')}` : '—' },
                     { k: 'Notes',       v: wrGetVal('notes') || '—' },
                 ]
             }
