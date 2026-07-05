@@ -5,6 +5,6 @@
 <div class="all-recommendations mt-4">
     <h5 class="text-base font-semibold text-gray-800 mb-3">Reviewer Feedback</h5>
     @foreach($reviewSteps as $step)
-        @include('work-requests._recommendation-history', ['step' => $step])
+        @include('reviewer.work-requests.show-partials._recommendation-history', ['step' => $step])
     @endforeach
 </div>

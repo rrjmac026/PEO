@@ -30,24 +30,16 @@ class ReviewerWorkRequestController extends Controller
             ->orWhere('assigned_provincial_engineer_id', $user->id);
         });
 
-        if ($user->role === 'mtqa') {
-            $query = WorkRequest::where(function ($q) use ($user) {
-                $q->where(function ($q2) use ($user) {
-                    $q2->where('current_review_step', 'mtqa')
-                       ->where('assigned_mtqa_id', $user->id);
-                })
-                ->orWhere(function ($q2) use ($user) {
-                    $q2->where('assigned_mtqa_id', $user->id)
-                       ->where('status', WorkRequest::STATUS_APPROVED);
-                });
-            });
-        }
+        // MTQA also needs to see requests approved by the Provincial Engineer
+        // (for printing), even if MTQA's own step is otherwise "done."
+        // Since assigned_mtqa_id is already covered by the base query above,
+        // this is effectively already included — no special-case needed.
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name_of_project', 'LIKE', "%{$request->search}%")
-                  ->orWhere('project_location', 'LIKE', "%{$request->search}%")
-                  ->orWhere('contractor_name', 'LIKE', "%{$request->search}%");
+                ->orWhere('project_location', 'LIKE', "%{$request->search}%")
+                ->orWhere('contractor_name', 'LIKE', "%{$request->search}%");
             });
         }
 

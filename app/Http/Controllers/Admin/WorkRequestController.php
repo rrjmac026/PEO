@@ -93,6 +93,7 @@ class WorkRequestController extends Controller
             'assignedProvincialEngineer',
             'assignedByAdmin',
             'logs',
+            'recommendations.user',
         ]);
 
         return view('admin.work-requests.show', compact('workRequest'));

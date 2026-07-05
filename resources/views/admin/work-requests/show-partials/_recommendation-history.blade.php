@@ -1,11 +1,9 @@
 @php
-    // $workRequest must be available in scope
-    // $step = the pipeline step key to show history for (e.g. 'resident_engineer')
     $stepRecommendations = $workRequest->recommendationsForStep($step);
 @endphp
 
 @if($stepRecommendations->isNotEmpty())
-    <div class="recommendation-history mt-3">
+    <div class="recommendation-history mt-3" style="padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.08);">
         <h6 class="text-sm font-semibold text-gray-700 mb-2">
             Recommendation History — {{ $stepRecommendations->first()->step_label }}
         </h6>

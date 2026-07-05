@@ -1,11 +1,22 @@
 @php
     $stepRecommendations = $workRequest->recommendationsForStep($step);
+
+    // Custom display labels — internal $step keys stay the same everywhere else
+    $customStepLabels = [
+        'resident_engineer'   => 'Resident Engineer',
+        'mtqa'                => 'Material Engineer Assigned',
+        'engineer_iv'         => 'MTQA Division Chief',
+        'engineer_iii'        => 'Project Division Chief',
+        'provincial_engineer' => 'Provincial Engineer',
+    ];
+
+    $displayLabel = $customStepLabels[$step] ?? ($stepRecommendations->first()->step_label ?? '');
 @endphp
 
 @if($stepRecommendations->isNotEmpty())
-    <div class="recommendation-history mt-3">
+    <div class="recommendation-history mt-3" style="padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.08);">
         <h6 class="text-sm font-semibold text-gray-700 mb-2">
-            Recommendation History — {{ $stepRecommendations->first()->step_label }}
+            Recommendation History — {{ $displayLabel }}
         </h6>
         <ol class="space-y-2">
             @foreach($stepRecommendations as $index => $rec)

@@ -86,6 +86,8 @@
                 </span>
             </div>
         </div>
+
+        @include('admin.work-requests.show-partials._recommendation-history', ['step' => 'resident_engineer'])
     </div>
 @endif
 
@@ -93,7 +95,7 @@
 @if($workRequest->checked_by_mtqa || $workRequest->recommended_action)
     <div style="padding: 16px; border-left: 4px solid #f59e0b; border-radius: 4px; background: rgba(245, 158, 11, 0.06); margin-bottom: 16px;">
         <p style="font-size: 12px; font-weight: 700; color: #f59e0b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-            <i class="fas fa-clipboard-check mr-2"></i> MTQA
+            <i class="fas fa-clipboard-check mr-2"></i> Material Engineer Assigned
         </p>
         <div class="wrd-info-grid">
             <div class="wrd-info-item">
@@ -109,6 +111,8 @@
                 </span>
             </div>
         </div>
+
+        @include('admin.work-requests.show-partials._recommendation-history', ['step' => 'mtqa'])
     </div>
 @endif
 
@@ -116,7 +120,7 @@
 @if($workRequest->reviewed_by || $workRequest->reviewed_by_recommendation_action)
     <div style="padding: 16px; border-left: 4px solid #818cf8; border-radius: 4px; background: rgba(129, 140, 248, 0.06); margin-bottom: 16px;">
         <p style="font-size: 12px; font-weight: 700; color: #818cf8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-            <i class="fas fa-user-check mr-2"></i> Reviewed By (Engineer IV)
+            <i class="fas fa-user-check mr-2"></i> Reviewed By (MTQA Division Chief)
         </p>
         <div class="wrd-info-grid">
             <div class="wrd-info-item">
@@ -139,6 +143,8 @@
                 </span>
             </div>
         </div>
+
+        @include('admin.work-requests.show-partials._recommendation-history', ['step' => 'engineer_iv'])
     </div>
 @endif
 
@@ -146,7 +152,7 @@
 @if($workRequest->recommending_approval_by || $workRequest->recommending_approval_recommendation_action)
     <div style="padding: 16px; border-left: 4px solid #f97316; border-radius: 4px; background: rgba(249, 115, 22, 0.06); margin-bottom: 16px;">
         <p style="font-size: 12px; font-weight: 700; color: #f97316; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-            <i class="fas fa-thumbs-up mr-2"></i> Recommending Approval (Engineer III)
+            <i class="fas fa-thumbs-up mr-2"></i> Recommending Approval (Project Division Chief)
         </p>
         <div class="wrd-info-grid">
             <div class="wrd-info-item">
@@ -169,6 +175,8 @@
                 </span>
             </div>
         </div>
+
+        @include('admin.work-requests.show-partials._recommendation-history', ['step' => 'engineer_iii'])
     </div>
 @endif
 
@@ -199,6 +207,8 @@
                 </span>
             </div>
         </div>
+
+        @include('admin.work-requests.show-partials._recommendation-history', ['step' => 'provincial_engineer'])
     </div>
 @endif
 

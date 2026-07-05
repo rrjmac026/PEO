@@ -59,7 +59,6 @@
             @include('user.work-requests.show-partials._show-request-details')
             @include('user.work-requests.show-partials._show-pay-items')
             @include('user.work-requests.show-partials._show-submission')
-            @include('user.work-requests.show-partials._show-activity-log')
             @include('user.work-requests.show-partials._show-recommendations')
             @include('user.work-requests.show-partials._show-danger-zone')
 
