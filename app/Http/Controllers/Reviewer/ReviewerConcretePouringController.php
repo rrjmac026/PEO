@@ -99,12 +99,13 @@ class ReviewerConcretePouringController extends Controller
 
         $isMyTurn = $this->isCurrentReviewer($concretePouring, $user);
 
-        $canFillChecklist = $concretePouring->status === 'approved'
-            && in_array($user->role, ['mtqa', 'resident_engineer'])
-            && (
-                $concretePouring->me_mtqa_user_id == $user->id
-                || $concretePouring->resident_engineer_user_id == $user->id
-            );
+        // ✅ Checklist is no longer gated by approval status. Instead, MTQA
+        // can check it once the Resident Engineer has submitted their
+        // review (re_date is set) — independent of final PE approval.
+        // Resident Engineer can no longer fill it; MTQA only.
+        $canFillChecklist = $user->role === 'mtqa'
+            && $concretePouring->me_mtqa_user_id == $user->id
+            && !is_null($concretePouring->re_date);
 
         return view('reviewer.concrete-pouring.show', compact(
             'concretePouring', 'isMyTurn', 'canFillChecklist'
@@ -115,19 +116,20 @@ class ReviewerConcretePouringController extends Controller
     {
         $user = Auth::user();
 
-        if ($concretePouring->status !== 'approved') {
-            abort(403, 'Checklist can only be filled after the request is approved.');
-        }
+        // ✅ Removed the "must be approved" gate — checklist can be filled
+        // while the request is still under review, but only after the
+        // Resident Engineer has submitted their review.
 
-        if (!in_array($user->role, ['mtqa', 'resident_engineer'])) {
+        if ($user->role !== 'mtqa') {
             abort(403, 'You are not authorized to fill the checklist.');
         }
 
-        if (
-            $concretePouring->me_mtqa_user_id != $user->id
-            && $concretePouring->resident_engineer_user_id != $user->id
-        ) {
+        if ($concretePouring->me_mtqa_user_id != $user->id) {
             abort(403, 'You are not assigned to this concrete pouring request.');
+        }
+
+        if (is_null($concretePouring->re_date)) {
+            abort(403, 'Checklist can only be filled after the Resident Engineer has submitted their review.');
         }
 
         $checklistFields = [
@@ -162,7 +164,7 @@ class ReviewerConcretePouringController extends Controller
         $concretePouring->update($data);
 
         $concretePouring->addLog(ConcretePouringLog::EVENT_UPDATED, [
-            'description' => 'Checklist updated by ' . $user->name . ' (' . $user->role . ') after approval.',
+            'description' => 'Checklist updated by ' . $user->name . ' (' . $user->role . ').',
             'review_step' => null,
         ]);
 

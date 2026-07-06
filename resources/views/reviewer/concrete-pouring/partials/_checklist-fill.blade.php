@@ -90,8 +90,6 @@
     $currentUser      = Auth::user();
     $currentRoleColor = $getRoleStyle($currentUser->role ?? null);
     $currentRoleLabel = $currentRoleColor['label'];
-
-    $isApproved = $concretePouring->status === 'approved';
 @endphp
 
 <div class="cp-card">
@@ -105,8 +103,8 @@
     <div class="cp-card-body">
 
         {{-- ── Header notice ────────────────────────────────────────────── --}}
-        @if($isApproved && $hasBeenFilled)
-            {{-- Approved + at least one person filled it --}}
+        @if($hasBeenFilled)
+            {{-- At least one person filled it --}}
             <div style="padding:12px 16px;
                         background:rgba(5,150,105,0.06); border:1px solid rgba(5,150,105,0.25);
                         border-radius:10px; margin-bottom:16px;">
@@ -163,23 +161,13 @@
                 </div>
             </div>
 
-        @elseif($isApproved && !$hasBeenFilled)
+        @else
             <div style="display:flex; align-items:center; gap:10px; padding:12px 16px;
                         background:rgba(217,119,6,0.06); border:1px solid rgba(217,119,6,0.25);
                         border-radius:10px; margin-bottom:16px;">
                 <i class="fas fa-hourglass-half" style="color:#d97706; font-size:14px; flex-shrink:0;"></i>
                 <span style="font-size:13px; color:#d97706; font-weight:500;">
-                    Awaiting checklist review by assigned ME/MTQA or Resident Engineer.
-                </span>
-            </div>
-
-        @else
-            <div style="display:flex; align-items:center; gap:10px; padding:12px 16px;
-                        background:rgba(100,116,139,0.06); border:1px solid rgba(100,116,139,0.2);
-                        border-radius:10px; margin-bottom:16px;">
-                <i class="fas fa-lock" style="color:#64748b; font-size:14px; flex-shrink:0;"></i>
-                <span style="font-size:13px; color:#64748b; font-weight:500;">
-                    Checklist will be available to fill once the request is approved.
+                    Awaiting checklist review by the assigned ME/MTQA.
                 </span>
             </div>
         @endif
@@ -191,7 +179,7 @@
             </div>
         </div>
 
-        @if($canFillChecklist && $isApproved)
+        @if($canFillChecklist)
             {{-- ── Editable checklist form ── --}}
             <div class="rv-form-box" style="margin-bottom:20px; border-color:rgba(5,150,105,0.35);">
                 <div class="rv-form-title">
