@@ -53,8 +53,8 @@ class ConcretePouringPdf extends \FPDF
         $y = $this->drawChecklistBand($y);
         $y = $this->drawChecklist($y);
         $y = $this->drawCheckedByLabel($y);
-        $y = $this->drawMeMtqaBlock($y);
         $y = $this->drawResidentEngineerBlock($y);
+        $y = $this->drawMeMtqaBlock($y);
         $y = $this->drawApprovalRow($y);
         $this->drawNotedByBlock($y);
     }
