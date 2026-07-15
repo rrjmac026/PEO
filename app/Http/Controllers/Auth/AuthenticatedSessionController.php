@@ -8,7 +8,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -31,11 +30,11 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
 
         return match ($user->role) {
-            'admin'                                                     => redirect()->intended(route('admin.dashboard')),
-            'contractor'                                                      => redirect()->intended(route('user.dashboard')),
+            'admin' => redirect()->intended(route('admin.dashboard')),
+            'contractor' => redirect()->intended(route('user.dashboard')),
             'provincial_engineer', 'site_inspector', 'engineeriv',
-            'surveyor', 'mtqa', 'resident_engineer', 'engineeriii',                             => redirect()->intended(route('reviewer.dashboard')),
-            default                                                     => redirect()->intended(route('dashboard')),
+            'surveyor', 'mtqa', 'resident_engineer', 'engineeriii' => redirect()->intended(route('reviewer.dashboard')),
+            default => redirect()->intended(route('dashboard')),
         };
     }
 
