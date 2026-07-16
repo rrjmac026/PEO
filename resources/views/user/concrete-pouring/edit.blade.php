@@ -242,4 +242,7 @@
             </div>
         </div>
     </div>
+    @push('scripts')
+        @include('user.concrete-pouring._cp-pouring-datetime-script')
+    @endpush
 </x-app-layout>

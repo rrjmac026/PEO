@@ -116,10 +116,6 @@ class ReviewerConcretePouringController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Removed the "must be approved" gate — checklist can be filled
-        // while the request is still under review, but only after the
-        // Resident Engineer has submitted their review.
-
         if ($user->role !== 'mtqa') {
             abort(403, 'You are not authorized to fill the checklist.');
         }
@@ -131,6 +127,10 @@ class ReviewerConcretePouringController extends Controller
         if (is_null($concretePouring->re_date)) {
             abort(403, 'Checklist can only be filled after the Resident Engineer has submitted their review.');
         }
+
+        $request->validate([
+            'actual_volume' => 'nullable|numeric|min:0|max:9999.99',
+        ]);
 
         $checklistFields = [
             'concrete_vibrator', 'field_density_test', 'protective_covering_materials',
@@ -147,7 +147,6 @@ class ReviewerConcretePouringController extends Controller
             $newValue = $request->boolean($field);
             $data[$field] = $newValue;
 
-            // ✅ Only log if the value actually changed
             if ((bool) $concretePouring->$field !== $newValue) {
                 ConcretePouringChecklistLog::create([
                     'concrete_pouring_id' => $concretePouring->id,
@@ -158,6 +157,7 @@ class ReviewerConcretePouringController extends Controller
             }
         }
 
+        $data['actual_volume'] = $request->input('actual_volume');
         $data['checklist_filled_by_user_id'] = $user->id;
         $data['checklist_filled_at']         = now();
 

@@ -42,6 +42,7 @@ class ConcretePouring extends Model
         'contractor',
         'part_of_structure',
         'estimated_volume',
+        'actual_volume',
         'station_limits_section',
         'pouring_datetime',
 
@@ -112,6 +113,7 @@ class ConcretePouring extends Model
         'disapproved_date'  => 'date',
         'noted_date'        => 'date',
         'estimated_volume'  => 'decimal:2',
+        'actual_volume'     => 'decimal:2',
 
         'concrete_vibrator'               => 'boolean',
         'field_density_test'              => 'boolean',

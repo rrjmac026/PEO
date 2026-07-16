@@ -110,6 +110,12 @@
                             <span class="cp-info-value">{{ number_format($concretePouring->estimated_volume, 2) }} m³</span>
                         </div>
                         <div class="cp-info-item">
+                            <span class="cp-info-label">Actual Volume</span>
+                            <span class="cp-info-value {{ is_null($concretePouring->actual_volume) ? 'empty' : '' }}">
+                                {{ !is_null($concretePouring->actual_volume) ? number_format($concretePouring->actual_volume, 2) . ' m³' : 'Not yet recorded' }}
+                            </span>
+                        </div>
+                        <div class="cp-info-item">
                             <span class="cp-info-label">Station / Section</span>
                             <span class="cp-info-value {{ !$concretePouring->station_limits_section ? 'empty' : '' }}">
                                 {{ $concretePouring->station_limits_section ?? 'Not specified' }}

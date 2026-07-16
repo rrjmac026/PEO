@@ -116,7 +116,10 @@ class ConcretePouringPdf extends \FPDF
             ['Location',                        $this->v($this->cp->location)],
             ['Contractor',                      $this->v($this->cp->contractor)],
             ['Part of Structure to be poured',  $this->v($this->cp->part_of_structure)],
-            ['Estimated Volume (cu.m)',          $this->v((string) $this->cp->estimated_volume)],
+            ['Volume',
+                'Estimated Volume (cu.m): ' . $this->v((string) $this->cp->estimated_volume)
+                . '   |   Actual Volume (cu.m): ' . ($this->cp->actual_volume !== null ? (string) $this->cp->actual_volume : '—')
+            ],
             ['Station Limits/Section',          $this->v($this->cp->station_limits_section)],
             ['Date and Time of Pouring',        $this->fmtDatetime($this->cp->pouring_datetime)],
         ];

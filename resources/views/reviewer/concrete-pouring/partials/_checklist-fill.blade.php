@@ -172,6 +172,16 @@
             </div>
         @endif
 
+        @if(!is_null($concretePouring->actual_volume))
+            <div style="display:flex; align-items:center; gap:8px; padding:10px 14px;
+                        background:var(--cp-surface2); border:1px solid var(--cp-border);
+                        border-radius:8px; margin-bottom:16px; font-size:13px;">
+                <i class="fas fa-flask" style="color:var(--cp-accent);"></i>
+                <span style="color:var(--cp-muted);">Actual Volume Poured:</span>
+                <strong style="color:var(--cp-text);">{{ number_format($concretePouring->actual_volume, 2) }} m³</strong>
+            </div>
+        @endif
+
         {{-- Progress bar --}}
         <div class="mb-4">
             <div style="height:6px;background:var(--cp-border);border-radius:99px;overflow:hidden">
@@ -198,6 +208,19 @@
                 <form action="{{ route('reviewer.concrete-pouring.store-checklist', $concretePouring) }}"
                       method="POST">
                     @csrf
+
+                    <div class="mb-4" style="max-width:280px;">
+                        <label class="cp-label">
+                            Actual Volume (m³)
+                            <span style="color:var(--cp-muted);font-weight:400;font-size:.8em;">(optional)</span>
+                        </label>
+                        <input type="number" name="actual_volume" step="0.01" min="0" max="9999.99"
+                               value="{{ old('actual_volume', $concretePouring->actual_volume) }}"
+                               class="cp-input @error('actual_volume') border-red-500 @enderror"
+                               placeholder="0.00">
+                        @error('actual_volume')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                    </div>
+
                     <div class="cp-checklist-fill-grid">
                         @foreach($checklistItems as $field => $label)
                             @php

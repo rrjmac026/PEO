@@ -28,6 +28,8 @@ return new class extends Migration
             $table->string('part_of_structure');
             $table->decimal('estimated_volume', 10, 2)
                 ->comment('In cubic meters');
+            $table->decimal('actual_volume', 10, 2)
+                ->nullable();
             $table->string('station_limits_section')->nullable();
             $table->dateTime('pouring_datetime');
 

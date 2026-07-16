@@ -67,7 +67,7 @@ function initCpSignaturePad(prefix, radioName) {
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             ctx.clearRect(0, 0, cssW, cssH);
-            // ── No white refill on clear either ──────────────────────
+            
             output.value = '';
             if (preview && previewEmpty) {
                 preview.style.display = 'none';

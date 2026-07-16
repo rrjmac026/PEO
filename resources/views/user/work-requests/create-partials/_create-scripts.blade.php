@@ -238,6 +238,8 @@
         if (dateEl) {
             dateEl.min = new Date().toISOString().split('T')[0];
 
+            const isWeekend = (d) => d.getDay() === 0 || d.getDay() === 6; // Sun=0, Sat=6
+
             dateEl.addEventListener('change', () => {
                 if (!dateEl.value) {
                     if (hintEl) hintEl.style.display = 'none';
@@ -245,8 +247,27 @@
                 }
 
                 const filed = new Date(dateEl.value + 'T00:00:00');
+
+                // Reject weekend filing dates outright
+                if (isWeekend(filed)) {
+                    dateEl.value = '';
+                    if (hintEl) {
+                        hintEl.innerHTML = `⚠ Weekends are not allowed. Please select a weekday.`;
+                        hintEl.style.color = '#c0392b';
+                        hintEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                if (hintEl) hintEl.style.color = '';
+
                 const earliest = new Date(dateEl.value + 'T00:00:00');
                 earliest.setDate(earliest.getDate() + 4); // +3 blocked days, lands on 4th
+
+                // If the computed earliest start lands on a weekend, push to Monday
+                while (isWeekend(earliest)) {
+                    earliest.setDate(earliest.getDate() + 1);
+                }
 
                 dateEl.value = earliest.toISOString().split('T')[0];
 
