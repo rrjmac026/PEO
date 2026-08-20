@@ -192,9 +192,6 @@
                 <i class="fas fa-inbox"></i>
                 <div class="wr-empty-title">No work requests found</div>
                 <div class="wr-empty-sub">Get started by creating your first work request</div>
-                <a href="{{ route('admin.work-requests.create') }}" class="wr-btn wr-btn-orange">
-                    <i class="fas fa-plus-circle"></i> Create Work Request
-                </a>
             </div>
         @endif
     </div>
